@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* prime-atlas dark theme (default) */
+    --background: 220 30% 6%;        /* #0A0E1A near-black navy */
+    --foreground: 210 20% 92%;       /* near-white */
+
+    --card: 220 28% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 28% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 160 100% 45%;         /* signal green #00E5A0 */
+    --primary-foreground: 220 30% 6%;
+
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 210 20% 92%;
+
+    --muted: 220 25% 14%;
+    --muted-foreground: 210 15% 55%;
+
+    --accent: 38 90% 55%;            /* amber */
+    --accent-foreground: 220 30% 6%;
+
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 210 20% 92%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 160 100% 45%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
+}
+
+@layer utilities {
+  /* Score badge colors */
+  .score-high   { @apply text-pa-green; }
+  .score-medium { @apply text-pa-amber; }
+  .score-low    { @apply text-pa-red; }
+
+  /* Terminal-style monospace for data values */
+  .data-value {
+    @apply font-mono text-sm tabular-nums;
+  }
+
+  /* Gradient border for premium cards */
+  .premium-border {
+    background: linear-gradient(var(--card), var(--card)) padding-box,
+                linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent))) border-box;
+    border: 1px solid transparent;
+  }
+}
