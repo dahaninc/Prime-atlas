@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useFormState } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { loginAction } from "@/app/auth/actions";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -13,9 +14,13 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
+
+  // Server action state for login
+  const [loginError, loginDispatch] = useFormState(loginAction, null);
+  const [isPending] = useTransition();
 
   // Password strength
   const pwStrength = (() => {
@@ -26,62 +31,42 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     if (/[A-Z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
-    return score; // 0–5
+    return score;
   })();
   const pwLabel = ["", "Weak", "Weak", "Fair", "Strong", "Very strong"][pwStrength];
   const pwColor = ["", "bg-pa-red", "bg-pa-red", "bg-pa-amber", "bg-pa-green", "bg-pa-green"][pwStrength];
-  const router = useRouter();
+
   const supabase = createClient();
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
-
+    setSignupLoading(true);
+    setSignupError(null);
+    setSignupSuccess(null);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: name },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-          },
-        });
-        if (error) throw error;
-        setSuccess("Check your email for a confirmation link.");
-      } else {
-        // POST to our server-side login route so session cookies are set
-        // by the Next.js server — client-side cookie setting in @supabase/ssr
-        // v0.3 doesn't reliably reach the server middleware.
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-          credentials: "include",
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error ?? "Login failed");
-        }
-        window.location.href = redirectTo ?? "/dashboard";
-      }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+      setSignupSuccess("Check your email for a confirmation link.");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
-      setError(
-        message.includes("Invalid login") ? "Invalid email or password." :
-        message.includes("Email not confirmed") ? "Please confirm your email first." :
+      setSignupError(
         message.includes("already registered") ? "An account with this email already exists." :
         message.includes("Password should") ? "Password must be at least 6 characters." :
         message
       );
     } finally {
-      setLoading(false);
+      setSignupLoading(false);
     }
   }
 
-  if (success) {
+  if (signupSuccess) {
     return (
       <div className="p-5 rounded-lg border border-pa-green/30 bg-pa-green/5 text-center">
         <div className="w-10 h-10 rounded-full bg-pa-green/10 border border-pa-green/30 flex items-center justify-center mx-auto mb-3">
@@ -90,37 +75,101 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
           </svg>
         </div>
         <p className="text-sm font-medium text-foreground mb-1">Check your inbox</p>
-        <p className="text-xs text-muted-foreground">{success}</p>
+        <p className="text-xs text-muted-foreground">{signupSuccess}</p>
       </div>
     );
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {mode === "signup" && (
-        <div>
-          <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">
-            Full name <span className="text-pa-red">*</span>
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            required
-            minLength={2}
-            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
-          />
+  // ── LOGIN FORM (server action) ────────────────────────────────────────────
+  if (mode === "login") {
+    return (
+      <div className="space-y-4">
+        <form action={loginDispatch} className="space-y-4">
+          {/* Hidden redirect target */}
+          <input type="hidden" name="redirectTo" value={redirectTo ?? "/dashboard"} />
+
+          <div>
+            <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">
+              Email address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <label htmlFor="password" className="block text-sm text-muted-foreground">
+                Password
+              </label>
+              <a href="/auth/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Forgot password?
+              </a>
+            </div>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password"
+              required
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+            />
+          </div>
+
+          {loginError && (
+            <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">
+              {loginError}
+            </div>
+          )}
+
+          <LoginButton pending={isPending} />
+        </form>
+
+        {/* Divider */}
+        <div className="relative flex items-center gap-3 py-1">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="flex-1 border-t border-border" />
         </div>
-      )}
+        <MagicLinkButton email={email} />
+      </div>
+    );
+  }
+
+  // ── SIGNUP FORM (client-side) ─────────────────────────────────────────────
+  return (
+    <form onSubmit={handleSignup} className="space-y-4">
+      <div>
+        <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">
+          Full name <span className="text-pa-red">*</span>
+        </label>
+        <input
+          id="name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name"
+          required
+          minLength={2}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+        />
+      </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">
+        <label htmlFor="email-signup" className="block text-sm text-muted-foreground mb-1.5">
           Email address
         </label>
         <input
-          id="email"
+          id="email-signup"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -131,27 +180,20 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
       </div>
 
       <div>
-        <div className="flex justify-between items-center mb-1.5">
-          <label htmlFor="password" className="block text-sm text-muted-foreground">
-            Password
-          </label>
-          {mode === "login" && (
-            <a href="/auth/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Forgot password?
-            </a>
-          )}
-        </div>
+        <label htmlFor="password-signup" className="block text-sm text-muted-foreground mb-1.5">
+          Password
+        </label>
         <input
-          id="password"
+          id="password-signup"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"}
+          placeholder="Min. 8 characters"
           required
-          minLength={mode === "signup" ? 8 : 6}
+          minLength={8}
           className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
         />
-        {mode === "signup" && password.length > 0 && (
+        {password.length > 0 && (
           <div className="mt-2">
             <div className="flex gap-1 mb-1">
               {[1,2,3,4,5].map((s) => (
@@ -168,33 +210,45 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
         )}
       </div>
 
-      {error && (
+      {signupError && (
         <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">
-          {error}
+          {signupError}
         </div>
       )}
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={signupLoading}
         className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {loading && (
+        {signupLoading && (
           <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
         )}
-        {mode === "login" ? "Sign in" : "Create account"}
+        Create account
       </button>
 
-      {/* Divider */}
       <div className="relative flex items-center gap-3 py-1">
         <div className="flex-1 border-t border-border" />
         <span className="text-xs text-muted-foreground">or</span>
         <div className="flex-1 border-t border-border" />
       </div>
-
-      {/* Magic link */}
       <MagicLinkButton email={email} />
     </form>
+  );
+}
+
+function LoginButton({ pending }: { pending: boolean }) {
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+    >
+      {pending && (
+        <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
+      )}
+      Sign in
+    </button>
   );
 }
 
