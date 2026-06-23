@@ -52,8 +52,19 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
         if (error) throw error;
         setSuccess("Check your email for a confirmation link.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        // POST to our server-side login route so session cookies are set
+        // by the Next.js server — client-side cookie setting in @supabase/ssr
+        // v0.3 doesn't reliably reach the server middleware.
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+          credentials: "include",
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error ?? "Login failed");
+        }
         window.location.href = redirectTo ?? "/dashboard";
       }
     } catch (err: unknown) {
