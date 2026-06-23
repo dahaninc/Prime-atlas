@@ -43,6 +43,13 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
+  // Debug: log cookie names and auth result on protected routes
+  if (path.startsWith("/dashboard")) {
+    const cookieNames = request.cookies.getAll().map((c) => c.name);
+    console.log("[middleware] /dashboard cookies:", cookieNames.join(", ") || "NONE");
+    console.log("[middleware] /dashboard user:", user?.id ?? "NULL");
+  }
+
   // ── 1. Auth guard ────────────────────────────────────────────────────────
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {
