@@ -30,11 +30,7 @@ export default async function LoginPage({
 
         {params.error && (
           <div className="mb-4 p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">
-            {params.error === "invalid_credentials"
-              ? "Invalid email or password."
-              : params.error === "email_not_confirmed"
-              ? "Please confirm your email before signing in."
-              : "Something went wrong. Please try again."}
+            {decodeURIComponent(params.error)}
           </div>
         )}
 

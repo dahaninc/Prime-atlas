@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { loginAction } from "@/app/auth/actions";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -17,10 +16,9 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
   const [signupLoading, setSignupLoading] = useState(false);
 
-  const [isPending, startTransition] = useTransition();
   const supabase = createClient();
 
-  // Password strength
+  // Password strength (used for signup UX)
   const pwStrength = (() => {
     if (!password) return 0;
     let score = 0;
@@ -33,20 +31,6 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   })();
   const pwLabel = ["", "Weak", "Weak", "Fair", "Strong", "Very strong"][pwStrength];
   const pwColor = ["", "bg-pa-red", "bg-pa-red", "bg-pa-amber", "bg-pa-green", "bg-pa-green"][pwStrength];
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    const fd = new FormData();
-    fd.set("email", email);
-    fd.set("password", password);
-    fd.set("redirectTo", redirectTo ?? "/dashboard");
-    startTransition(async () => {
-      const result = await loginAction(null, fd);
-      if (result) setError(result);
-      // if null → server action called redirect() and navigation is handled
-    });
-  }
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -89,35 +73,91 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     );
   }
 
-  const loading = mode === "login" ? isPending : signupLoading;
+  // ── LOGIN — native POST form → /api/auth/signin ───────────────────────────
+  // The browser submits, the server sets cookies on the redirect response,
+  // and the browser stores them before following the redirect. No JS cookie magic.
+  if (mode === "login") {
+    return (
+      <div className="space-y-4">
+        <form method="POST" action="/api/auth/signin" className="space-y-4">
+          <input type="hidden" name="redirectTo" value={redirectTo ?? "/dashboard"} />
 
-  return (
-    <form onSubmit={mode === "login" ? handleLogin : handleSignup} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">
+              Email address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+            />
+          </div>
 
-      {mode === "signup" && (
-        <div>
-          <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">
-            Full name <span className="text-pa-red">*</span>
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            required
-            minLength={2}
-            className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
-          />
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <label htmlFor="password" className="block text-sm text-muted-foreground">
+                Password
+              </label>
+              <a href="/auth/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Forgot password?
+              </a>
+            </div>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Your password"
+              required
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+          >
+            Sign in
+          </button>
+        </form>
+
+        <div className="relative flex items-center gap-3 py-1">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="flex-1 border-t border-border" />
         </div>
-      )}
+        <MagicLinkButton email={email} onEmailChange={setEmail} />
+      </div>
+    );
+  }
+
+  // ── SIGNUP — client-side ──────────────────────────────────────────────────
+  return (
+    <form onSubmit={handleSignup} className="space-y-4">
+      <div>
+        <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">
+          Full name <span className="text-pa-red">*</span>
+        </label>
+        <input
+          id="name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name"
+          required
+          minLength={2}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+        />
+      </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">
+        <label htmlFor="email-signup" className="block text-sm text-muted-foreground mb-1.5">
           Email address
         </label>
         <input
-          id="email"
+          id="email-signup"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -128,34 +168,24 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
       </div>
 
       <div>
-        <div className="flex justify-between items-center mb-1.5">
-          <label htmlFor="password" className="block text-sm text-muted-foreground">
-            Password
-          </label>
-          {mode === "login" && (
-            <a href="/auth/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Forgot password?
-            </a>
-          )}
-        </div>
+        <label htmlFor="password-signup" className="block text-sm text-muted-foreground mb-1.5">
+          Password
+        </label>
         <input
-          id="password"
+          id="password-signup"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"}
+          placeholder="Min. 8 characters"
           required
-          minLength={mode === "signup" ? 8 : 6}
+          minLength={8}
           className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
         />
-        {mode === "signup" && password.length > 0 && (
+        {password.length > 0 && (
           <div className="mt-2">
             <div className="flex gap-1 mb-1">
               {[1,2,3,4,5].map((s) => (
-                <div
-                  key={s}
-                  className={`h-1 flex-1 rounded-full transition-colors ${s <= pwStrength ? pwColor : "bg-secondary"}`}
-                />
+                <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${s <= pwStrength ? pwColor : "bg-secondary"}`} />
               ))}
             </div>
             <p className={`text-xs ${pwStrength <= 2 ? "text-pa-red" : pwStrength === 3 ? "text-pa-amber" : "text-pa-green"}`}>
@@ -173,13 +203,13 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={signupLoading}
         className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {loading && (
+        {signupLoading && (
           <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
         )}
-        {mode === "login" ? "Sign in" : "Create account"}
+        Create account
       </button>
 
       <div className="relative flex items-center gap-3 py-1">
@@ -187,12 +217,12 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
         <span className="text-xs text-muted-foreground">or</span>
         <div className="flex-1 border-t border-border" />
       </div>
-      <MagicLinkButton email={email} />
+      <MagicLinkButton email={email} onEmailChange={setEmail} />
     </form>
   );
 }
 
-function MagicLinkButton({ email }: { email: string }) {
+function MagicLinkButton({ email, onEmailChange }: { email: string; onEmailChange: (v: string) => void }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -209,13 +239,23 @@ function MagicLinkButton({ email }: { email: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={sendMagicLink}
-      disabled={loading || sent}
-      className="w-full border border-border text-foreground text-sm py-2.5 rounded-lg hover:bg-secondary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-    >
-      {sent ? "Magic link sent — check your inbox" : loading ? "Sending…" : "Sign in with magic link"}
-    </button>
+    <div className="space-y-2">
+      {/* Show email input for magic link if login form (uncontrolled) */}
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => onEmailChange(e.target.value)}
+        placeholder="Email for magic link"
+        className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
+      />
+      <button
+        type="button"
+        onClick={sendMagicLink}
+        disabled={loading || sent}
+        className="w-full border border-border text-foreground text-sm py-2.5 rounded-lg hover:bg-secondary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {sent ? "Magic link sent — check your inbox" : loading ? "Sending…" : "Sign in with magic link"}
+      </button>
+    </div>
   );
 }
