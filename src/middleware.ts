@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = [
-  "/dashboard",
+  // "/dashboard", // temporarily removed — page has its own auth guard for debugging
   "/watchlists",
   "/signals",
   "/opportunities/finder",
@@ -43,12 +43,6 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
-  // Debug: log cookie names and auth result on protected routes
-  if (path.startsWith("/dashboard")) {
-    const cookieNames = request.cookies.getAll().map((c) => c.name);
-    console.log("[middleware] /dashboard cookies:", cookieNames.join(", ") || "NONE");
-    console.log("[middleware] /dashboard user:", user?.id ?? "NULL");
-  }
 
   // ── 1. Auth guard ────────────────────────────────────────────────────────
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));

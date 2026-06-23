@@ -14,7 +14,8 @@ export default async function DashboardPage({
   searchParams: Promise<{ upgraded?: string }>;
 }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  console.log("[dashboard] user:", user?.id ?? "NULL", "| error:", authError?.message ?? "none");
   if (!user) redirect("/auth/login?redirect=/dashboard");
 
   const params = await searchParams;
