@@ -1,16 +1,29 @@
-// prime-atlas Service Worker
-// Provides offline shell + caches static assets
+// prime-atlas Service Worker v2
+// Provides offline shell + caches static assets only
+// IMPORTANT: Protected routes and auth routes are NEVER cached
 
-const CACHE_NAME = "prime-atlas-v1";
+const CACHE_NAME = "prime-atlas-v2"; // bumped to clear all v1 cached redirects
+
 const OFFLINE_URL = "/offline";
 
-// Assets to pre-cache (app shell)
+// App shell assets (public, never auth-gated)
 const SHELL_ASSETS = [
   "/",
   "/offline",
   "/manifest.json",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
+];
+
+// Routes that must ALWAYS go to the network — never serve from cache.
+// These are auth-gated (returning a cached redirect would break login).
+const BYPASS_PREFIXES = [
+  "/dashboard",
+  "/watchlists",
+  "/signals",
+  "/opportunities/finder",
+  "/auth/",
+  "/api/",
 ];
 
 // ─── Install ──────────────────────────────────────────────────────────────────
@@ -21,7 +34,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// ─── Activate ─────────────────────────────────────────────────────────────────
+// ─── Activate — wipe ALL old caches ──────────────────────────────────────────
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -31,42 +44,49 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// ─── Fetch strategy ───────────────────────────────────────────────────────────
+// ─── Fetch ────────────────────────────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and non-same-origin (Supabase API, etc.)
+  // Only intercept GET requests to this origin
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // Skip Next.js internal routes
-  if (url.pathname.startsWith("/_next/")) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached ?? fetch(request))
-    );
+  // Auth-gated + API routes: ALWAYS network, NEVER cache
+  if (BYPASS_PREFIXES.some((p) => url.pathname.startsWith(p))) {
+    // Let the browser handle it natively — no respondWith means pass-through
     return;
   }
 
-  // Network-first for API routes (rankings, signals — need fresh data)
-  if (url.pathname.startsWith("/api/")) {
+  // Next.js static chunks: cache-first (immutable hashed filenames)
+  if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
+      caches.match(request).then((cached) => cached ?? fetch(request).then((res) => {
+        if (res.status === 200) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-          return res;
-        })
-        .catch(() => caches.match(request))
+        }
+        return res;
+      }))
     );
     return;
   }
 
-  // Stale-while-revalidate for navigation
+  // Skip other /_next/ internals (image optimisation etc.)
+  if (url.pathname.startsWith("/_next/")) return;
+
+  // Public navigation pages: stale-while-revalidate
+  // CRITICAL: only cache HTTP 200 responses — never cache redirects (307, 302, 303)
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       const cached = await cache.match(request);
       const fetchPromise = fetch(request)
-        .then((res) => { cache.put(request, res.clone()); return res; })
+        .then((res) => {
+          if (res.status === 200) {
+            cache.put(request, res.clone());
+          }
+          return res;
+        })
         .catch(() => caches.match(OFFLINE_URL));
       return cached ?? fetchPromise;
     })
