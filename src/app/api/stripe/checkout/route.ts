@@ -10,17 +10,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs"; // Stripe SDK requires Node
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
-
-const PRICE_IDS: Record<string, string | undefined> = {
-  pro:            process.env.STRIPE_PRICE_PRO,
-  investor:       process.env.STRIPE_PRICE_INVESTOR,
-  institutional:  process.env.STRIPE_PRICE_INSTITUTIONAL,
-};
-
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
+  const PRICE_IDS: Record<string, string | undefined> = {
+    pro:            process.env.STRIPE_PRICE_PRO,
+    investor:       process.env.STRIPE_PRICE_INVESTOR,
+    institutional:  process.env.STRIPE_PRICE_INSTITUTIONAL,
+  };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

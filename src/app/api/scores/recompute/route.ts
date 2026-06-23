@@ -30,9 +30,9 @@ export async function POST(request: Request) {
     .from("municipalities")
     .select("id, growth_score, infrastructure_score, development_score, liquidity_score, risk_score");
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !municipalities) return NextResponse.json({ error: error?.message ?? "No data" }, { status: 500 });
 
-  const updates = municipalities.map((m) => ({
+  const updates = (municipalities as Array<{ id: string; growth_score: number; infrastructure_score: number; development_score: number; liquidity_score: number; risk_score: number }>).map((m) => ({
     id: m.id,
     opportunity_score: computeOpportunityScore({
       growth_score:         m.growth_score,
@@ -46,7 +46,8 @@ export async function POST(request: Request) {
   // Upsert scores in batch
   const { error: upsertError } = await supabase
     .from("municipalities")
-    .upsert(updates, { onConflict: "id" });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .upsert(updates as any, { onConflict: "id" });
 
   if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 });
 
@@ -56,7 +57,8 @@ export async function POST(request: Request) {
     .select("id, scores");
 
   if (opps) {
-    const oppUpdates = opps
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const oppUpdates = (opps as any[])
       .filter((o) => o.scores)
       .map((o) => {
         const s = o.scores as {
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
           development_score: number; liquidity_score: number; risk_score: number;
         };
         return {
-          id: o.id,
+          id: o.id as string,
           opportunity_score: computeOpportunityScore({
             growth_score:         s.growth_score ?? 0,
             infrastructure_score: s.infrastructure_score ?? 0,
@@ -76,7 +78,8 @@ export async function POST(request: Request) {
       });
 
     if (oppUpdates.length > 0) {
-      await supabase.from("opportunities").upsert(oppUpdates, { onConflict: "id" });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await supabase.from("opportunities").upsert(oppUpdates as any, { onConflict: "id" });
     }
   }
 

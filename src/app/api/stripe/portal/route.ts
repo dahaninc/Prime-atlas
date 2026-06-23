@@ -10,11 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
-
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

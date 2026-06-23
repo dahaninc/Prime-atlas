@@ -40,8 +40,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push(redirectTo ?? "/dashboard");
-        router.refresh();
+        window.location.href = redirectTo ?? "/dashboard";
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";

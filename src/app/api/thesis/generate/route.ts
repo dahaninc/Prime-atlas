@@ -15,8 +15,6 @@ import { computeOpportunityScore, weightsForObjective } from "@/lib/scoring";
 export const runtime = "edge";
 export const maxDuration = 30;
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
 type Objective = "capital_growth" | "rental_yield" | "development" | "mixed";
 
 interface ThesisRequest {
@@ -32,6 +30,7 @@ interface ThesisRequest {
 }
 
 export async function POST(request: Request) {
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
   const body: ThesisRequest = await request.json();
   const { municipality_id, opportunity_id, context = {} } = body;
 

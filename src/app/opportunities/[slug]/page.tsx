@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -10,12 +11,23 @@ import { ThesisStream } from "@/components/ui/ThesisStream";
 import type { Signal, InfrastructureProject } from "@/types";
 
 // Generate static params for all municipalities at build time (ISR)
+// Falls back to empty array if env vars aren't available (local builds)
 export async function generateStaticParams() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("municipalities").select("name");
-  return (data ?? []).map((m) => ({
-    slug: m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, ""),
-  }));
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return [];
+  }
+  try {
+    const supabase = createPublicClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    const { data } = await supabase.from("municipalities").select("name");
+    return (data ?? []).map((m: { name: string }) => ({
+      slug: m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, ""),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export const revalidate = 3600;

@@ -40,8 +40,8 @@ export default async function DashboardPage({
 
     supabase
       .from("signals")
-      .select("id, title, signal_type, opportunity_impact, published_at, municipalities(name, region)")
-      .order("published_at", { ascending: false })
+      .select("id, title, signal_type, opportunity_impact, detected_at, municipalities(name, region)")
+      .order("detected_at", { ascending: false })
       .limit(8),
   ]);
 

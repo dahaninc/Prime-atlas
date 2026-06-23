@@ -13,8 +13,6 @@ import { signalAlertEmail, dailyDigestEmail, type SignalAlertData } from "@/lib/
 
 export const runtime = "edge";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface SendAlertBody {
@@ -48,6 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const from = process.env.RESEND_FROM_EMAIL ?? "alerts@prime-atlas.com";
 
   try {

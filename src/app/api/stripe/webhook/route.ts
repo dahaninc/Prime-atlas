@@ -11,28 +11,27 @@
 import { type NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient as createServerClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+type SubscriptionTier = Database["public"]["Enums"]["subscription_tier"];
 
 // Use service-role client — no RLS, runs outside user context
 function adminClient() {
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 }
 
-const TIER_BY_PRICE: Record<string, string> = {
-  [process.env.STRIPE_PRICE_PRO            ?? ""]: "pro",
-  [process.env.STRIPE_PRICE_INVESTOR       ?? ""]: "investor",
-  [process.env.STRIPE_PRICE_INSTITUTIONAL  ?? ""]: "institutional",
-};
-
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-06-20" });
+  const TIER_BY_PRICE: Record<string, SubscriptionTier> = {
+    [process.env.STRIPE_PRICE_PRO            ?? ""]: "pro",
+    [process.env.STRIPE_PRICE_INVESTOR       ?? ""]: "investor",
+    [process.env.STRIPE_PRICE_INSTITUTIONAL  ?? ""]: "institutional",
+  };
   const body = await req.text();
   const sig  = req.headers.get("stripe-signature") ?? "";
 

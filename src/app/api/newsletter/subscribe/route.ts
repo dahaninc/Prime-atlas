@@ -10,8 +10,6 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 function adminSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,6 +39,7 @@ export async function POST(req: NextRequest) {
     .upsert({ email, source }, { onConflict: "email", ignoreDuplicates: true });
 
   // 2. Add to Resend audience
+  const resend = new Resend(process.env.RESEND_API_KEY);
   if (process.env.RESEND_AUDIENCE_ID) {
     try {
       await resend.contacts.create({
