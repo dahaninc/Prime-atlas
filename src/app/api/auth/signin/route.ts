@@ -1,12 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * Native POST → redirect login handler.
- * The browser submits the form, we set session cookies on the redirect response,
- * the browser stores them and follows the redirect to /dashboard.
- * No client-side JS cookie magic — pure HTTP PRG pattern.
- */
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const email = (formData.get("email") as string) ?? "";
@@ -20,8 +14,9 @@ export async function POST(request: NextRequest) {
       { status: 303 }
     );
 
-  // Build the success redirect first — we attach cookies to it inside setAll
   const successResponse = NextResponse.redirect(new URL(redirectTo, origin), { status: 303 });
+
+  const cookiesSet: string[] = [];
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,8 +27,8 @@ export async function POST(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // Write directly onto the redirect response — guaranteed to reach the browser
           cookiesToSet.forEach(({ name, value, options }) => {
+            cookiesSet.push(name);
             successResponse.cookies.set(
               name,
               value,
@@ -45,7 +40,13 @@ export async function POST(request: NextRequest) {
     }
   );
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  console.log("[signin] error:", error?.message ?? "none");
+  console.log("[signin] user:", data?.session?.user?.id ?? "NULL");
+  console.log("[signin] setAll called with cookies:", cookiesSet);
+  console.log("[signin] response Set-Cookie count:", successResponse.cookies.getAll().length);
+  console.log("[signin] response cookie names:", successResponse.cookies.getAll().map(c => c.name));
 
   if (error) {
     const msg =
