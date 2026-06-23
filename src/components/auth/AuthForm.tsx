@@ -16,6 +16,20 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Password strength
+  const pwStrength = (() => {
+    if (!password) return 0;
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    return score; // 0–5
+  })();
+  const pwLabel = ["", "Weak", "Weak", "Fair", "Strong", "Very strong"][pwStrength];
+  const pwColor = ["", "bg-pa-red", "bg-pa-red", "bg-pa-amber", "bg-pa-green", "bg-pa-green"][pwStrength];
   const router = useRouter();
   const supabase = createClient();
 
@@ -75,7 +89,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
       {mode === "signup" && (
         <div>
           <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">
-            Full name
+            Full name <span className="text-pa-red">*</span>
           </label>
           <input
             id="name"
@@ -83,6 +97,8 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
+            required
+            minLength={2}
             className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
           />
         </div>
@@ -119,11 +135,26 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder={mode === "signup" ? "At least 6 characters" : "Your password"}
+          placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"}
           required
-          minLength={6}
+          minLength={mode === "signup" ? 8 : 6}
           className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
         />
+        {mode === "signup" && password.length > 0 && (
+          <div className="mt-2">
+            <div className="flex gap-1 mb-1">
+              {[1,2,3,4,5].map((s) => (
+                <div
+                  key={s}
+                  className={`h-1 flex-1 rounded-full transition-colors ${s <= pwStrength ? pwColor : "bg-secondary"}`}
+                />
+              ))}
+            </div>
+            <p className={`text-xs ${pwStrength <= 2 ? "text-pa-red" : pwStrength === 3 ? "text-pa-amber" : "text-pa-green"}`}>
+              {pwLabel}
+            </p>
+          </div>
+        )}
       </div>
 
       {error && (

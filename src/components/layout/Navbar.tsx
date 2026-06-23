@@ -28,8 +28,8 @@ export function Navbar({ user }: NavbarProps) {
           <span className="text-pa-green font-mono font-bold text-base tracking-tight">
             prime-atlas
           </span>
-          <span className="hidden sm:inline text-muted-foreground text-xs border border-border rounded px-1.5 py-0.5">
-            BETA
+          <span className="hidden sm:inline text-pa-green/70 text-xs border border-pa-green/20 rounded px-1.5 py-0.5 font-mono">
+            Early Access
           </span>
         </Link>
 

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_GB",
-    url: "https://prime-atlas.com",
+    url: process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app",
     siteName: "prime-atlas",
     title: "prime-atlas | Find Tomorrow's Winners Before Everyone Else",
     description:

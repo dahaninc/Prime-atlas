@@ -30,7 +30,7 @@ export default async function SpainOpportunityIndexPage() {
 
   const { data: municipalities } = await supabase
     .from("municipalities")
-    .select("id, name, region, population, opportunity_score, growth_score, infrastructure_score, development_score, liquidity_score, risk_score")
+    .select("id, name, region, slug, opportunity_score, growth_score, infrastructure_score, development_score, liquidity_score, risk_score")
     .order("opportunity_score", { ascending: false })
     .limit(50);
 
@@ -93,44 +93,51 @@ export default async function SpainOpportunityIndexPage() {
 
         {/* Rankings table */}
         <div className="border border-border rounded-xl overflow-hidden bg-card">
-          {/* Header */}
-          <div className="hidden sm:grid grid-cols-12 px-5 py-3 border-b border-border bg-secondary/30 text-xs text-muted-foreground font-mono uppercase tracking-widest">
-            <span className="col-span-1">#</span>
-            <span className="col-span-3">Municipality</span>
-            <span className="col-span-2">Region</span>
-            <span className="col-span-1 text-right hidden lg:block">Growth</span>
-            <span className="col-span-1 text-right hidden lg:block">Infra</span>
-            <span className="col-span-1 text-right hidden lg:block">Dev</span>
-            <span className="col-span-1 text-right hidden lg:block">Liquidity</span>
-            <span className="col-span-3 text-right">Score</span>
+          {/* Header — desktop shows sub-scores, mobile shows just rank/name/score */}
+          <div className="hidden lg:grid grid-cols-[2rem_1fr_10rem_4rem_4rem_4rem_4rem_5rem] px-5 py-3 border-b border-border bg-secondary/30 text-xs text-muted-foreground font-mono uppercase tracking-widest gap-2">
+            <span>#</span>
+            <span>Municipality</span>
+            <span>Region</span>
+            <span className="text-right">Growth</span>
+            <span className="text-right">Infra</span>
+            <span className="text-right">Dev</span>
+            <span className="text-right">Liquidity</span>
+            <span className="text-right">Score</span>
+          </div>
+          <div className="hidden sm:grid lg:hidden grid-cols-[2rem_1fr_10rem_5rem] px-5 py-3 border-b border-border bg-secondary/30 text-xs text-muted-foreground font-mono uppercase tracking-widest gap-2">
+            <span>#</span>
+            <span>Municipality</span>
+            <span>Region</span>
+            <span className="text-right">Score</span>
           </div>
 
-          {municipalities?.map((m, i) => (
-            <Link
-              key={m.id}
-              href={`/opportunities/${m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, "")}`}
-              className="grid grid-cols-12 px-5 py-4 border-b border-border last:border-0 hover:bg-secondary/20 transition-colors items-center group"
-            >
-              <span className="col-span-1 text-muted-foreground font-mono text-sm">
-                {i + 1}
-              </span>
-              <div className="col-span-5 sm:col-span-3">
-                <p className="font-medium text-sm group-hover:text-pa-green transition-colors">{m.name}</p>
-                <p className="sm:hidden text-xs text-muted-foreground">{m.region}</p>
-              </div>
-              <span className="hidden sm:block col-span-2 text-muted-foreground text-sm">{m.region}</span>
-              <span className="hidden lg:block col-span-1 text-right font-mono text-xs text-muted-foreground">{m.growth_score}</span>
-              <span className="hidden lg:block col-span-1 text-right font-mono text-xs text-muted-foreground">{m.infrastructure_score}</span>
-              <span className="hidden lg:block col-span-1 text-right font-mono text-xs text-muted-foreground">{m.development_score}</span>
-              <span className="hidden lg:block col-span-1 text-right font-mono text-xs text-muted-foreground">{m.liquidity_score}</span>
-              <div className="col-span-6 sm:col-span-3 text-right">
-                <span className={`font-mono font-bold text-xl ${scoreColor(m.opportunity_score)}`}>
-                  {m.opportunity_score}
-                </span>
-                <span className="text-xs text-muted-foreground ml-0.5">/100</span>
-              </div>
-            </Link>
-          ))}
+          {municipalities?.map((m, i) => {
+            const slug = m.slug ?? m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, "");
+            return (
+              <Link
+                key={m.id}
+                href={`/opportunities/${slug}`}
+                className="grid grid-cols-[2rem_1fr_5rem] lg:grid-cols-[2rem_1fr_10rem_4rem_4rem_4rem_4rem_5rem] sm:grid-cols-[2rem_1fr_10rem_5rem] px-5 py-4 border-b border-border last:border-0 hover:bg-secondary/20 transition-colors items-center group gap-2"
+              >
+                <span className="text-muted-foreground font-mono text-sm">{i + 1}</span>
+                <div>
+                  <p className="font-medium text-sm group-hover:text-pa-green transition-colors">{m.name}</p>
+                  <p className="sm:hidden text-xs text-muted-foreground">{m.region}</p>
+                </div>
+                <span className="hidden sm:block text-muted-foreground text-sm truncate">{m.region}</span>
+                <span className="hidden lg:block text-right font-mono text-xs text-muted-foreground">{m.growth_score}</span>
+                <span className="hidden lg:block text-right font-mono text-xs text-muted-foreground">{m.infrastructure_score}</span>
+                <span className="hidden lg:block text-right font-mono text-xs text-muted-foreground">{m.development_score}</span>
+                <span className="hidden lg:block text-right font-mono text-xs text-muted-foreground">{m.liquidity_score}</span>
+                <div className="text-right">
+                  <span className={`font-mono font-bold text-xl ${scoreColor(m.opportunity_score)}`}>
+                    {m.opportunity_score}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-0.5">/100</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
         {/* CTA */}

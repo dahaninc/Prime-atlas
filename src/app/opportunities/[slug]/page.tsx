@@ -10,8 +10,7 @@ import { ScoreBreakdown } from "@/components/charts/ScoreBreakdown";
 import { ThesisStream } from "@/components/ui/ThesisStream";
 import type { Signal, InfrastructureProject } from "@/types";
 
-// Generate static params for all municipalities at build time (ISR)
-// Falls back to empty array if env vars aren't available (local builds)
+// Generate static params using DB slugs — avoids accent-stripping bugs
 export async function generateStaticParams() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return [];
@@ -21,10 +20,8 @@ export async function generateStaticParams() {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
-    const { data } = await supabase.from("municipalities").select("name");
-    return (data ?? []).map((m: { name: string }) => ({
-      slug: m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, ""),
-    }));
+    const { data } = await supabase.from("municipalities").select("slug").not("slug", "is", null);
+    return (data ?? []).map((m: { slug: string }) => ({ slug: m.slug }));
   } catch {
     return [];
   }
@@ -38,12 +35,11 @@ type PageProps = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
-  const name = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
   const { data: m } = await supabase
     .from("municipalities")
     .select("name, region, opportunity_score")
-    .ilike("name", name)
+    .eq("slug", slug)
     .single();
 
   if (!m) return { title: "Municipality Not Found" };
@@ -62,13 +58,10 @@ export default async function MunicipalityPage({ params }: PageProps) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  // Resolve slug to name
-  const humanName = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
   const { data: municipality } = await supabase
     .from("municipalities")
     .select("*")
-    .ilike("name", humanName)
+    .eq("slug", slug)
     .single();
 
   if (!municipality) notFound();

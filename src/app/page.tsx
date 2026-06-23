@@ -27,7 +27,7 @@ export default async function HomePage() {
 
   const { data: topMunicipalities } = await supabase
     .from("municipalities")
-    .select("id, name, region, opportunity_score")
+    .select("id, name, region, slug, opportunity_score")
     .order("opportunity_score", { ascending: false })
     .limit(3);
 
@@ -84,7 +84,7 @@ export default async function HomePage() {
               {topMunicipalities?.map((m, i) => (
                 <Link
                   key={m.id}
-                  href={`/opportunities/${m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, "")}`}
+                  href={`/opportunities/${m.slug ?? m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, "")}`}
                   className="border border-border rounded-xl p-5 bg-card hover:border-pa-green/40 transition-colors group"
                 >
                   <div className="flex items-start justify-between mb-4">

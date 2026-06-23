@@ -16,7 +16,7 @@ export default async function DevelopmentMomentumPage() {
 
   const { data: municipalities } = await supabase
     .from("municipalities")
-    .select("id, name, region, opportunity_score, development_score, growth_score")
+    .select("id, name, region, slug, opportunity_score, development_score, growth_score")
     .order("development_score", { ascending: false })
     .limit(30);
 
@@ -74,7 +74,7 @@ export default async function DevelopmentMomentumPage() {
         </div>
         {municipalities?.map((m, i) => (
           <Link key={m.id}
-            href={`/opportunities/${m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, "")}`}
+            href={`/opportunities/${m.slug ?? m.name.toLowerCase().replace(/[\s']/g, "-").replace(/[^a-z0-9-]/g, "")}`}
             className="grid grid-cols-12 px-5 py-4 border-b border-border last:border-0 hover:bg-secondary/20 transition-colors items-center group">
             <span className="col-span-1 text-muted-foreground font-mono text-sm">{i + 1}</span>
             <div className="col-span-6 sm:col-span-4">
