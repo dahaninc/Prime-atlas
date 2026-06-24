@@ -14,7 +14,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
-  const [signupLoading, setSignupLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -32,9 +32,48 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const pwLabel = ["", "Weak", "Weak", "Fair", "Strong", "Very strong"][pwStrength];
   const pwColor = ["", "bg-pa-red", "bg-pa-red", "bg-pa-amber", "bg-pa-green", "bg-pa-green"][pwStrength];
 
+  // ── LOGIN — fetch tokens → supabase.auth.setSession() → navigate ────────────
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("password", password);
+
+      const res = await fetch("/api/auth/signin", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Sign in failed");
+        return;
+      }
+
+      // Let the Supabase browser SDK write the session cookie in its own format.
+      // This is what @supabase/ssr on the server knows how to read.
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+
+      if (sessionError) {
+        setError(sessionError.message);
+        return;
+      }
+
+      window.location.href = redirectTo ?? "/dashboard";
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    setSignupLoading(true);
+    setLoading(true);
     setError(null);
     try {
       const { error } = await supabase.auth.signUp({
@@ -55,7 +94,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
         message
       );
     } finally {
-      setSignupLoading(false);
+      setLoading(false);
     }
   }
 
@@ -73,23 +112,19 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     );
   }
 
-  // ── LOGIN — native POST form → /api/auth/signin ───────────────────────────
-  // The browser submits, the server sets cookies on the redirect response,
-  // and the browser stores them before following the redirect. No JS cookie magic.
   if (mode === "login") {
     return (
       <div className="space-y-4">
-        <form method="POST" action="/api/auth/signin" className="space-y-4">
-          <input type="hidden" name="redirectTo" value={redirectTo ?? "/dashboard"} />
-
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">
               Email address
             </label>
             <input
               id="email"
-              name="email"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
               className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
@@ -107,18 +142,29 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
             </div>
             <input
               id="password"
-              name="password"
               type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Your password"
               required
               className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
             />
           </div>
 
+          {error && (
+            <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+            disabled={loading}
+            className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
+            {loading && (
+              <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
+            )}
             Sign in
           </button>
         </form>
@@ -133,7 +179,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     );
   }
 
-  // ── SIGNUP — client-side ──────────────────────────────────────────────────
+  // ── SIGNUP ────────────────────────────────────────────────────────────────
   return (
     <form onSubmit={handleSignup} className="space-y-4">
       <div>
@@ -203,10 +249,10 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
 
       <button
         type="submit"
-        disabled={signupLoading}
+        disabled={loading}
         className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {signupLoading && (
+        {loading && (
           <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
         )}
         Create account
@@ -240,7 +286,6 @@ function MagicLinkButton({ email, onEmailChange }: { email: string; onEmailChang
 
   return (
     <div className="space-y-2">
-      {/* Show email input for magic link if login form (uncontrolled) */}
       <input
         type="email"
         value={email}
