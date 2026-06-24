@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = [
-  // "/dashboard", // temporarily removed — page has its own auth guard for debugging
+  "/dashboard",
   "/watchlists",
   "/signals",
   "/opportunities/finder",
@@ -21,6 +21,27 @@ const PRO_ROUTES = [
 const FREE_TIERS = new Set(["free"]);
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // ── 3. Strip Stripe redirect params from URL after success ───────────────
+  if (path === "/dashboard" && request.nextUrl.searchParams.has("session_id")) {
+    const clean = request.nextUrl.clone();
+    clean.searchParams.delete("session_id");
+    return NextResponse.redirect(clean);
+  }
+
+  // Only create Supabase client + call getUser() for routes that need auth.
+  // Calling getUser() unconditionally on every request causes the SDK to clear
+  // the session cookies when the GoTrue /user call fails, which breaks auth on
+  // all subsequent server-component reads via cookies().
+  const needsAuth =
+    PROTECTED_ROUTES.some((r) => path.startsWith(r)) ||
+    PRO_ROUTES.some((r) => path.startsWith(r));
+
+  if (!needsAuth) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -41,8 +62,6 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
-
 
   // ── 1. Auth guard ────────────────────────────────────────────────────────
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
@@ -73,14 +92,6 @@ export async function middleware(request: NextRequest) {
 
     // Forward tier as response header — readable by layouts without extra DB hit
     supabaseResponse.headers.set("x-subscription-tier", tier);
-  }
-
-  // ── 3. Strip Stripe redirect params from URL after success ───────────────
-  // (Stripe adds session_id to the success_url; strip it cleanly)
-  if (path === "/dashboard" && request.nextUrl.searchParams.has("session_id")) {
-    const clean = request.nextUrl.clone();
-    clean.searchParams.delete("session_id");
-    return NextResponse.redirect(clean);
   }
 
   return supabaseResponse;
