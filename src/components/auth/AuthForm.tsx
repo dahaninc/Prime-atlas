@@ -18,7 +18,6 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
 
   const supabase = createClient();
 
-  // Password strength (used for signup UX)
   const pwStrength = (() => {
     if (!password) return 0;
     let score = 0;
@@ -32,37 +31,16 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const pwLabel = ["", "Weak", "Weak", "Fair", "Strong", "Very strong"][pwStrength];
   const pwColor = ["", "bg-pa-red", "bg-pa-red", "bg-pa-amber", "bg-pa-green", "bg-pa-green"][pwStrength];
 
-  // ── LOGIN — fetch tokens → supabase.auth.setSession() → navigate ────────────
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
-      const formData = new FormData();
-      formData.set("email", email);
-      formData.set("password", password);
-
-      const res = await fetch("/api/auth/signin", { method: "POST", body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Sign in failed");
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(error.message.toLowerCase().includes("invalid") ? "Invalid email or password." : error.message);
         return;
       }
-
-      // Let the Supabase browser SDK write the session cookie in its own format.
-      // This is what @supabase/ssr on the server knows how to read.
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-      });
-
-      if (sessionError) {
-        setError(sessionError.message);
-        return;
-      }
-
       window.location.href = redirectTo ?? "/dashboard";
     } catch {
       setError("Network error. Please try again.");
@@ -117,58 +95,33 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
       <div className="space-y-4">
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">
-              Email address
-            </label>
+            <label htmlFor="email" className="block text-sm text-muted-foreground mb-1.5">Email address</label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
+              id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com" required
               className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
             />
           </div>
-
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label htmlFor="password" className="block text-sm text-muted-foreground">
-                Password
-              </label>
-              <a href="/auth/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                Forgot password?
-              </a>
+              <label htmlFor="password" className="block text-sm text-muted-foreground">Password</label>
+              <a href="/auth/reset-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Forgot password?</a>
             </div>
             <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
-              required
+              id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              placeholder="Your password" required
               className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
             />
           </div>
-
           {error && (
-            <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">
-              {error}
-            </div>
+            <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">{error}</div>
           )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading && (
-              <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
-            )}
+          <button type="submit" disabled={loading}
+            className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            {loading && <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
             Sign in
           </button>
         </form>
-
         <div className="relative flex items-center gap-3 py-1">
           <div className="flex-1 border-t border-border" />
           <span className="text-xs text-muted-foreground">or</span>
@@ -179,54 +132,25 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     );
   }
 
-  // ── SIGNUP ────────────────────────────────────────────────────────────────
   return (
     <form onSubmit={handleSignup} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">
-          Full name <span className="text-pa-red">*</span>
-        </label>
-        <input
-          id="name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
-          required
-          minLength={2}
-          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
-        />
+        <label htmlFor="name" className="block text-sm text-muted-foreground mb-1.5">Full name <span className="text-pa-red">*</span></label>
+        <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+          placeholder="Your name" required minLength={2}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors" />
       </div>
-
       <div>
-        <label htmlFor="email-signup" className="block text-sm text-muted-foreground mb-1.5">
-          Email address
-        </label>
-        <input
-          id="email-signup"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
-        />
+        <label htmlFor="email-signup" className="block text-sm text-muted-foreground mb-1.5">Email address</label>
+        <input id="email-signup" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com" required
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors" />
       </div>
-
       <div>
-        <label htmlFor="password-signup" className="block text-sm text-muted-foreground mb-1.5">
-          Password
-        </label>
-        <input
-          id="password-signup"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Min. 8 characters"
-          required
-          minLength={8}
-          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
-        />
+        <label htmlFor="password-signup" className="block text-sm text-muted-foreground mb-1.5">Password</label>
+        <input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+          placeholder="Min. 8 characters" required minLength={8}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors" />
         {password.length > 0 && (
           <div className="mt-2">
             <div className="flex gap-1 mb-1">
@@ -234,30 +158,16 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
                 <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${s <= pwStrength ? pwColor : "bg-secondary"}`} />
               ))}
             </div>
-            <p className={`text-xs ${pwStrength <= 2 ? "text-pa-red" : pwStrength === 3 ? "text-pa-amber" : "text-pa-green"}`}>
-              {pwLabel}
-            </p>
+            <p className={`text-xs ${pwStrength <= 2 ? "text-pa-red" : pwStrength === 3 ? "text-pa-amber" : "text-pa-green"}`}>{pwLabel}</p>
           </div>
         )}
       </div>
-
-      {error && (
-        <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">
-          {error}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading && (
-          <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
-        )}
+      {error && <div className="p-3 rounded-lg border border-pa-red/30 bg-pa-red/5 text-pa-red text-sm">{error}</div>}
+      <button type="submit" disabled={loading}
+        className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        {loading && <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
         Create account
       </button>
-
       <div className="relative flex items-center gap-3 py-1">
         <div className="flex-1 border-t border-border" />
         <span className="text-xs text-muted-foreground">or</span>
@@ -286,19 +196,11 @@ function MagicLinkButton({ email, onEmailChange }: { email: string; onEmailChang
 
   return (
     <div className="space-y-2">
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => onEmailChange(e.target.value)}
+      <input type="email" value={email} onChange={(e) => onEmailChange(e.target.value)}
         placeholder="Email for magic link"
-        className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors"
-      />
-      <button
-        type="button"
-        onClick={sendMagicLink}
-        disabled={loading || sent}
-        className="w-full border border-border text-foreground text-sm py-2.5 rounded-lg hover:bg-secondary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-      >
+        className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50 focus:border-pa-green/50 transition-colors" />
+      <button type="button" onClick={sendMagicLink} disabled={loading || sent}
+        className="w-full border border-border text-foreground text-sm py-2.5 rounded-lg hover:bg-secondary transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
         {sent ? "Magic link sent — check your inbox" : loading ? "Sending…" : "Sign in with magic link"}
       </button>
     </div>
