@@ -541,9 +541,15 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
                   <Badge score={selectedRow.growth_score} />
                   <div className="text-[9px] text-[#3A5068] mt-1">DEM</div>
                 </div>
+                <Link
+                  href={`/opportunities/${selectedRow.slug}`}
+                  className="ml-2 px-3 py-1.5 border border-[#1E4A7A] bg-[#163559] text-[#7BBFFF] hover:text-white text-[10px] tracking-wider transition-colors whitespace-nowrap"
+                >
+                  View deals ↗
+                </Link>
                 <button
                   onClick={() => setSelectedId(null)}
-                  className="ml-2 text-[#3A5068] hover:text-white text-lg leading-none"
+                  className="text-[#3A5068] hover:text-white text-lg leading-none"
                 >×</button>
               </div>
             </div>
@@ -666,6 +672,14 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
                     ? `${checkedLayers.size} evidence layer${checkedLayers.size > 1 ? "s" : ""} will be included in the memo`
                     : "Select evidence layers above to include in IC memo"}
                 </div>
+
+                {/* Link to full city deal page */}
+                <Link
+                  href={`/opportunities/${selectedRow.slug}`}
+                  className="mt-3 w-full py-2.5 border border-[#1E2D40] text-[#4A7090] hover:text-white hover:border-[#1E3A60] text-[11px] font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  View all opportunities, signals & planning data for {selectedRow.name} ↗
+                </Link>
               </div>
             )}
           </div>
