@@ -8,7 +8,7 @@ import type { Opportunity } from "@/types";
 export const metadata: Metadata = {
   title: "Investment Opportunities | prime-atlas",
   description:
-    "Ranked investment opportunities across Spanish municipalities. Opportunity scores, risk ratings, and supporting evidence. Costa Blanca, Alicante, Valencia.",
+    "Ranked investment opportunities across global markets. Opportunity scores, risk ratings, and supporting evidence across Spain, UK, USA, Australia, and Canada.",
 };
 
 export const revalidate = 3600;

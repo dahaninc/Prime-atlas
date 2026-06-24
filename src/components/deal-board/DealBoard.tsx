@@ -11,6 +11,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -184,6 +185,7 @@ type SortKey =
 
 export function DealBoard({ rows, tier, freshnessMap }: DealBoardProps) {
   const isPro = tier !== "free";
+  const router = useRouter();
 
   const [sortKey, setSortKey]           = useState<SortKey>("opportunity_score");
   const [sortDir, setSortDir]           = useState<"desc" | "asc">("desc");
@@ -284,7 +286,7 @@ export function DealBoard({ rows, tier, freshnessMap }: DealBoardProps) {
       {/* ── Table ── */}
       <div className="border border-border rounded-xl overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-[2rem_1fr_4rem_4rem_4rem_4rem_4rem_6rem] gap-2 px-4 py-3 bg-secondary/40 border-b border-border">
+        <div className={`grid gap-2 px-4 py-3 bg-secondary/40 border-b border-border ${isPro ? "grid-cols-[2rem_1fr_4rem_4rem_4rem_4rem_4rem_5rem_3rem]" : "grid-cols-[2rem_1fr_4rem_4rem_4rem_4rem_4rem_5rem]"}`}>
           <span className="text-xs text-muted-foreground">#</span>
           <span className="text-xs text-muted-foreground">Market</span>
           <SortHeader label="Score"  k="opportunity_score" />
@@ -293,6 +295,7 @@ export function DealBoard({ rows, tier, freshnessMap }: DealBoardProps) {
           <SortHeader label="Liq."   k="liquidity_score" />
           <SortHeader label="Risk"   k="risk_score" />
           <span className="text-xs text-muted-foreground text-right">Freshness</span>
+          {isPro && <span className="text-xs text-muted-foreground text-right">ROI</span>}
         </div>
 
         {/* Rows */}
@@ -307,13 +310,17 @@ export function DealBoard({ rows, tier, freshnessMap }: DealBoardProps) {
             return (
               <div
                 key={row.id}
-                className={`grid grid-cols-[2rem_1fr_4rem_4rem_4rem_4rem_4rem_6rem] gap-2 px-4 py-3 items-center transition-colors ${
+                className={`grid gap-2 px-4 py-3 items-center transition-colors ${
+                  isPro
+                    ? "grid-cols-[2rem_1fr_4rem_4rem_4rem_4rem_4rem_5rem_3rem]"
+                    : "grid-cols-[2rem_1fr_4rem_4rem_4rem_4rem_4rem_5rem]"
+                } ${
                   isBlurred
                     ? "opacity-40 select-none pointer-events-none"
                     : "hover:bg-secondary/20 cursor-pointer"
                 } ${selectedRow?.id === row.id ? "bg-secondary/30" : ""}`}
                 onClick={() => {
-                  if (!isBlurred) setSelectedRow(row.id === selectedRow?.id ? null : row);
+                  if (!isBlurred) router.push(`/opportunities/${row.slug}`);
                 }}
               >
                 <span className="text-xs font-mono text-muted-foreground">
@@ -343,6 +350,23 @@ export function DealBoard({ rows, tier, freshnessMap }: DealBoardProps) {
                 <span className={`text-[10px] font-mono text-right ${fresh.color}`}>
                   {isBlurred ? "" : fresh.label}
                 </span>
+
+                {/* ROI model button — pro only */}
+                {isPro && (
+                  <button
+                    className={`text-[10px] border rounded px-1 py-0.5 transition-colors text-right ${
+                      selectedRow?.id === row.id
+                        ? "border-pa-green/60 bg-pa-green/10 text-pa-green"
+                        : "border-border text-muted-foreground hover:border-pa-green/40 hover:text-pa-green"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedRow(row.id === selectedRow?.id ? null : row);
+                    }}
+                  >
+                    ⊞
+                  </button>
+                )}
               </div>
             );
           })}

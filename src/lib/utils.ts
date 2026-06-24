@@ -19,11 +19,16 @@ export function scoreBand(score: number): "High" | "Medium" | "Low" {
   return "Low";
 }
 
-/** Format EUR */
+/** Format EUR (legacy — prefer formatCurrency) */
 export function formatEur(amount: number): string {
+  return formatCurrency(amount, "EUR");
+}
+
+/** Format a monetary amount with the correct currency symbol */
+export function formatCurrency(amount: number, currencyCode = "EUR"): string {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "EUR",
+    currency: currencyCode,
     notation: amount >= 1_000_000 ? "compact" : "standard",
     maximumFractionDigits: amount >= 1_000_000 ? 1 : 0,
   }).format(amount);
