@@ -229,7 +229,8 @@ export default async function DashboardPage({
               <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-3">Quick actions</p>
               <div className="space-y-2">
                 {[
-                  { href: "/opportunities/finder", label: "Opportunity Finder", pro: true },
+                  { href: "/deal-board",           label: "Deal Board",          pro: false },
+                  { href: "/opportunities/finder", label: "Opportunity Finder",  pro: true },
                   { href: "/signals",              label: "Signals feed",        pro: true },
                   { href: "/rankings",             label: "Rankings",            pro: false },
                   { href: "/watchlists",           label: "Watchlists",          pro: false },

@@ -7,8 +7,48 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
+      admin_regions: {
+        Row: {
+          code: string | null
+          country_id: string
+          created_at: string
+          id: string
+          level: number
+          name: string
+        }
+        Insert: {
+          code?: string | null
+          country_id: string
+          created_at?: string
+          id?: string
+          level?: number
+          name: string
+        }
+        Update: {
+          code?: string | null
+          country_id?: string
+          created_at?: string
+          id?: string
+          level?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_regions_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capital_enquiries: {
         Row: {
           company: string | null
@@ -48,16 +88,88 @@ export type Database = {
         }
         Relationships: []
       }
+      countries: {
+        Row: {
+          active: boolean
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          id: string
+          iso2: string
+          iso3: string
+          locale: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          currency_code: string
+          currency_symbol: string
+          id?: string
+          iso2: string
+          iso3: string
+          locale: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          id?: string
+          iso2?: string
+          iso3?: string
+          locale?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      data_freshness: {
+        Row: {
+          adapter_name: string | null
+          id: string
+          last_updated: string | null
+          market_iso2: string
+          next_update: string | null
+          row_count: number | null
+          table_name: string
+          update_cadence: string | null
+        }
+        Insert: {
+          adapter_name?: string | null
+          id?: string
+          last_updated?: string | null
+          market_iso2: string
+          next_update?: string | null
+          row_count?: number | null
+          table_name: string
+          update_cadence?: string | null
+        }
+        Update: {
+          adapter_name?: string | null
+          id?: string
+          last_updated?: string | null
+          market_iso2?: string
+          next_update?: string | null
+          row_count?: number | null
+          table_name?: string
+          update_cadence?: string | null
+        }
+        Relationships: []
+      }
       infrastructure_projects: {
         Row: {
           budget: number
           created_at: string
+          data_confidence: number | null
           description: string | null
           expected_completion: string | null
           id: string
           impact_score: number
           municipality_id: string
           project_name: string
+          retrieved_at: string | null
+          source_name: string
           source_url: string | null
           status: Database["public"]["Enums"]["project_status"]
           type: Database["public"]["Enums"]["project_type"]
@@ -65,12 +177,15 @@ export type Database = {
         Insert: {
           budget?: number
           created_at?: string
+          data_confidence?: number | null
           description?: string | null
           expected_completion?: string | null
           id?: string
           impact_score?: number
           municipality_id: string
           project_name: string
+          retrieved_at?: string | null
+          source_name?: string
           source_url?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           type: Database["public"]["Enums"]["project_type"]
@@ -78,12 +193,15 @@ export type Database = {
         Update: {
           budget?: number
           created_at?: string
+          data_confidence?: number | null
           description?: string | null
           expected_completion?: string | null
           id?: string
           impact_score?: number
           municipality_id?: string
           project_name?: string
+          retrieved_at?: string | null
+          source_name?: string
           source_url?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           type?: Database["public"]["Enums"]["project_type"]
@@ -98,10 +216,57 @@ export type Database = {
           },
         ]
       }
+      ingestion_runs: {
+        Row: {
+          adapter_name: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          market: string
+          metadata: Json | null
+          rows_errored: number | null
+          rows_inserted: number | null
+          rows_updated: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          adapter_name: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          market: string
+          metadata?: Json | null
+          rows_errored?: number | null
+          rows_inserted?: number | null
+          rows_updated?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          adapter_name?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          market?: string
+          metadata?: Json | null
+          rows_errored?: number | null
+          rows_inserted?: number | null
+          rows_updated?: number | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       municipalities: {
         Row: {
+          admin_code: string | null
+          admin_region_id: string | null
           country: string
+          country_id: string | null
           created_at: string
+          currency_code: string | null
+          data_confidence: number | null
           development_score: number
           growth_metrics: Json
           growth_score: number
@@ -114,12 +279,21 @@ export type Database = {
           opportunity_score: number
           population: number
           region: string
+          retrieved_at: string | null
           risk_score: number
+          slug: string | null
+          source_name: string
+          source_url: string | null
           updated_at: string
         }
         Insert: {
+          admin_code?: string | null
+          admin_region_id?: string | null
           country?: string
+          country_id?: string | null
           created_at?: string
+          currency_code?: string | null
+          data_confidence?: number | null
           development_score?: number
           growth_metrics?: Json
           growth_score?: number
@@ -132,12 +306,21 @@ export type Database = {
           opportunity_score?: number
           population?: number
           region: string
+          retrieved_at?: string | null
           risk_score?: number
+          slug?: string | null
+          source_name?: string
+          source_url?: string | null
           updated_at?: string
         }
         Update: {
+          admin_code?: string | null
+          admin_region_id?: string | null
           country?: string
+          country_id?: string | null
           created_at?: string
+          currency_code?: string | null
+          data_confidence?: number | null
           development_score?: number
           growth_metrics?: Json
           growth_score?: number
@@ -150,10 +333,29 @@ export type Database = {
           opportunity_score?: number
           population?: number
           region?: string
+          retrieved_at?: string | null
           risk_score?: number
+          slug?: string | null
+          source_name?: string
+          source_url?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "municipalities_admin_region_id_fkey"
+            columns: ["admin_region_id"]
+            isOneToOne: false
+            referencedRelation: "admin_regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "municipalities_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       newsletter_subscribers: {
         Row: {
@@ -180,14 +382,18 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          data_confidence: number | null
           evidence: Json
           id: string
           investment_thesis: string
           municipality_id: string
           opportunity_score: number
+          retrieved_at: string | null
           risk_level: Database["public"]["Enums"]["risk_level"]
           risk_score: number
           scores: Json | null
+          source_name: string
+          source_url: string | null
           status: Database["public"]["Enums"]["opportunity_status"]
           title: string
           updated_at: string
@@ -195,14 +401,18 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
+          data_confidence?: number | null
           evidence?: Json
           id?: string
           investment_thesis?: string
           municipality_id: string
           opportunity_score?: number
+          retrieved_at?: string | null
           risk_level?: Database["public"]["Enums"]["risk_level"]
           risk_score?: number
           scores?: Json | null
+          source_name?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title: string
           updated_at?: string
@@ -210,14 +420,18 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          data_confidence?: number | null
           evidence?: Json
           id?: string
           investment_thesis?: string
           municipality_id?: string
           opportunity_score?: number
+          retrieved_at?: string | null
           risk_level?: Database["public"]["Enums"]["risk_level"]
           risk_score?: number
           scores?: Json | null
+          source_name?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["opportunity_status"]
           title?: string
           updated_at?: string
@@ -237,33 +451,45 @@ export type Database = {
           applicant: string | null
           application_date: string
           created_at: string
+          data_confidence: number | null
           decision_date: string | null
           description: string | null
           id: string
           municipality_id: string
           project_type: Database["public"]["Enums"]["project_type"]
+          retrieved_at: string | null
+          source_name: string
+          source_url: string | null
           status: Database["public"]["Enums"]["application_status"]
         }
         Insert: {
           applicant?: string | null
           application_date: string
           created_at?: string
+          data_confidence?: number | null
           decision_date?: string | null
           description?: string | null
           id?: string
           municipality_id: string
           project_type: Database["public"]["Enums"]["project_type"]
+          retrieved_at?: string | null
+          source_name?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["application_status"]
         }
         Update: {
           applicant?: string | null
           application_date?: string
           created_at?: string
+          data_confidence?: number | null
           decision_date?: string | null
           description?: string | null
           id?: string
           municipality_id?: string
           project_type?: Database["public"]["Enums"]["project_type"]
+          retrieved_at?: string | null
+          source_name?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["application_status"]
         }
         Relationships: [
@@ -316,10 +542,12 @@ export type Database = {
         Row: {
           ai_summary: string | null
           confidence_level: number
+          data_confidence: number | null
           detected_at: string
           id: string
           municipality_id: string
           opportunity_impact: number
+          retrieved_at: string | null
           signal_type: Database["public"]["Enums"]["signal_type"]
           source: string
           source_url: string | null
@@ -329,10 +557,12 @@ export type Database = {
         Insert: {
           ai_summary?: string | null
           confidence_level?: number
+          data_confidence?: number | null
           detected_at?: string
           id?: string
           municipality_id: string
           opportunity_impact?: number
+          retrieved_at?: string | null
           signal_type: Database["public"]["Enums"]["signal_type"]
           source: string
           source_url?: string | null
@@ -342,10 +572,12 @@ export type Database = {
         Update: {
           ai_summary?: string | null
           confidence_level?: number
+          data_confidence?: number | null
           detected_at?: string
           id?: string
           municipality_id?: string
           opportunity_impact?: number
+          retrieved_at?: string | null
           signal_type?: Database["public"]["Enums"]["signal_type"]
           source?: string
           source_url?: string | null
@@ -461,9 +693,59 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      signals_public: {
+        Row: {
+          ai_summary: string | null
+          confidence_level: number | null
+          detected_at: string | null
+          id: string | null
+          municipality_id: string | null
+          opportunity_impact: number | null
+          signal_type: Database["public"]["Enums"]["signal_type"] | null
+          source: string | null
+          source_url: string | null
+          summary: string | null
+          title: string | null
+        }
+        Insert: {
+          ai_summary?: never
+          confidence_level?: number | null
+          detected_at?: string | null
+          id?: string | null
+          municipality_id?: string | null
+          opportunity_impact?: number | null
+          signal_type?: Database["public"]["Enums"]["signal_type"] | null
+          source?: string | null
+          source_url?: string | null
+          summary?: string | null
+          title?: string | null
+        }
+        Update: {
+          ai_summary?: never
+          confidence_level?: number | null
+          detected_at?: string | null
+          id?: string | null
+          municipality_id?: string | null
+          opportunity_impact?: number | null
+          signal_type?: Database["public"]["Enums"]["signal_type"] | null
+          source?: string | null
+          source_url?: string | null
+          summary?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signals_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      get_user_tier: { Args: never; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
@@ -505,27 +787,122 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database["public"]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  TableName extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"]),
-> = (DefaultSchema["Tables"] & DefaultSchema["Views"])[TableName] extends {
-  Row: infer R
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
-  ? R
-  : never
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
-  TableName extends keyof DefaultSchema["Tables"],
-> = DefaultSchema["Tables"][TableName] extends { Insert: infer I } ? I : never
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
-  TableName extends keyof DefaultSchema["Tables"],
-> = DefaultSchema["Tables"][TableName] extends { Update: infer U } ? U : never
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
-  EnumName extends keyof DefaultSchema["Enums"],
-> = DefaultSchema["Enums"][EnumName]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

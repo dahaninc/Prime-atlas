@@ -6,9 +6,9 @@ import { SearchBar } from "@/components/ui/SearchBar";
 import type { Opportunity } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Investment Opportunities in Spain 2026 | prime-atlas",
+  title: "Investment Opportunities | prime-atlas",
   description:
-    "Ranked investment opportunities across Spanish municipalities. AI-generated investment theses, opportunity scores, and supporting evidence. Costa Blanca, Alicante, Valencia.",
+    "Ranked investment opportunities across Spanish municipalities. Opportunity scores, risk ratings, and supporting evidence. Costa Blanca, Alicante, Valencia.",
 };
 
 export const revalidate = 3600;
@@ -37,8 +37,8 @@ export default async function OpportunitiesPage() {
         </p>
         <h1 className="text-4xl font-bold mb-3">Investment Opportunities</h1>
         <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
-          Every opportunity includes an AI-generated investment thesis, opportunity score, risk rating,
-          and supporting evidence. Ranked by conviction score.
+          Every opportunity includes an opportunity score, risk rating, and supporting evidence.
+          Scores are derived from publicly available data. Ranked by opportunity score.
         </p>
       </div>
 
