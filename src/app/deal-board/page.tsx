@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "Ranked investment markets by opportunity score. Filter, sort, and model ROI across Spain, UK, and beyond.",
 };
 
-export const revalidate = 1800; // 30 min
+export const dynamic = "force-dynamic";
 
 export default async function DealBoardPage() {
   const supabase = await createClient();
