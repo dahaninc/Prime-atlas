@@ -1,23 +1,14 @@
 "use client";
 
 /**
- * DealBoard — Bloomberg-style ranked market intelligence
- *
- * - Country tabs with market counts
- * - Per-country macro context bar (rates, cap rates, housing gap, build costs)
- * - Sortable ranked table with Verdict badge (IC Ready / Diligence / Monitor)
- * - ▶ expand per row → 5-dimension evidence panel with mini bars + full provenance
- * - ⊞ per row (pro) → development pro-forma panel: units/GSF/hard costs/LTC/IRR/RoC
- * - IC Memo CSV export
+ * PRIME ATLAS — site-acquisition terminal
+ * Bloomberg-style deal board with market tape, evidence layers, live pro-forma
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface DealRow {
   id: string;
@@ -42,791 +33,665 @@ interface DealBoardProps {
   rows: DealRow[];
   tier: "free" | "pro" | "investor" | "institutional";
   freshnessMap: Record<string, string>;
+  userEmail?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Country macro data (sourced, dated — Bloomberg-style context)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Market Tape Data ─────────────────────────────────────────────────────────
 
-interface MacroStat {
+interface TapeStat {
   label: string;
   value: string;
-  source: string;
-  date: string;
+  dir: "up" | "down" | "flat";
 }
 
-const COUNTRY_META: Record<string, {
-  flag: string;
-  currency: string;
-  defaultHardCostPerGsf: number;
-  defaultAvgPricePerUnit: number;
-  stats: MacroStat[];
-}> = {
-  "United Kingdom": {
-    flag: "🇬🇧", currency: "GBP",
-    defaultHardCostPerGsf: 195, defaultAvgPricePerUnit: 350_000,
-    stats: [
-      { label: "Base Rate",       value: "5.25%",       source: "Bank of England",       date: "May 2026" },
-      { label: "Prime Cap Rate",  value: "4.8%",        source: "MSCI/IPD",              date: "Q1 2026"  },
-      { label: "Housing Gap",     value: "~4.3M units", source: "NHBC / CBI",            date: "2026"     },
-      { label: "Median Price",    value: "£285K",       source: "HM Land Registry",      date: "Apr 2026" },
-      { label: "Hard Cost/GSF",   value: "£195",        source: "BCIS",                  date: "Q1 2026"  },
+interface MarketTapeData {
+  tape: TapeStat[];
+  source: string;
+  kpis: Array<{ label: string; value: string }>;
+}
+
+const MARKET_TAPE: Record<string, MarketTapeData> = {
+  "United States": {
+    tape: [
+      { label: "Permits YoY",   value: "−3.2%",  dir: "down" },
+      { label: "Starts (ann)",  value: "1.35M",  dir: "up"   },
+      { label: "Months supply", value: "8.9",    dir: "flat" },
+      { label: "30y mortgage",  value: "6.41%",  dir: "down" },
+      { label: "Net migration", value: "+1.6M",  dir: "up"   },
+    ],
+    source: "US Census Building Permits Survey · NAR · Freddie Mac · ACS",
+    kpis: [
+      { label: "Median new home",    value: "$438,200" },
+      { label: "Rent growth YoY",    value: "+2.9%"    },
+      { label: "Undersupply index",  value: "71 / 100" },
+      { label: "Cap rate (MF)",      value: "5.2%"     },
     ],
   },
-  "United States": {
-    flag: "🇺🇸", currency: "USD",
-    defaultHardCostPerGsf: 185, defaultAvgPricePerUnit: 415_000,
-    stats: [
-      { label: "Fed Funds Rate",  value: "5.25–5.50%",  source: "Federal Reserve",       date: "Jun 2026" },
-      { label: "Cap Rate",        value: "5.4%",        source: "CBRE",                  date: "Q1 2026"  },
-      { label: "Housing Gap",     value: "~3.8M units", source: "NAR",                   date: "2026"     },
-      { label: "Median Price",    value: "$415K",       source: "NAR",                   date: "May 2026" },
-      { label: "Hard Cost/GSF",   value: "$185",        source: "RSMeans 2026",          date: "2026"     },
+  "United Kingdom": {
+    tape: [
+      { label: "Starts YoY",     value: "−8.1%",  dir: "down" },
+      { label: "Completions",    value: "230K",   dir: "flat" },
+      { label: "Months supply",  value: "4.2",    dir: "flat" },
+      { label: "Base rate",      value: "5.25%",  dir: "flat" },
+      { label: "Net migration",  value: "+685K",  dir: "up"   },
+    ],
+    source: "NHBC · HM Land Registry · Bank of England · ONS",
+    kpis: [
+      { label: "Median price",       value: "£285K"    },
+      { label: "Rent growth YoY",    value: "+3.1%"    },
+      { label: "Undersupply index",  value: "68 / 100" },
+      { label: "Cap rate (prime)",   value: "4.8%"     },
     ],
   },
   "Australia": {
-    flag: "🇦🇺", currency: "AUD",
-    defaultHardCostPerGsf: 280, defaultAvgPricePerUnit: 785_000,
-    stats: [
-      { label: "Cash Rate",       value: "4.35%",       source: "Reserve Bank of Aus.",  date: "Jun 2026" },
-      { label: "Cap Rate",        value: "5.0%",        source: "CBRE Australia",        date: "Q1 2026"  },
-      { label: "Housing Gap",     value: "~263K units", source: "NHFIC",                 date: "2025–26"  },
-      { label: "Median Price",    value: "A$785K",      source: "CoreLogic",             date: "May 2026" },
-      { label: "Hard Cost/sqm",   value: "A$2,900",    source: "Rawlinsons",            date: "2026"     },
+    tape: [
+      { label: "Approvals YoY",  value: "−12.4%", dir: "down" },
+      { label: "Starts (ann)",   value: "162K",   dir: "flat" },
+      { label: "Months supply",  value: "3.1",    dir: "flat" },
+      { label: "Cash rate",      value: "4.35%",  dir: "flat" },
+      { label: "Net migration",  value: "+518K",  dir: "up"   },
+    ],
+    source: "ABS Building Approvals · CoreLogic · Reserve Bank of Australia",
+    kpis: [
+      { label: "Median price",       value: "A$785K"   },
+      { label: "Rent growth YoY",    value: "+4.2%"    },
+      { label: "Undersupply index",  value: "75 / 100" },
+      { label: "Cap rate (resi)",    value: "5.0%"     },
     ],
   },
   "Canada": {
-    flag: "🇨🇦", currency: "CAD",
-    defaultHardCostPerGsf: 275, defaultAvgPricePerUnit: 720_000,
-    stats: [
-      { label: "Overnight Rate",  value: "5.00%",       source: "Bank of Canada",        date: "Jun 2026" },
-      { label: "Cap Rate",        value: "4.6%",        source: "Altus Group",           date: "Q1 2026"  },
-      { label: "Housing Gap",     value: "~3.5M units", source: "CMHC",                  date: "2030 target" },
-      { label: "Avg Price",       value: "C$720K",      source: "CREA",                  date: "May 2026" },
-      { label: "Hard Cost/GSF",   value: "C$275",       source: "RSMeans Canada",        date: "2026"     },
+    tape: [
+      { label: "Starts YoY",     value: "−6.3%",  dir: "down" },
+      { label: "Starts (ann)",   value: "237K",   dir: "flat" },
+      { label: "Months supply",  value: "5.1",    dir: "flat" },
+      { label: "Overnight rate", value: "5.00%",  dir: "flat" },
+      { label: "Net migration",  value: "+485K",  dir: "up"   },
+    ],
+    source: "CMHC Housing Starts · CREA · Bank of Canada · Statistics Canada",
+    kpis: [
+      { label: "Avg price",          value: "C$720K"   },
+      { label: "Rent growth YoY",    value: "+2.8%"    },
+      { label: "Undersupply index",  value: "72 / 100" },
+      { label: "Cap rate (MF)",      value: "4.6%"     },
     ],
   },
   "Spain": {
-    flag: "🇪🇸", currency: "EUR",
-    defaultHardCostPerGsf: 130, defaultAvgPricePerUnit: 185_000,
-    stats: [
-      { label: "ECB Rate",        value: "4.50%",       source: "European Central Bank", date: "Jun 2026" },
-      { label: "Prime Cap Rate",  value: "4.2%",        source: "CBRE Spain",            date: "Q1 2026"  },
-      { label: "Housing Gap",     value: "~600K units", source: "Notariado",             date: "2026"     },
-      { label: "Avg Price",       value: "€185K",       source: "INE / Catastro",        date: "Apr 2026" },
-      { label: "Hard Cost/sqm",   value: "€1,250",     source: "SEOPAN",                date: "2025"     },
+    tape: [
+      { label: "Visas YoY",      value: "+4.8%",  dir: "up"   },
+      { label: "Completions",    value: "89K",    dir: "flat" },
+      { label: "Months supply",  value: "6.3",    dir: "flat" },
+      { label: "ECB rate",       value: "4.50%",  dir: "flat" },
+      { label: "Net migration",  value: "+286K",  dir: "up"   },
+    ],
+    source: "Ministerio de Fomento · INE · Banco de España · Notariado",
+    kpis: [
+      { label: "Avg price",          value: "€185K"    },
+      { label: "Rent growth YoY",    value: "+5.1%"    },
+      { label: "Undersupply index",  value: "62 / 100" },
+      { label: "Cap rate (prime)",   value: "4.2%"     },
     ],
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Development Pro-Forma (developer yield language)
-// ─────────────────────────────────────────────────────────────────────────────
+// Country defaults for pro-forma
+const COUNTRY_DEFAULTS: Record<string, { hardCost: number; avgPrice: number; sym: string }> = {
+  "United Kingdom": { hardCost: 195,  avgPrice: 350_000,  sym: "£"   },
+  "United States":  { hardCost: 185,  avgPrice: 415_000,  sym: "$"   },
+  "Australia":      { hardCost: 280,  avgPrice: 785_000,  sym: "A$"  },
+  "Canada":         { hardCost: 275,  avgPrice: 720_000,  sym: "C$"  },
+  "Spain":          { hardCost: 130,  avgPrice: 185_000,  sym: "€"   },
+};
 
-interface ProFormaAssumptions {
+function symFor(code: string) {
+  return code === "GBP" ? "£" : code === "USD" ? "$" : code === "AUD" ? "A$" : code === "CAD" ? "C$" : "€";
+}
+
+// Evidence layer definitions
+const EVIDENCE_LAYERS = [
+  { key: "sourcing",    label: "Opportunity sourcing",  desc: "Source identification & data pipeline" },
+  { key: "demand",      label: "Regional demand",        desc: "Population growth, migration, employment" },
+  { key: "shortfall",   label: "Housing shortfall",      desc: "Supply gap vs household formation rate" },
+  { key: "conversion",  label: "Conversion potential",   desc: "Zoning flexibility, permitted uses" },
+  { key: "cost",        label: "Cost & timeline",        desc: "Build cost index, programme risk" },
+  { key: "zoning",      label: "Zoning & permits",       desc: "Recent approvals, pipeline velocity" },
+] as const;
+
+// ─── Pro-Forma ────────────────────────────────────────────────────────────────
+
+interface PF {
   units: number;
   gsfPerUnit: number;
   hardCostPerGsf: number;
-  softCostPct: number;      // % of hard
-  contingencyPct: number;   // % of hard+soft
-  ltcPct: number;           // loan-to-cost %
-  financeRatePa: number;    // dev finance rate %
-  buildMonths: number;
-  avgPricePerUnit: number;
-  exitCapRate: number;
-  absorptionMonths: number;
+  landCost: number;
+  rentPerUnitMo: number;
+  exitCapPct: number;
+  contingencyPct: number;
 }
 
-interface ProFormaOutput {
-  totalGsf: number;
-  hardCosts: number;
-  softCosts: number;
-  contingency: number;
-  totalDevCost: number;
-  equityRequired: number;
-  financeCosts: number;
-  allInCost: number;
-  gdv: number;
-  netProfit: number;
-  returnOnCost: number;
-  returnOnEquity: number;
-  profitOnGdv: number;
-  equityMultiple: number;
-  irr: number;
+function computePF(a: PF) {
+  const totalGsf    = a.units * a.gsfPerUnit;
+  const hardCosts   = totalGsf * a.hardCostPerGsf;
+  const softCosts   = hardCosts * 0.18;
+  const contingency = (hardCosts + softCosts) * (a.contingencyPct / 100);
+  const totalDevCost = hardCosts + softCosts + contingency + a.landCost;
+  const annualNOI    = a.units * a.rentPerUnitMo * 12 * (1 - 0.32); // opex 32%
+  const exitValue    = annualNOI / (a.exitCapPct / 100);
+  const profit       = exitValue - totalDevCost;
+  const yieldOnCost  = (annualNOI / totalDevCost) * 100;
+  const marginOnCost = (profit / totalDevCost) * 100;
+  return { totalGsf, totalDevCost, annualNOI, exitValue, profit, yieldOnCost, marginOnCost };
 }
 
-function computeProForma(a: ProFormaAssumptions): ProFormaOutput {
-  const totalGsf     = a.units * a.gsfPerUnit;
-  const hardCosts    = totalGsf * a.hardCostPerGsf;
-  const softCosts    = hardCosts * (a.softCostPct / 100);
-  const subTotal     = hardCosts + softCosts;
-  const contingency  = subTotal * (a.contingencyPct / 100);
-  const totalDevCost = subTotal + contingency;
-  const debtDrawn    = totalDevCost * (a.ltcPct / 100);
-  const equityRequired = totalDevCost - debtDrawn;
-  const financeCosts = debtDrawn * (a.financeRatePa / 100) * (a.buildMonths / 12);
-  const allInCost    = totalDevCost + financeCosts;
-  const gdv          = a.units * a.avgPricePerUnit;
-  const netProfit    = gdv - allInCost;
-
-  const returnOnCost   = (netProfit / allInCost) * 100;
-  const returnOnEquity = equityRequired > 0 ? (netProfit / equityRequired) * 100 : 0;
-  const profitOnGdv    = gdv > 0 ? (netProfit / gdv) * 100 : 0;
-  const equityMultiple = equityRequired > 0 ? (netProfit + equityRequired) / equityRequired : 0;
-
-  // IRR via Newton's method
-  const holdYears = (a.buildMonths + a.absorptionMonths * 0.5) / 12;
-  let irr = 0.15;
-  for (let i = 0; i < 100; i++) {
-    const pv   = (equityRequired + netProfit) / Math.pow(1 + irr, holdYears);
-    const npv  = pv - equityRequired;
-    const dnpv = -(holdYears * (equityRequired + netProfit)) / Math.pow(1 + irr, holdYears + 1);
-    if (Math.abs(dnpv) < 1e-10) break;
-    const delta = npv / dnpv;
-    irr -= delta;
-    if (Math.abs(delta) < 1e-7) break;
-  }
-
-  return {
-    totalGsf, hardCosts, softCosts, contingency, totalDevCost,
-    equityRequired, financeCosts, allInCost, gdv, netProfit,
-    returnOnCost:   Math.round(returnOnCost   * 10) / 10,
-    returnOnEquity: Math.round(returnOnEquity * 10) / 10,
-    profitOnGdv:    Math.round(profitOnGdv    * 10) / 10,
-    equityMultiple: Math.round(equityMultiple * 100) / 100,
-    irr:            Math.round(irr * 1000) / 10,
-  };
+function fmt(n: number, sym: string) {
+  const abs = Math.abs(n);
+  const s   = abs >= 1_000_000 ? `${sym}${(abs / 1_000_000).toFixed(1)}M`
+            : abs >= 1_000     ? `${sym}${(abs / 1_000).toFixed(1)}K`
+            :                    `${sym}${Math.round(abs)}`;
+  return n < 0 ? `−${s}` : s;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IC Memo CSV export
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Score badge ──────────────────────────────────────────────────────────────
 
-function exportICMemo(row: DealRow, a: ProFormaAssumptions, pf: ProFormaOutput, currSym: string): void {
-  const fmt = (n: number) => `${currSym}${Math.round(n).toLocaleString("en-GB")}`;
-  const lines = [
-    ["prime-atlas IC Memo", ""],
-    ["Generated",           new Date().toISOString()],
-    [""],
-    ["MARKET"],
-    ["City",               row.name],
-    ["Region",             row.region],
-    ["Country",            row.country],
-    ["Data source",        row.source_name],
-    ["Data confidence",    `${(row.data_confidence * 100).toFixed(0)}%`],
-    ["Retrieved",          row.retrieved_at ?? "—"],
-    [""],
-    ["OPPORTUNITY SCORES"],
-    ["Composite",          row.opportunity_score],
-    ["Growth",             row.growth_score],
-    ["Infrastructure",     row.infrastructure_score],
-    ["Development",        row.development_score],
-    ["Liquidity",          row.liquidity_score],
-    ["Risk",               row.risk_score],
-    [""],
-    ["DEVELOPMENT PRO-FORMA ASSUMPTIONS"],
-    ["Units",              a.units],
-    ["GSF / unit",         a.gsfPerUnit],
-    ["Hard cost / GSF",   `${currSym}${a.hardCostPerGsf}`],
-    ["Soft costs",         `${a.softCostPct}%`],
-    ["Contingency",        `${a.contingencyPct}%`],
-    ["LTC ratio",          `${a.ltcPct}%`],
-    ["Finance rate",       `${a.financeRatePa}% pa`],
-    ["Build period",       `${a.buildMonths} months`],
-    ["Avg. sale / unit",  `${currSym}${a.avgPricePerUnit.toLocaleString("en-GB")}`],
-    ["Exit cap rate",      `${a.exitCapRate}%`],
-    ["Absorption",         `${a.absorptionMonths} months`],
-    [""],
-    ["YIELD ANALYSIS"],
-    ["Total GSF",          pf.totalGsf.toLocaleString("en-GB")],
-    ["Hard costs",         fmt(pf.hardCosts)],
-    ["Soft costs",         fmt(pf.softCosts)],
-    ["Contingency",        fmt(pf.contingency)],
-    ["Total dev. cost",    fmt(pf.totalDevCost)],
-    ["Dev. finance cost",  fmt(pf.financeCosts)],
-    ["All-in cost",        fmt(pf.allInCost)],
-    ["GDV",                fmt(pf.gdv)],
-    ["Net profit",         fmt(pf.netProfit)],
-    ["Return on cost",     `${pf.returnOnCost}%`],
-    ["Return on equity",   `${pf.returnOnEquity}%`],
-    ["Profit on GDV",      `${pf.profitOnGdv}%`],
-    ["Equity multiple",    `${pf.equityMultiple}×`],
-    ["IRR (levered)",      `${pf.irr}%`],
-    ["Equity required",    fmt(pf.equityRequired)],
-    [""],
-    ["DISCLAIMER"],
-    ["Indicative only · prime-atlas does not provide investment advice.", ""],
-  ];
-  const csv = lines.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url  = URL.createObjectURL(blob);
-  const el   = document.createElement("a");
-  el.href = url; el.download = `prime-atlas-ic-memo-${row.slug}-${Date.now()}.csv`;
-  el.click();
-  URL.revokeObjectURL(url);
+function Badge({ score }: { score: number }) {
+  const cls = score >= 75
+    ? "bg-emerald-950 text-emerald-400 border-emerald-800"
+    : score >= 60
+    ? "bg-amber-950 text-amber-400 border-amber-800"
+    : "bg-red-950 text-red-400 border-red-900";
+  return (
+    <span className={`inline-flex items-center justify-center w-10 h-7 rounded border font-mono font-bold text-sm ${cls}`}>
+      {score}
+    </span>
+  );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Small helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const FREE_VISIBLE = 5;
+const FREE_LIMIT = 5;
+const COUNTRY_TABS = [
+  { label: "US",  name: "United States",  sub: "United States"  },
+  { label: "UK",  name: "United Kingdom", sub: "United Kingdom" },
+  { label: "AU",  name: "Australia",      sub: "Australia"      },
+  { label: "CA",  name: "Canada",         sub: "Canada"         },
+  { label: "ES",  name: "Spain",          sub: "Spain"          },
+];
 
-function scoreColor(n: number): string {
-  if (n >= 75) return "text-pa-green";
-  if (n >= 50) return "text-amber-400";
-  return "text-rose-400";
+function gdvEst(row: DealRow): string {
+  const def = COUNTRY_DEFAULTS[row.country];
+  const sym = symFor(row.currency_code);
+  const units = Math.round(20 + (row.opportunity_score / 100) * 30);
+  const gdv   = units * (def?.avgPrice ?? 400_000);
+  return fmt(gdv, sym);
 }
 
-function verdictBadge(score: number): { label: string; cls: string } {
-  if (score >= 75) return { label: "IC Ready",  cls: "bg-pa-green/10 text-pa-green border-pa-green/30" };
-  if (score >= 60) return { label: "Diligence", cls: "bg-amber-400/10 text-amber-400 border-amber-400/30" };
-  return              { label: "Monitor",    cls: "bg-secondary text-muted-foreground border-border" };
-}
+type SortMode = "roi" | "zoning" | "demand";
 
-function freshnessLabel(iso: string | null): { label: string; color: string } {
-  if (!iso) return { label: "—",      color: "text-muted-foreground" };
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days === 0)   return { label: "Today",                       color: "text-pa-green" };
-  if (days <= 7)    return { label: `${days}d`,                    color: "text-pa-green" };
-  if (days <= 30)   return { label: `${days}d`,                    color: "text-amber-400" };
-  return              { label: `${Math.floor(days / 30)}mo`,       color: "text-rose-400" };
-}
+// ─── Main component ───────────────────────────────────────────────────────────
 
-function fmtMoney(n: number, sym: string): string {
-  if (Math.abs(n) >= 1_000_000) return `${sym}${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000)     return `${sym}${(n / 1_000).toFixed(0)}K`;
-  return `${sym}${Math.round(n)}`;
-}
-
-function currSym(code: string): string {
-  if (code === "GBP") return "£";
-  if (code === "USD") return "$";
-  if (code === "AUD") return "A$";
-  if (code === "CAD") return "C$";
-  return "€";
-}
-
-type SortKey = "opportunity_score" | "growth_score" | "infrastructure_score" | "liquidity_score" | "risk_score";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function DealBoard({ rows, tier, freshnessMap }: DealBoardProps) {
+export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProps) {
   const isPro = tier !== "free";
-  const router = useRouter();
 
-  const [sortKey,       setSortKey]       = useState<SortKey>("opportunity_score");
-  const [sortDir,       setSortDir]       = useState<"desc" | "asc">("desc");
-  const [countryFilter, setCountryFilter] = useState<string>("all");
-  const [expandedId,    setExpandedId]    = useState<string | null>(null);
-  const [proFormaId,    setProFormaId]    = useState<string | null>(null);
-  const [proFormaRow,   setProFormaRow]   = useState<DealRow | null>(null);
-  const [assumptions,   setAssumptions]   = useState<ProFormaAssumptions | null>(null);
+  const [country,     setCountry]     = useState("United States");
+  const [sortMode,    setSortMode]    = useState<SortMode>("roi");
+  const [selectedId,  setSelectedId]  = useState<string | null>(null);
+  const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
+  const [time, setTime] = useState("");
 
-  const proForma = useMemo(
-    () => (assumptions ? computeProForma(assumptions) : null),
-    [assumptions]
-  );
+  // Live clock
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
-  // Derived country list + counts
-  const countryList = useMemo(
-    () => ["all", ...Array.from(new Set(rows.map((r) => r.country))).sort()],
-    [rows]
-  );
-  const countryCount = useMemo(() => {
-    const m: Record<string, number> = { all: rows.length };
-    for (const r of rows) m[r.country] = (m[r.country] ?? 0) + 1;
-    return m;
-  }, [rows]);
-
-  // Sort + filter
+  // Filtered + sorted rows
   const sorted = useMemo(() => {
-    const filtered = countryFilter === "all" ? rows : rows.filter((r) => r.country === countryFilter);
-    return [...filtered].sort((a, b) => {
-      const mult = sortDir === "desc" ? -1 : 1;
-      const av = sortKey === "risk_score" ? 100 - a[sortKey] : a[sortKey];
-      const bv = sortKey === "risk_score" ? 100 - b[sortKey] : b[sortKey];
-      return mult * (bv - av);
+    const key: keyof DealRow = sortMode === "roi" ? "opportunity_score" : sortMode === "zoning" ? "development_score" : "growth_score";
+    return [...rows]
+      .filter((r) => r.country === country)
+      .sort((a, b) => (b[key] as number) - (a[key] as number));
+  }, [rows, country, sortMode]);
+
+  const selectedRow = sorted.find((r) => r.id === selectedId) ?? null;
+
+  // Pro-forma state — reset when selected row changes
+  const [pf, setPf] = useState<PF | null>(null);
+  useEffect(() => {
+    if (!selectedRow) { setPf(null); return; }
+    const def = COUNTRY_DEFAULTS[selectedRow.country] ?? { hardCost: 185, avgPrice: 400_000 };
+    setPf({
+      units:          240,
+      gsfPerUnit:     860,
+      hardCostPerGsf: def.hardCost,
+      landCost:       def.avgPrice * 30,
+      rentPerUnitMo:  Math.round(def.avgPrice * 0.004),
+      exitCapPct:     5,
+      contingencyPct: 8,
     });
-  }, [rows, sortKey, sortDir, countryFilter]);
+  }, [selectedRow?.id]);
 
-  function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => d === "desc" ? "asc" : "desc");
-    else { setSortKey(key); setSortDir("desc"); }
-  }
+  const pfOut = useMemo(() => pf ? computePF(pf) : null, [pf]);
 
-  function openProForma(row: DealRow) {
-    const meta = COUNTRY_META[row.country];
-    setProFormaRow(row);
-    setProFormaId(row.id);
-    setAssumptions({
-      units: 50,
-      gsfPerUnit: 1_000,
-      hardCostPerGsf:   meta?.defaultHardCostPerGsf   ?? 185,
-      softCostPct:      18,
-      contingencyPct:   10,
-      ltcPct:           65,
-      financeRatePa:    7.5,
-      buildMonths:      24,
-      avgPricePerUnit:  meta?.defaultAvgPricePerUnit   ?? 400_000,
-      exitCapRate:      5.0,
-      absorptionMonths: 12,
+  const tape  = MARKET_TAPE[country];
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const sym   = selectedRow ? symFor(selectedRow.currency_code) : "$";
+
+  function toggleLayer(key: string) {
+    setCheckedLayers((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
     });
   }
 
-  function closeProForma() {
-    setProFormaRow(null);
-    setProFormaId(null);
-    setAssumptions(null);
+  function generateMemo() {
+    if (!selectedRow || !pf || !pfOut) return;
+    const s = symFor(selectedRow.currency_code);
+    const lines = [
+      ["PRIME ATLAS — IC MEMO", ""],
+      ["Generated", new Date().toISOString()],
+      ["Analyst", userEmail ?? "—"],
+      [""],
+      ["MARKET"],
+      ["City",         selectedRow.name],
+      ["Region",       selectedRow.region],
+      ["Country",      selectedRow.country],
+      ["Data source",  selectedRow.source_name],
+      ["Confidence",   `${(selectedRow.data_confidence * 100).toFixed(0)}%`],
+      [""],
+      ["SCORES"],
+      ["ROI (Composite)", selectedRow.opportunity_score],
+      ["Zoning (Dev.)",   selectedRow.development_score],
+      ["Demand (Growth)", selectedRow.growth_score],
+      ["Infrastructure",  selectedRow.infrastructure_score],
+      ["Liquidity",       selectedRow.liquidity_score],
+      ["Risk",            selectedRow.risk_score],
+      [""],
+      ["PRO-FORMA INPUTS"],
+      ["Units",           pf.units],
+      ["GSF / unit",      pf.gsfPerUnit],
+      ["Hard cost / GSF", `${s}${pf.hardCostPerGsf}`],
+      ["Land cost",       fmt(pf.landCost, s)],
+      ["Rent / unit / mo", fmt(pf.rentPerUnitMo, s)],
+      ["Exit cap",        `${pf.exitCapPct}%`],
+      ["Contingency",     `${pf.contingencyPct}%`],
+      [""],
+      ["YIELD ANALYSIS"],
+      ["Total dev cost",   fmt(pfOut.totalDevCost, s)],
+      ["Stabilised NOI",   fmt(pfOut.annualNOI, s)],
+      ["Value at exit cap",fmt(pfOut.exitValue, s)],
+      ["Profit",           fmt(pfOut.profit, s)],
+      ["Yield on cost",    `${pfOut.yieldOnCost.toFixed(1)}%`],
+      ["Margin on cost",   `${pfOut.marginOnCost.toFixed(1)}%`],
+      [""],
+      ["Evidence layers included:", Array.from(checkedLayers).join(", ") || "None selected"],
+      [""],
+      ["DISCLAIMER: Illustrative only. Scores are index-based. Not investment advice.", ""],
+    ];
+    const csv  = lines.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `prime-atlas-ic-memo-${selectedRow.slug}.csv`;
+    a.click(); URL.revokeObjectURL(url);
   }
-
-  function SortHeader({ label, k }: { label: string; k: SortKey }) {
-    const active = sortKey === k;
-    return (
-      <button
-        onClick={() => toggleSort(k)}
-        className={`flex items-center gap-0.5 text-xs font-medium transition-colors ${
-          active ? "text-pa-green" : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        {label}
-        <span className="font-mono text-[9px]">{active ? (sortDir === "desc" ? "↓" : "↑") : "↕"}</span>
-      </button>
-    );
-  }
-
-  const selectedMeta = countryFilter !== "all" ? COUNTRY_META[countryFilter] : null;
-
-  // Grid definitions
-  const headerGrid = isPro
-    ? "grid-cols-[1.25rem_1.25rem_1fr_5rem_4rem_3.5rem_3.5rem_3.5rem_3.5rem_4.5rem_2.5rem]"
-    : "grid-cols-[1.25rem_1.25rem_1fr_5rem_4rem_3.5rem_3.5rem_3.5rem_3.5rem_4.5rem]";
 
   return (
-    <div className="space-y-4">
+    <div className="font-mono text-sm text-white min-h-screen bg-[#0B0F1A]">
 
-      {/* ── Country tabs ─────────────────────────────────────────────────────── */}
-      <div className="flex gap-2 flex-wrap items-center">
-        {countryList.map((c) => {
-          const meta  = COUNTRY_META[c];
-          const flag  = meta?.flag ?? "🌍";
-          const label = c === "all" ? "All Markets" : c;
-          const count = countryCount[c] ?? 0;
-          const active = countryFilter === c;
-          return (
-            <button
-              key={c}
-              onClick={() => setCountryFilter(c)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
-                active
-                  ? "border-pa-green/50 bg-pa-green/10 text-pa-green"
-                  : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
-              }`}
-            >
-              <span className="text-base leading-none">{flag}</span>
-              <span className="hidden sm:inline">{label}</span>
-              <span className={`font-mono text-[10px] px-1 rounded ${active ? "bg-pa-green/20" : "bg-secondary"}`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-        <span className="ml-auto text-xs text-muted-foreground">
-          {sorted.length} market{sorted.length !== 1 ? "s" : ""}
-        </span>
+      {/* ── Terminal header ── */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[#1E2D40] bg-[#0D1221]">
+        <div className="flex items-center gap-3">
+          <span className="text-white font-bold tracking-widest text-base">PRIME ATLAS</span>
+          <span className="text-[#4A6080] text-xs">site-acquisition terminal</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-emerald-400 text-xs">live</span>
+          <span className="text-[#4A6080] text-xs ml-2 tabular-nums">{time}</span>
+          <Link href="/" className="ml-4 text-[#4A6080] hover:text-white text-xs transition-colors">← exit</Link>
+        </div>
       </div>
 
-      {/* ── Market context bar ───────────────────────────────────────────────── */}
-      {selectedMeta && (
-        <div className="border border-border bg-card rounded-xl px-5 py-4">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">
-            Market Context · {countryFilter} · {new Date().toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4">
-            {selectedMeta.stats.map((stat) => (
-              <div key={stat.label}>
-                <p className="text-xs text-muted-foreground mb-0.5">{stat.label}</p>
-                <p className="font-mono font-bold text-sm tracking-tight">{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5 leading-tight">
-                  {stat.source}
-                </p>
-                <p className="text-[10px] text-muted-foreground/40 leading-tight">{stat.date}</p>
+      <div className="px-4 sm:px-6 py-4 space-y-4 max-w-[1400px] mx-auto">
+
+        {/* ── Country tabs ── */}
+        <div className="flex gap-1">
+          {COUNTRY_TABS.map((tab) => {
+            const count = rows.filter((r) => r.country === tab.name).length;
+            const active = country === tab.name;
+            return (
+              <button
+                key={tab.name}
+                onClick={() => { setCountry(tab.name); setSelectedId(null); }}
+                className={`flex-1 sm:flex-none px-4 py-2.5 border transition-all text-center ${
+                  active
+                    ? "bg-[#163559] border-[#1E4A7A] text-white"
+                    : "bg-[#111827] border-[#1E2D40] text-[#4A6080] hover:text-white hover:border-[#2A3D54]"
+                }`}
+              >
+                <div className="font-bold text-sm leading-none">{tab.label}</div>
+                <div className={`text-[10px] mt-0.5 ${active ? "text-[#8AABCC]" : "text-[#3A5068]"}`}>{tab.sub}</div>
+                <div className={`text-[9px] mt-0.5 ${active ? "text-emerald-400" : "text-[#2A4060]"}`}>{count} mkts</div>
+              </button>
+            );
+          })}
+          {!isPro && (
+            <Link
+              href="/pricing"
+              className="flex-none px-4 py-2.5 border border-dashed border-[#1E2D40] text-[#2A4060] hover:text-amber-400 hover:border-amber-800 transition-all text-center"
+            >
+              <div className="text-[10px]">Unlock</div>
+              <div className="text-[9px] text-[#2A4060]">pro</div>
+            </Link>
+          )}
+        </div>
+
+        {/* ── Market tape ── */}
+        {tape && (
+          <div className="bg-[#0E1E32] border border-[#1E3050] px-4 py-3">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-[10px] font-bold tracking-[0.2em] text-[#4A7090] uppercase">Market Tape</span>
+              <span className="text-[10px] text-[#3A5068]">as of {today}</span>
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 mb-2">
+              {tape.tape.map((s) => (
+                <span key={s.label} className="text-xs">
+                  <span className="text-[#4A6080]">{s.label} </span>
+                  <span className={
+                    s.dir === "up"   ? "text-emerald-400 font-bold" :
+                    s.dir === "down" ? "text-red-400 font-bold"     : "text-white font-bold"
+                  }>{s.value}</span>
+                </span>
+              ))}
+            </div>
+            <div className="text-[9px] text-[#2E4560]">Source: {tape.source}</div>
+          </div>
+        )}
+
+        {/* ── KPI cards ── */}
+        {tape && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {tape.kpis.map((k) => (
+              <div key={k.label} className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                <div className="text-[10px] text-[#4A6080] mb-1">{k.label}</div>
+                <div className="text-xl font-bold text-white tracking-tight">{k.value}</div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Deal table ───────────────────────────────────────────────────────── */}
-      <div className="border border-border rounded-xl overflow-hidden">
-
-        {/* Header */}
-        <div className={`grid ${headerGrid} gap-2 px-4 py-2.5 bg-secondary/40 border-b border-border`}>
-          <span />
-          <span className="text-[10px] text-muted-foreground">#</span>
-          <span className="text-[10px] text-muted-foreground">Market</span>
-          <span className="text-[10px] text-muted-foreground">Verdict</span>
-          <SortHeader label="Score"  k="opportunity_score" />
-          <SortHeader label="Gr."    k="growth_score" />
-          <SortHeader label="Infra"  k="infrastructure_score" />
-          <SortHeader label="Liq."   k="liquidity_score" />
-          <SortHeader label="Risk"   k="risk_score" />
-          <span className="text-[10px] text-muted-foreground text-right">Updated</span>
-          {isPro && <span className="text-[10px] text-muted-foreground text-right">ROI</span>}
-        </div>
-
-        {/* Rows */}
-        <div className="divide-y divide-border">
-          {sorted.map((row, i) => {
-            const rank       = i + 1;
-            const isBlurred  = !isPro && rank > FREE_VISIBLE;
-            const freshISO   = freshnessMap[row.country] ?? row.retrieved_at ?? null;
-            const fresh      = freshnessLabel(freshISO);
-            const verdict    = verdictBadge(row.opportunity_score);
-            const isExpanded = expandedId === row.id;
-            const isPfOpen   = proFormaId  === row.id;
-            const rowMeta    = COUNTRY_META[row.country];
-            const sym        = currSym(row.currency_code);
-
-            return (
-              <div key={row.id}>
-
-                {/* ── Main data row ── */}
-                <div
-                  className={`grid ${headerGrid} gap-2 px-4 py-3 items-center transition-colors ${
-                    isBlurred ? "opacity-40 select-none pointer-events-none" : ""
-                  } ${isExpanded || isPfOpen ? "bg-secondary/10" : "hover:bg-secondary/10"}`}
+        {/* ── Deal board table ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-white">
+              Deal board
+              <span className="text-[#4A6080] font-normal ml-2">· {sorted.length} ranked</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[#3A5068] mr-1">sort</span>
+              {(["roi", "zoning", "demand"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setSortMode(m)}
+                  className={`px-2.5 py-1 text-[10px] uppercase tracking-wider border transition-all ${
+                    sortMode === m
+                      ? "bg-[#163559] border-[#1E4A7A] text-white"
+                      : "border-[#1E2D40] text-[#4A6080] hover:text-white"
+                  }`}
                 >
-                  {/* Expand toggle */}
-                  <button
-                    className="text-muted-foreground hover:text-pa-green text-[9px] transition-colors w-4"
-                    onClick={() => !isBlurred && setExpandedId(isExpanded ? null : row.id)}
-                    title="Show evidence"
-                  >
-                    {isExpanded ? "▼" : "▶"}
-                  </button>
+                  {m === "roi" ? "ROI" : m === "zoning" ? "Zoning" : "Demand"}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                  <span className="text-xs font-mono text-muted-foreground">{rank}</span>
+          <div className="border border-[#1E2D40]">
+            {/* Table header */}
+            <div className="grid grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 px-4 py-2 bg-[#0D1624] border-b border-[#1E2D40]">
+              <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase">Opportunity</span>
+              <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase text-center">ROI</span>
+              <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase text-center">Zone</span>
+              <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase text-center">Dem</span>
+              <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase text-right">GDV est.*</span>
+            </div>
 
-                  {/* Market name — click to navigate */}
-                  <div className="min-w-0">
-                    <button
-                      onClick={() => !isBlurred && router.push(`/opportunities/${row.slug}`)}
-                      className="text-sm font-medium hover:text-pa-green transition-colors text-left w-full truncate block"
-                    >
-                      {isBlurred ? "████████" : row.name}
-                    </button>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {isBlurred ? "███████" : `${row.region} · ${rowMeta?.flag ?? ""} ${row.country}`}
-                    </p>
+            {/* Rows */}
+            {sorted.map((row, i) => {
+              const locked   = !isPro && i >= FREE_LIMIT;
+              const selected = selectedId === row.id;
+              return (
+                <div
+                  key={row.id}
+                  onClick={() => !locked && setSelectedId(selected ? null : row.id)}
+                  className={`grid grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 px-4 py-3 border-b border-[#1A2535] transition-colors ${
+                    locked   ? "opacity-30 pointer-events-none select-none" :
+                    selected ? "bg-[#0D2040] cursor-pointer" :
+                               "hover:bg-[#111827] cursor-pointer"
+                  }`}
+                >
+                  <div>
+                    <div className={`text-sm font-semibold leading-snug ${locked ? "" : "text-white"}`}>
+                      {locked ? "████████████" : row.name}
+                    </div>
+                    <div className="text-[11px] text-[#4A6080] mt-0.5">
+                      {locked ? "████████" : `${row.region}, ${row.country}`}
+                    </div>
                   </div>
-
-                  {/* Verdict */}
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border text-center block ${verdict.cls}`}>
-                    {isBlurred ? "——" : verdict.label}
-                  </span>
-
-                  {/* Scores */}
-                  {(["opportunity_score","growth_score","infrastructure_score","liquidity_score","risk_score"] as const).map((k) => (
-                    <span
-                      key={k}
-                      className={`font-mono text-xs font-bold ${scoreColor(k === "risk_score" ? 100 - row[k] : row[k])}`}
-                    >
-                      {isBlurred ? "██" : row[k]}
-                    </span>
-                  ))}
-
-                  {/* Freshness + source */}
-                  <div className="text-right">
-                    <span className={`text-[10px] font-mono ${fresh.color}`}>{isBlurred ? "" : fresh.label}</span>
-                    {!isBlurred && row.source_name && (
-                      <p className="text-[9px] text-muted-foreground/50 mt-0.5 truncate">{row.source_name}</p>
-                    )}
+                  <div className="flex items-center justify-center">
+                    {locked ? <span className="text-[#1A2535]">██</span> : <Badge score={row.opportunity_score} />}
                   </div>
+                  <div className="flex items-center justify-center">
+                    {locked ? <span className="text-[#1A2535]">██</span> : <Badge score={row.development_score} />}
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {locked ? <span className="text-[#1A2535]">██</span> : <Badge score={row.growth_score} />}
+                  </div>
+                  <div className="flex items-center justify-end text-sm font-bold text-white">
+                    {locked ? "——" : gdvEst(row)}
+                  </div>
+                </div>
+              );
+            })}
 
-                  {/* ROI button (pro only) */}
-                  {isPro && (
+            {/* Upgrade wall */}
+            {!isPro && sorted.length > FREE_LIMIT && (
+              <div className="px-4 py-5 text-center bg-[#0D1624]">
+                <div className="text-[#4A6080] text-xs mb-3">
+                  {sorted.length - FREE_LIMIT} markets locked — Pro unlocks all rows, evidence layers, and live pro-forma
+                </div>
+                <Link href="/pricing" className="inline-block bg-[#163559] border border-[#1E4A7A] text-white text-xs px-5 py-2 hover:bg-[#1A4070] transition-colors">
+                  Upgrade to Pro →
+                </Link>
+              </div>
+            )}
+          </div>
+          <div className="text-[9px] text-[#2E4560] mt-1 px-1">
+            * GDV estimate based on notional 20–50 unit scheme × country median sale price. Illustrative only.
+          </div>
+        </div>
+
+        {/* ── Selected row detail ── */}
+        {selectedRow && isPro && (
+          <div className="border border-[#1E3050] bg-[#0D1828]">
+
+            {/* Panel header */}
+            <div className="flex items-start justify-between px-5 py-4 border-b border-[#1E2D40]">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-[9px] tracking-widest text-[#4A6080] uppercase">Selected market</span>
+                </div>
+                <div className="text-lg font-bold text-white">{selectedRow.name}</div>
+                <div className="text-xs text-[#4A6080]">
+                  {selectedRow.region} · {selectedRow.country} · {selectedRow.source_name}
+                  {selectedRow.retrieved_at && ` · data ${new Date(selectedRow.retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-center">
+                  <Badge score={selectedRow.opportunity_score} />
+                  <div className="text-[9px] text-[#3A5068] mt-1">ROI</div>
+                </div>
+                <div className="text-center">
+                  <Badge score={selectedRow.development_score} />
+                  <div className="text-[9px] text-[#3A5068] mt-1">ZONE</div>
+                </div>
+                <div className="text-center">
+                  <Badge score={selectedRow.growth_score} />
+                  <div className="text-[9px] text-[#3A5068] mt-1">DEM</div>
+                </div>
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="ml-2 text-[#3A5068] hover:text-white text-lg leading-none"
+                >×</button>
+              </div>
+            </div>
+
+            {/* Evidence layers */}
+            <div className="px-5 pt-4 pb-3 border-b border-[#1E2D40]">
+              <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-3">Evidence Layers</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {EVIDENCE_LAYERS.map((layer) => {
+                  const checked = checkedLayers.has(layer.key);
+                  return (
                     <button
-                      onClick={() => isPfOpen ? closeProForma() : openProForma(row)}
-                      title="Open development pro-forma"
-                      className={`text-[10px] border rounded px-1 py-0.5 transition-colors font-mono ${
-                        isPfOpen
-                          ? "border-pa-green/60 bg-pa-green/10 text-pa-green"
-                          : "border-border text-muted-foreground hover:border-pa-green/40 hover:text-pa-green"
+                      key={layer.key}
+                      onClick={() => toggleLayer(layer.key)}
+                      className={`flex items-start gap-3 px-3 py-2.5 border text-left transition-all ${
+                        checked
+                          ? "border-[#1E4A7A] bg-[#0E2040]"
+                          : "border-[#1E2D40] bg-[#0D1624] hover:border-[#2A3D54]"
                       }`}
                     >
-                      ⊞
+                      <span className={`mt-0.5 text-xs flex-shrink-0 ${checked ? "text-emerald-400" : "text-[#2E4560]"}`}>
+                        {checked ? "☑" : "☐"}
+                      </span>
+                      <div>
+                        <div className={`text-xs font-semibold ${checked ? "text-white" : "text-[#6A8098]"}`}>
+                          {layer.label}
+                        </div>
+                        <div className="text-[10px] text-[#3A5068] mt-0.5">{layer.desc}</div>
+                        <div className="text-[9px] text-[#2E4560] mt-0.5">
+                          {selectedRow.source_name} · {
+                            selectedRow.retrieved_at
+                              ? new Date(selectedRow.retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                              : today
+                          }
+                        </div>
+                      </div>
                     </button>
-                  )}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pro-forma */}
+            {pf && pfOut && (
+              <div className="px-5 pt-4 pb-5">
+                <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-3">
+                  Pro-Forma — editable, recalculates live{" "}
+                  <span className="text-[#2E4560] normal-case tracking-normal">(opex held at 32% of gross)</span>
                 </div>
 
-                {/* ── Evidence panel ── */}
-                {isExpanded && !isBlurred && (
-                  <div className="border-t border-border/40 bg-secondary/5 px-5 pb-4 pt-3">
-                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                      Score Evidence · {row.name}
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 mb-4">
-                      {([
-                        { key: "growth_score",         label: "Growth",         desc: "Population & economic trajectory",        note: "Migration, GDP, wage trends",          invert: false },
-                        { key: "infrastructure_score",  label: "Infrastructure", desc: "Committed capital expenditure pipeline",  note: "Approved projects & public spend",     invert: false },
-                        { key: "development_score",     label: "Development",    desc: "Planning & build pipeline momentum",     note: "Permissions granted, zoning velocity", invert: false },
-                        { key: "liquidity_score",       label: "Liquidity",      desc: "Transaction depth & price discovery",    note: "Volume, days on market, turnover",     invert: false },
-                        { key: "risk_score",            label: "Risk",           desc: "Macro, regulatory & cycle risk",         note: "Lower raw score = safer market",       invert: true  },
-                      ] as const).map(({ key, label, desc, note, invert }) => {
-                        const raw     = row[key as keyof DealRow] as number;
-                        const display = invert ? 100 - raw : raw;
-                        return (
-                          <div key={key} className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-semibold">{label}</span>
-                              <span className={`font-mono text-xs font-bold ${scoreColor(display)}`}>{raw}</span>
-                            </div>
-                            <div className="h-1 bg-border rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${display >= 75 ? "bg-pa-green" : display >= 50 ? "bg-amber-400" : "bg-rose-400"}`}
-                                style={{ width: `${raw}%` }}
-                              />
-                            </div>
-                            <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
-                            <p className="text-[10px] text-muted-foreground/50 leading-tight">{note}</p>
-                          </div>
-                        );
-                      })}
+                {/* Inputs grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+                  {[
+                    { label: "Units",              key: "units",           step: 10,    prefix: "",  suffix: "" },
+                    { label: "GSF / unit",         key: "gsfPerUnit",      step: 50,    prefix: "",  suffix: "" },
+                    { label: `Hard cost / GSF (${sym})`, key: "hardCostPerGsf", step: 5, prefix: "", suffix: "" },
+                    { label: `Land cost (${sym})`, key: "landCost",        step: 100000,prefix: "",  suffix: "" },
+                    { label: `Rent / unit / mo (${sym})`, key: "rentPerUnitMo", step: 50, prefix: "", suffix: "" },
+                    { label: "Exit cap %",         key: "exitCapPct",      step: 0.25,  prefix: "",  suffix: "" },
+                    { label: "Contingency %",      key: "contingencyPct",  step: 1,     prefix: "",  suffix: "" },
+                  ].map(({ label, key, step }) => (
+                    <div key={key}>
+                      <label className="block text-[10px] text-[#4A6080] mb-1">{label}</label>
+                      <input
+                        type="number"
+                        step={step}
+                        value={pf[key as keyof PF]}
+                        onChange={(e) => setPf((p) => p ? { ...p, [key]: Number(e.target.value) } : p)}
+                        className="w-full bg-[#0D1624] border border-[#1E2D40] text-white text-sm px-3 py-2 focus:outline-none focus:border-[#1E4A7A] font-mono"
+                      />
                     </div>
+                  ))}
+                </div>
 
-                    {/* Provenance */}
-                    <div className="flex flex-wrap gap-x-5 gap-y-1 pt-3 border-t border-border/30">
-                      <span className="text-[10px] text-muted-foreground">
-                        Source: <span className="text-foreground/70">{row.source_name}</span>
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        Confidence: <span className="text-foreground/70">{(row.data_confidence * 100).toFixed(0)}%</span>
-                      </span>
-                      {row.retrieved_at && (
-                        <span className="text-[10px] text-muted-foreground">
-                          Retrieved:{" "}
-                          <span className="text-foreground/70">
-                            {new Date(row.retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                          </span>
-                        </span>
-                      )}
-                      <span className="text-[10px] text-muted-foreground">
-                        Currency: <span className="text-foreground/70">{row.currency_code}</span>
-                      </span>
-                      <Link
-                        href={`/opportunities/${row.slug}`}
-                        className="text-[10px] text-pa-green hover:underline ml-auto"
-                      >
-                        Full market view →
-                      </Link>
+                {/* Output row */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {[
+                    { label: "Total dev cost",    value: fmt(pfOut.totalDevCost, sym), muted: true  },
+                    { label: "Stabilised NOI",    value: fmt(pfOut.annualNOI, sym),    muted: true  },
+                    { label: "Value at exit cap", value: fmt(pfOut.exitValue, sym),    muted: true  },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                      <div className="text-[10px] text-[#4A6080] mb-1">{label}</div>
+                      <div className="text-lg font-bold text-white">{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                    <div className="text-[10px] text-[#4A6080] mb-1">Yield on cost</div>
+                    <div className="text-lg font-bold text-white">{pfOut.yieldOnCost.toFixed(1)}<span className="text-[#4A6080] text-sm">%</span></div>
+                  </div>
+                  <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                    <div className="text-[10px] text-[#4A6080] mb-1">Profit</div>
+                    <div className={`text-lg font-bold ${pfOut.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {fmt(pfOut.profit, sym)}
                     </div>
                   </div>
-                )}
-
-                {/* ── Development Pro-Forma panel ── */}
-                {isPfOpen && proFormaRow?.id === row.id && assumptions && proForma && isPro && (
-                  <div className="border-t border-pa-green/20 bg-card/80 px-5 pb-5 pt-4">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <p className="text-[11px] font-mono font-bold uppercase tracking-widest text-pa-green">
-                          Development Pro-Forma · {row.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {row.source_name} · {(row.data_confidence * 100).toFixed(0)}% confidence · {row.currency_code}
-                          {row.retrieved_at && ` · data as of ${new Date(row.retrieved_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`}
-                        </p>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => exportICMemo(row, assumptions, proForma, sym)}
-                          className="text-xs border border-pa-green/30 text-pa-green px-3 py-1.5 rounded-lg hover:bg-pa-green/10 transition-colors"
-                        >
-                          ↓ IC Memo
-                        </button>
-                        <button
-                          onClick={closeProForma}
-                          className="text-xs border border-border text-muted-foreground px-3 py-1.5 rounded-lg hover:bg-secondary transition-colors"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                      {/* Site inputs */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                          Site Inputs
-                        </p>
-                        <div className="space-y-2">
-                          {([
-                            { label: "Units",              key: "units",           step: 5,     suffix: "",     prefix: "" },
-                            { label: "GSF / unit",         key: "gsfPerUnit",      step: 50,    suffix: " sqft",prefix: "" },
-                            { label: "Hard cost / GSF",    key: "hardCostPerGsf",  step: 5,     suffix: "",     prefix: sym },
-                            { label: "Soft costs",         key: "softCostPct",     step: 1,     suffix: "% of hard", prefix: "" },
-                            { label: "Contingency",        key: "contingencyPct",  step: 1,     suffix: "% of sub-total", prefix: "" },
-                            { label: "Loan-to-cost (LTC)", key: "ltcPct",          step: 5,     suffix: "%",    prefix: "" },
-                            { label: "Finance rate",       key: "financeRatePa",   step: 0.25,  suffix: "% pa", prefix: "" },
-                            { label: "Build period",       key: "buildMonths",     step: 3,     suffix: " mo",  prefix: "" },
-                          ] as const).map(({ label, key, step, suffix, prefix }) => (
-                            <div key={key} className="flex items-center gap-2">
-                              <label className="text-[11px] text-muted-foreground flex-1 min-w-0 truncate">{label}</label>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {prefix && <span className="text-[11px] text-muted-foreground">{prefix}</span>}
-                                <input
-                                  type="number"
-                                  step={step}
-                                  value={assumptions[key]}
-                                  onChange={(e) =>
-                                    setAssumptions((p) => p ? { ...p, [key]: Number(e.target.value) } : p)
-                                  }
-                                  className="w-20 text-right text-xs bg-secondary border border-border rounded px-2 py-1 focus:outline-none focus:border-pa-green/50 font-mono"
-                                />
-                                {suffix && <span className="text-[11px] text-muted-foreground">{suffix}</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Revenue inputs */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                          Revenue Assumptions
-                        </p>
-                        <div className="space-y-2">
-                          {([
-                            { label: "Avg. sale / unit",  key: "avgPricePerUnit",  step: 10_000, suffix: "",     prefix: sym },
-                            { label: "Exit cap rate",      key: "exitCapRate",      step: 0.1,   suffix: "%",    prefix: "" },
-                            { label: "Absorption period",  key: "absorptionMonths", step: 3,     suffix: " mo",  prefix: "" },
-                          ] as const).map(({ label, key, step, suffix, prefix }) => (
-                            <div key={key} className="flex items-center gap-2">
-                              <label className="text-[11px] text-muted-foreground flex-1 min-w-0 truncate">{label}</label>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {prefix && <span className="text-[11px] text-muted-foreground">{prefix}</span>}
-                                <input
-                                  type="number"
-                                  step={step}
-                                  value={assumptions[key]}
-                                  onChange={(e) =>
-                                    setAssumptions((p) => p ? { ...p, [key]: Number(e.target.value) } : p)
-                                  }
-                                  className="w-24 text-right text-xs bg-secondary border border-border rounded px-2 py-1 focus:outline-none focus:border-pa-green/50 font-mono"
-                                />
-                                {suffix && <span className="text-[11px] text-muted-foreground">{suffix}</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Yield sense-check */}
-                        <div className="mt-4 p-3 bg-secondary/50 rounded-lg border border-border/50">
-                          <p className="text-[10px] text-muted-foreground mb-2 font-medium">Cap-rate yield check</p>
-                          <div className="space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-[10px] text-muted-foreground">GDV</span>
-                              <span className="font-mono text-[11px] text-foreground">{fmtMoney(proForma.gdv, sym)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-[10px] text-muted-foreground">Implied NOI @ {assumptions.exitCapRate}%</span>
-                              <span className="font-mono text-[11px] text-pa-green font-bold">
-                                {fmtMoney(proForma.gdv * (assumptions.exitCapRate / 100), sym)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Yield output */}
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                          Yield Analysis
-                        </p>
-                        <div className="space-y-1.5">
-                          {([
-                            { label: "Total GSF",         value: `${proForma.totalGsf.toLocaleString("en-GB")} sqft`, hi: false },
-                            { label: "Hard costs",        value: fmtMoney(proForma.hardCosts, sym),        hi: false },
-                            { label: "Soft costs",        value: fmtMoney(proForma.softCosts, sym),        hi: false },
-                            { label: "Contingency",       value: fmtMoney(proForma.contingency, sym),      hi: false },
-                            { label: "Dev. finance cost", value: fmtMoney(proForma.financeCosts, sym),     hi: false },
-                            { label: "All-in cost",       value: fmtMoney(proForma.allInCost, sym),        hi: true  },
-                            { label: "GDV",               value: fmtMoney(proForma.gdv, sym),              hi: true  },
-                            { label: "Net profit",        value: fmtMoney(proForma.netProfit, sym),        hi: proForma.netProfit > 0 },
-                          ] as const).map(({ label, value, hi }) => (
-                            <div key={label} className="flex justify-between items-baseline gap-4">
-                              <span className="text-[10px] text-muted-foreground">{label}</span>
-                              <span className={`font-mono text-xs font-bold flex-shrink-0 ${hi ? (proForma.netProfit >= 0 ? "text-pa-green" : "text-rose-400") : "text-foreground"}`}>
-                                {value}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Key returns */}
-                        <div className="mt-4 pt-3 border-t border-border grid grid-cols-2 gap-x-4 gap-y-2">
-                          {([
-                            { label: "Return on cost",   value: `${proForma.returnOnCost}%`,    good: proForma.returnOnCost  > 15 },
-                            { label: "Return on equity", value: `${proForma.returnOnEquity}%`,  good: proForma.returnOnEquity > 25 },
-                            { label: "Profit on GDV",    value: `${proForma.profitOnGdv}%`,     good: proForma.profitOnGdv   > 15 },
-                            { label: "Equity multiple",  value: `${proForma.equityMultiple}×`,  good: proForma.equityMultiple > 2 },
-                            { label: "IRR (levered)",    value: `${proForma.irr}%`,             good: proForma.irr > 20 },
-                            { label: "Equity required",  value: fmtMoney(proForma.equityRequired, sym), good: true },
-                          ] as const).map(({ label, value, good }) => (
-                            <div key={label}>
-                              <p className="text-[9px] text-muted-foreground">{label}</p>
-                              <p className={`font-mono text-xs font-bold ${good ? "text-pa-green" : "text-rose-400"}`}>{value}</p>
-                            </div>
-                          ))}
-                        </div>
-
-                        <p className="text-[9px] text-muted-foreground/60 leading-relaxed mt-3 pt-2 border-t border-border/30">
-                          Indicative only · Index scores, not live parcel data · Not investment advice
-                        </p>
-                      </div>
+                  <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                    <div className="text-[10px] text-[#4A6080] mb-1">Margin on cost</div>
+                    <div className={`text-lg font-bold ${pfOut.marginOnCost >= 15 ? "text-emerald-400" : pfOut.marginOnCost >= 0 ? "text-amber-400" : "text-red-400"}`}>
+                      {pfOut.marginOnCost.toFixed(1)}<span className="text-[#4A6080] text-sm">%</span>
                     </div>
                   </div>
-                )}
+                </div>
+
+                {/* Generate IC memo button */}
+                <button
+                  onClick={generateMemo}
+                  className="w-full py-3.5 bg-gradient-to-r from-[#163559] to-[#0E3070] border border-[#1E4A7A] text-white text-sm font-semibold hover:from-[#1A4070] hover:to-[#1248A0] transition-all flex items-center justify-center gap-2"
+                >
+                  <span className={checkedLayers.size > 0 ? "text-emerald-400" : "text-[#4A6080]"}>
+                    {checkedLayers.size > 0 ? "☑" : "☐"}
+                  </span>
+                  Generate IC memo ↗
+                </button>
+                <div className="text-[9px] text-[#2E4560] mt-2 text-center">
+                  {checkedLayers.size > 0
+                    ? `${checkedLayers.size} evidence layer${checkedLayers.size > 1 ? "s" : ""} will be included in the memo`
+                    : "Select evidence layers above to include in IC memo"}
+                </div>
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Free tier upgrade wall */}
-        {!isPro && sorted.length > FREE_VISIBLE && (
-          <div className="px-4 py-6 border-t border-border text-center bg-gradient-to-b from-transparent to-card">
-            <p className="text-sm font-semibold mb-1">
-              {sorted.length - FREE_VISIBLE} more markets hidden
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">
-              Pro unlocks all markets, evidence panels, development pro-forma (units / GSF / LTC / IRR / RoC), and IC-memo export.
-            </p>
-            <Link
-              href="/pricing"
-              className="inline-block bg-pa-green text-pa-navy font-bold text-xs px-5 py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
-            >
+        {/* Free-tier pro-forma CTA */}
+        {selectedRow && !isPro && (
+          <div className="border border-[#1E2D40] bg-[#0D1624] px-5 py-5 text-center">
+            <div className="text-sm font-semibold text-white mb-1">Evidence layers & pro-forma are Pro features</div>
+            <div className="text-xs text-[#4A6080] mb-4">
+              Pro unlocks full evidence layers, editable yield pro-forma (units / GSF / NOI / margin on cost), and one-click IC memo export.
+            </div>
+            <Link href="/pricing" className="inline-block bg-[#163559] border border-[#1E4A7A] text-white text-xs px-6 py-2.5 hover:bg-[#1A4070] transition-colors">
               Upgrade to Pro →
             </Link>
           </div>
         )}
-      </div>
 
-      {/* Free CTA below table */}
-      {!isPro && (
-        <div className="border border-border rounded-xl p-5 text-center">
-          <p className="text-sm font-semibold mb-1">Development Pro-Forma is a Pro feature</p>
-          <p className="text-xs text-muted-foreground mb-3">
-            Model units, GSF, hard/soft costs, LTC, finance costs, GDV, IRR, and return on cost —
-            then export a one-click IC memo.
-          </p>
-          <Link href="/pricing" className="text-xs text-pa-green hover:underline font-medium">
-            Upgrade to Pro →
-          </Link>
+        {/* Footer disclaimer */}
+        <div className="text-[9px] text-[#2E4560] pb-6 leading-relaxed">
+          Illustrative demo data for prototype purposes. Scores and pro-forma are computed client-side;
+          live build wires these to the source feeds shown on each chip.
+          Nothing here constitutes investment advice. prime-atlas does not guarantee accuracy or completeness.
         </div>
-      )}
+
+      </div>
     </div>
   );
 }
