@@ -45,7 +45,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(request).then((cached) => cached ?? fetch(request).then((res) => {
         if (res.status === 200) {
-          caches.open(CACHE_NAME).then((c) => c.put(request, res.clone()));
+          const r = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(request, r));
         }
         return res;
       }))
@@ -60,7 +60,7 @@ self.addEventListener("fetch", (event) => {
       const cached = await cache.match(request);
       const fetchPromise = fetch(request)
         .then((res) => {
-          if (res.status === 200) cache.put(request, res.clone());
+          if (res.status === 200) { const clone = res.clone(); cache.put(request, clone); }
           return res;
         })
         .catch(() => caches.match(OFFLINE_URL));
