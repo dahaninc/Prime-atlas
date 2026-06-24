@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { PostHogProvider, PostHogPageView } from "@/components/analytics/PostHogProvider";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -68,6 +69,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans antialiased min-h-screen`}>
         <PostHogProvider>
+          <AuthProvider>
           <Suspense fallback={null}><PostHogPageView /></Suspense>
           {children}
           <script
@@ -81,6 +83,7 @@ export default function RootLayout({
               `,
             }}
           />
+          </AuthProvider>
         </PostHogProvider>
       </body>
     </html>

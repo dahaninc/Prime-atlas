@@ -15,25 +15,22 @@ const PRO_ROUTES = [
   "/signals",
 ];
 
-/** Investor+ routes (reserved for Step 6) */
-// const INVESTOR_ROUTES: string[] = [];
-
 const FREE_TIERS = new Set(["free"]);
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // ── 3. Strip Stripe redirect params from URL after success ───────────────
+  // ── Strip Stripe session_id from dashboard URL ───────────────────────────
   if (path === "/dashboard" && request.nextUrl.searchParams.has("session_id")) {
     const clean = request.nextUrl.clone();
     clean.searchParams.delete("session_id");
     return NextResponse.redirect(clean);
   }
 
-  // Only create Supabase client + call getUser() for routes that need auth.
-  // Calling getUser() unconditionally on every request causes the SDK to clear
-  // the session cookies when the GoTrue /user call fails, which breaks auth on
-  // all subsequent server-component reads via cookies().
+  // Only run Supabase auth for routes that actually need it.
+  // CRITICAL: @supabase/ssr v0.3.0 uses cookies.get/set/remove (NOT getAll/setAll).
+  // Using getAll/setAll causes getItem() to return undefined on every call →
+  // session is never found → session wipe on every response.
   const needsAuth =
     PROTECTED_ROUTES.some((r) => path.startsWith(r)) ||
     PRO_ROUTES.some((r) => path.startsWith(r));
@@ -49,21 +46,34 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options?: object }>) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: Record<string, unknown>) {
+          // Must set on both request (for downstream reads) and response (for browser)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          request.cookies.set(name, value);
           supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
-          );
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          supabaseResponse.cookies.set(name, value, options as any);
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          request.cookies.set(name, "");
+          supabaseResponse = NextResponse.next({ request });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          supabaseResponse.cookies.set(name, "", { ...(options as any), maxAge: 0 });
         },
       },
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getUser() validates the JWT with GoTrue and refreshes if needed.
+  // With the correct cookie API above, the session is now readable.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // ── 1. Auth guard ────────────────────────────────────────────────────────
+  // ── Auth guard ────────────────────────────────────────────────────────────
   const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
@@ -72,7 +82,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ── 2. Subscription tier guard ───────────────────────────────────────────
+  // ── Subscription tier guard ───────────────────────────────────────────────
   if (user && PRO_ROUTES.some((r) => path.startsWith(r))) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -90,7 +100,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(upgradeUrl);
     }
 
-    // Forward tier as response header — readable by layouts without extra DB hit
     supabaseResponse.headers.set("x-subscription-tier", tier);
   }
 
