@@ -9,11 +9,11 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: {
-    default: "prime-atlas | Find Tomorrow's Winners Before Everyone Else",
+    default: "prime-atlas | Real Estate Investment Opportunity Intelligence",
     template: "%s | prime-atlas",
   },
   description:
-    "Ranked, scored investment markets across Spain, UK, and beyond. Data-driven opportunity index for property developers, capital allocators, and fund managers.",
+    "Ranked composite scores for real estate and development markets across the UK, US, Australia, and Canada. Built from publicly available planning data, price indices, rental growth, and infrastructure pipelines.",
   keywords: [
     "investment market index",
     "municipality opportunity score",

@@ -700,9 +700,10 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
 
         {/* Footer disclaimer */}
         <div className="text-[9px] text-[#2E4560] pb-6 leading-relaxed">
-          Illustrative demo data for prototype purposes. Scores and pro-forma are computed client-side;
-          live build wires these to the source feeds shown on each chip.
-          Nothing here constitutes investment advice. prime-atlas does not guarantee accuracy or completeness.
+          Scores are manually-researched composite indexes compiled from the public data sources shown on each market tape.
+          Sub-scores (growth, development, infrastructure, liquidity, risk) are static integer values updated periodically — not computed by machine learning.
+          The pro-forma is a standard DCF calculator: all inputs and outputs are user-defined.
+          Nothing here constitutes investment advice. past performance does not guarantee future results.
         </div>
 
       </div>

@@ -6,7 +6,6 @@ import { scoreColor, scoreColor as sc, formatCurrency } from "@/lib/utils";
 import { ScoreBadge, ScoreBar } from "@/components/ui/ScoreBadge";
 import { ScoreRadar } from "@/components/charts/ScoreRadar";
 import { ScoreBreakdown } from "@/components/charts/ScoreBreakdown";
-import { ThesisStream } from "@/components/ui/ThesisStream";
 import type { Signal, InfrastructureProject } from "@/types";
 
 // Skip static generation — municipalities require auth via RLS.
@@ -150,18 +149,37 @@ export default async function MunicipalityPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Market thesis */}
-        <div className="border border-border rounded-xl p-6 bg-card mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              Market Thesis
-            </span>
+        {/* Market overview */}
+        {opportunities?.[0]?.investment_thesis && (
+          <div className="border border-border rounded-xl p-6 bg-card mb-8">
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                Market Overview
+              </span>
+              {opportunities[0].source_url && (
+                <a
+                  href={opportunities[0].source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-muted-foreground border border-border rounded px-2 py-0.5 hover:text-pa-green hover:border-pa-green/40 transition-colors"
+                >
+                  Source ↗
+                </a>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {opportunities[0].investment_thesis}
+            </p>
+            {opportunities[0].source_name && (
+              <p className="mt-3 text-[10px] text-muted-foreground">
+                Source: {opportunities[0].source_name}
+                {opportunities[0].retrieved_at
+                  ? ` · ${new Date(opportunities[0].retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+                  : ""}
+              </p>
+            )}
           </div>
-          <ThesisStream
-            municipalityId={municipality.id}
-            fallbackThesis={opportunities?.[0]?.investment_thesis}
-          />
-        </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main column */}
