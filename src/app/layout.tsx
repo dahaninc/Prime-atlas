@@ -9,14 +9,16 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: {
-    default: "prime-atlas | Go/no-go in 10 minutes. IC memo in one click.",
+    default: "prime-atlas | Real estate conviction — for every investor, at every scale.",
     template: "%s | prime-atlas",
   },
   description:
-    "Prime Atlas compresses time-to-defensible-conviction on real estate sites — from weeks of analyst labour to ten minutes you can put in front of a committee. Pre-screened pipeline, preliminary underwrite, one-click IC memo across UK, US, Australia, Canada, and Spain.",
+    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 80+ markets, live underwrite, IC memo in one click. UK · US · AU · CA · ES.",
   keywords: [
     "real estate investment conviction",
     "IC memo generator real estate",
+    "real estate deal screening",
+    "property investment analysis",
     "site acquisition decision tool",
     "go no-go site analysis",
     "development site pre-screening",
@@ -24,7 +26,9 @@ export const metadata: Metadata = {
     "real estate preliminary underwrite",
     "ROI feasibility index",
     "deal board real estate",
-    "capital allocation real estate",
+    "retail real estate investment",
+    "institutional real estate analysis",
+    "real estate fund pre-screening",
   ],
   authors: [{ name: "prime-atlas" }],
   creator: "prime-atlas",
@@ -33,14 +37,14 @@ export const metadata: Metadata = {
     locale: "en_GB",
     url: process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app",
     siteName: "prime-atlas",
-    title: "prime-atlas | Go/no-go in 10 minutes. IC memo in one click.",
+    title: "prime-atlas | Real estate conviction — for every investor, at every scale.",
     description:
-      "Pre-screened pipeline, preliminary underwrite, one-click IC memo. Compress time-to-defensible-conviction before the off-market window closes.",
+      "Pre-screened pipeline across 80+ markets, live preliminary underwrite, IC memo in one click. For retail investors, developers, and institutional funds. UK · US · AU · CA · ES.",
   },
   twitter: {
     card: "summary_large_image",
     title: "prime-atlas",
-    description: "Go/no-go in 10 minutes. IC memo in one click. Before your competitor finishes pulling zoning.",
+    description: "Real estate conviction for every investor. Pre-screened pipeline, live underwrite, IC memo same day. 80+ markets across UK, US, AU, CA, ES.",
   },
   manifest: "/manifest.json",
   appleWebApp: {

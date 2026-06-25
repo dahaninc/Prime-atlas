@@ -212,6 +212,16 @@ export function Navbar({ user }: NavbarProps) {
             </div>
 
             <Link
+              href="/listings"
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                pathname === "/listings" ? "text-foreground bg-secondary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              )}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-pa-green animate-pulse" />
+              Listings
+            </Link>
+
+            <Link
               href="/reports/undersupplied-markets"
               className="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
             >
@@ -275,6 +285,15 @@ export function Navbar({ user }: NavbarProps) {
               >
                 <span className="text-pa-green">⬛</span> Deal Board
                 <span className="ml-auto text-xs text-muted-foreground">All markets ranked</span>
+              </Link>
+
+              {/* Live Listings */}
+              <Link href="/listings" onClick={close}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+              >
+                <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
+                Live Listings
+                <span className="ml-auto text-xs text-muted-foreground">20 active deals</span>
               </Link>
 
               {/* Divider */}

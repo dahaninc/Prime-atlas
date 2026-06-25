@@ -8,47 +8,135 @@ import { scoreColor } from "@/lib/utils";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "prime-atlas | Go/no-go in 10 minutes. IC memo in one click.",
+  title: "prime-atlas | Real estate conviction — for every investor, at every scale.",
   description:
-    "Prime Atlas compresses time-to-defensible-conviction on real estate sites from weeks of analyst labour to ten minutes you can defend. Pre-screened pipeline, preliminary underwrite, one-click IC memo — across UK, US, Australia, Canada, and Spain.",
+    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 80+ markets, live underwrite, IC memo in one click. UK · US · AU · CA · ES.",
 };
 
-const WORKFLOW = [
+/* ─────────────────────────── data ─────────────────────────── */
+
+const STATS = [
+  { value: "80+",    label: "Markets pre-screened across 5 countries" },
+  { value: "10 min", label: "Deal board → preliminary IC memo" },
+  { value: "£50K+",  label: "Avg. cost of a late-aborted diligence process" },
+  { value: "100%",   label: "Government-source attribution on every score" },
+];
+
+const AUDIENCES = [
   {
-    step: "01",
-    title: "Pre-screened pipeline",
-    body: "80+ markets ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Sourced from official planning portals — not black-box models.",
+    tag: "Individual & retail investors",
+    icon: "◎",
+    headline: "The analysis funds commission — at your price point.",
+    pain:
+      "You see a market moving but can't quantify the thesis fast enough before prices reflect it. By the time a research note publishes, the entry window has closed.",
+    value: [
+      "80+ markets ranked by ROI Feasibility Index",
+      "Undersupply signals before they reach mainstream press",
+      "Conviction scores sourced from government data — not opinion",
+      "Free tier: 5 markets per country, no credit card",
+    ],
+    cta: { label: "Start free", href: "/auth/signup" },
+    border: "border-pa-green/30",
+    bg: "bg-pa-green/[0.03]",
+    tagColor: "text-pa-green",
+    checkColor: "text-pa-green",
+  },
+  {
+    tag: "Developers & operators",
+    icon: "⬡",
+    headline: "Know before you spend £50K on surveys.",
+    pain:
+      "You're committing to diligence costs before you have high-confidence conviction. Most aborted deals absorb 6–10 weeks of analyst and consultant time before hitting a wall that was visible from day one.",
+    value: [
+      "Live DCF — units, GSF, land cost, hard cost, yield-on-cost",
+      "Planning pipeline and zoning velocity per market",
+      "Pre-screened BTR, PBSA, Industrial, Mixed-use pipeline",
+      "Go/no-go conviction before the £50K diligence commitment",
+    ],
     cta: { label: "Open Deal Board", href: "/deal-board" },
+    border: "border-blue-500/30",
+    bg: "bg-blue-500/[0.03]",
+    tagColor: "text-blue-400",
+    checkColor: "text-blue-400",
   },
   {
-    step: "02",
-    title: "Preliminary underwrite in the board",
-    body: "Select any market and run a live DCF: units, gross square footage, hard cost, land cost, rent assumptions. Yield-on-cost and margin-on-cost recalculate instantly. No spreadsheet, no waiting for an analyst to build the model.",
-    cta: null,
+    tag: "Funds & institutions",
+    icon: "▣",
+    headline: "IC memo. Same day. Auditable.",
+    pain:
+      "Your analysts spend 2–3 weeks per site stitching data from eight different sources in formats that don't match. Off-market windows are 72 hours. You are structurally late.",
+    value: [
+      "Preliminary underwrite ready the moment a deal hits your desk",
+      "Conviction checklist — every item linked to a named government source",
+      "Exportable IC memo — assumptions traceable, sources cited, committee-ready",
+      "Multi-market pipeline ranked by ROI index for allocation decisions",
+    ],
+    cta: { label: "Book institutional access", href: "/auth/signup?tier=institutional" },
+    border: "border-purple-500/30",
+    bg: "bg-purple-500/[0.03]",
+    tagColor: "text-purple-400",
+    checkColor: "text-purple-400",
   },
-  {
-    step: "03",
-    title: "One-click IC memo — defended, sourced, exportable",
-    body: "Export a structured CSV covering scores, source attribution, pro-forma outputs, and the conviction checklist you reviewed. The same day the deal comes in. Before your competitor's analyst has finished pulling zoning.",
-    cta: null,
-  },
+] as const;
+
+const TIMELINE_WITHOUT = [
+  { marker: "Day 1–3",   action: "Manual data pull — CoStar, parcel data, planning portals, census" },
+  { marker: "Day 4–7",   action: "Analyst builds financial model from scratch in Excel" },
+  { marker: "Day 8–14",  action: "Internal review — assumptions challenged, model rebuilt" },
+  { marker: "Day 14–21", action: "IC memo drafted, formatted, circulated for sign-off" },
+  { marker: "Day 21+",   action: "Off-market window closed. Vendor in exclusivity with someone else.", bad: true },
+];
+
+const TIMELINE_WITH = [
+  { marker: "Min 1–5",  action: "Market screened — ROI index, growth, risk scores visible" },
+  { marker: "Min 5–10", action: "Preliminary underwrite run — DCF inputs adjusted, yield-on-cost live" },
+  { marker: "Min 10–15",action: "Conviction checklist reviewed — signals verified, sources cited" },
+  { marker: "Min 15–20",action: "IC memo exported — structured, sourced, defensible in committee" },
+  { marker: "Same day", action: "Deal in front of committee. Window open.", good: true },
 ];
 
 const PAIN_POINTS = [
   {
-    label: "The clock",
+    label: "Speed",
     icon: "⏱",
-    body: "Off-market sites move in days. Every hour you spend manually stitching zoning, comps, absorption, and build cost from four fragmented sources is an hour a competitor's offer sits on the vendor's desk.",
+    stat: "72 hrs",
+    statLabel: "avg. off-market window",
+    body: "Off-market sites move in 72 hours. Every hour you spend manually pulling from fragmented sources is an hour a competitor's offer sits on the vendor's desk.",
   },
   {
-    label: "The burn",
+    label: "Cost",
     icon: "$",
-    body: "Late-stage diligence kills deals after £30–60K in fees. Almost every deal that dies late is one that wasn't pre-screened properly. The cost isn't the diligence — it's that you got there too late to know you shouldn't have started.",
+    stat: "£50K+",
+    statLabel: "avg. aborted deal cost",
+    body: "Late-stage diligence kills deals after £30–60K in fees — surveys, legal, planning consultants. The cost isn't the diligence: it's committing before you had conviction.",
   },
   {
-    label: "The committee",
+    label: "Committee",
     icon: "◉",
-    body: "An IC won't approve a deal you can't defend in writing. Manual builds take days. By then the window has closed, the site is in exclusivity, or the committee has moved on to something they can hold.",
+    stat: "3 wks",
+    statLabel: "avg. time to IC memo",
+    body: "An IC won't approve a deal you can't defend in writing. Manual memo builds take days. By then the site is under offer, or the committee has moved on.",
+  },
+];
+
+const WORKFLOW = [
+  {
+    step: "01",
+    title: "Pre-screened deal pipeline",
+    body: "80+ markets ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score sources back to a named government data portal — nothing you can't explain in committee.",
+    cta: { label: "Open Deal Board", href: "/deal-board" },
+  },
+  {
+    step: "02",
+    title: "Preliminary underwrite — live, in the browser",
+    body: "Select any market and run a DCF immediately: units, gross square footage, hard cost, land cost, rent assumptions. Yield-on-cost and margin-on-cost recalculate in real time. No spreadsheet. No analyst. No waiting.",
+    cta: null,
+  },
+  {
+    step: "03",
+    title: "IC memo — same day, defensible in writing",
+    body: "Export a structured investment memo covering scores, source attribution, pro-forma outputs, and the conviction checklist you reviewed. Every assumption traced to a named source. Ready for committee the same day the deal hits your desk.",
+    cta: null,
   },
 ];
 
@@ -61,13 +149,15 @@ const DATA_SOURCES = [
 ];
 
 const CATEGORIES = [
-  { label: "Build-to-Rent",      href: "/opportunities?category=BTR",               icon: "🏢" },
-  { label: "Student Housing",    href: "/opportunities?category=PBSA",              icon: "🎓" },
-  { label: "Affordable Housing", href: "/opportunities?category=Affordable+Housing", icon: "🏘" },
-  { label: "Commercial Office",  href: "/opportunities?category=Commercial",         icon: "🏬" },
-  { label: "Industrial",         href: "/opportunities?category=Industrial",         icon: "🏭" },
-  { label: "Mixed-use",          href: "/opportunities?category=Mixed-use",          icon: "⬛" },
+  { label: "Build-to-Rent",      href: "/opportunities?category=BTR",                icon: "🏢" },
+  { label: "Student Housing",    href: "/opportunities?category=PBSA",               icon: "🎓" },
+  { label: "Affordable Housing", href: "/opportunities?category=Affordable+Housing",  icon: "🏘" },
+  { label: "Commercial Office",  href: "/opportunities?category=Commercial",          icon: "🏬" },
+  { label: "Industrial",         href: "/opportunities?category=Industrial",          icon: "🏭" },
+  { label: "Mixed-use",          href: "/opportunities?category=Mixed-use",           icon: "⬛" },
 ];
+
+/* ─────────────────────────── page ─────────────────────────── */
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -118,55 +208,185 @@ export default async function HomePage() {
       <main>
 
         {/* ── Hero ── */}
-        <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-14 sm:pb-20">
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-10 sm:pb-14">
           <div className="inline-flex items-center gap-2 border border-pa-green/30 bg-pa-green/5 text-pa-green text-xs font-mono px-3 py-1.5 rounded-full mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-pa-green animate-pulse" />
-            80+ markets · UK · US · AU · CA · ES
+            Live · 80+ markets · UK · US · AU · CA · ES
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-bold tracking-tight leading-[1.1] mb-6 max-w-3xl">
-            Go/no-go in 10 minutes.{" "}
-            <span className="text-pa-green">IC memo in one click.</span>
+            Real estate conviction.{" "}
+            <span className="text-pa-green">For every investor, at every scale.</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mb-4 leading-relaxed">
-            Funds and developers already have CoStar, parcel data, and demographics.
-            The bottleneck isn't data — it's getting to a <strong className="text-foreground">defensible conviction</strong> before the off-market window closes.
+            From retail investors spotting emerging markets early, to funds closing deals before their
+            competitors have a model built — Prime Atlas compresses the time between{" "}
+            <strong className="text-foreground">market interest and defensible commitment</strong>.
           </p>
           <p className="text-base text-muted-foreground max-w-2xl mb-10 leading-relaxed">
-            Prime Atlas compresses three weeks of analyst time stitching zoning, comps, build cost, and absorption
-            to ten minutes you can put in front of a committee.
+            Pre-screened pipeline. Live preliminary underwrite. IC memo in one click.
+            Sourced entirely from government data you can name in a committee room.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <Link href="/deal-board" className="bg-pa-green text-pa-navy font-semibold px-8 py-3.5 rounded-lg hover:bg-pa-green/90 transition-colors text-sm text-center">
+            <Link
+              href="/deal-board"
+              className="bg-pa-green text-pa-navy font-semibold px-8 py-3.5 rounded-lg hover:bg-pa-green/90 transition-colors text-sm text-center"
+            >
               Open the Deal Board →
             </Link>
-            <Link href="/auth/signup" className="border border-border text-foreground px-8 py-3.5 rounded-lg hover:bg-secondary transition-colors text-sm text-center">
+            <Link
+              href="/auth/signup"
+              className="border border-border text-foreground px-8 py-3.5 rounded-lg hover:bg-secondary transition-colors text-sm text-center"
+            >
               Create free account
             </Link>
           </div>
           <p className="text-xs text-muted-foreground">
-            Free tier · No credit card · 5 markets per country included
+            Free tier included · No credit card · 5 markets per country
           </p>
         </section>
 
-        {/* ── The problem ── */}
-        <section className="border-t border-b border-border py-14 bg-secondary/20">
+        {/* ── Stat strip ── */}
+        <section className="border-t border-b border-border bg-card py-6">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2">The bottleneck</p>
-            <h2 className="text-2xl font-bold mb-2">You don't have a data problem. You have a conviction-and-latency problem.</h2>
-            <p className="text-sm text-muted-foreground mb-10 max-w-2xl leading-relaxed">
-              To decide whether a site is worth the £30–60K and weeks of analyst time that real diligence costs,
-              you have to manually stitch together zoning, comps, build cost, demand, and absorption from fragmented,
-              differently-formatted sources. And even then, you often can't defend the number cleanly enough to put it in front of a committee.
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
+              {STATS.map((s, i) => (
+                <div key={s.value} className={`text-center px-6 ${i === 0 ? "pl-0" : ""}`}>
+                  <p className="text-2xl font-bold font-mono text-pa-green">{s.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-tight">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Audience cards ── */}
+        <section className="border-b border-border py-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2 text-center">
+              Built for every real estate investor
             </p>
+            <h2 className="text-2xl font-bold text-center mb-10">
+              Your edge — regardless of scale
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {AUDIENCES.map((a) => (
+                <div
+                  key={a.tag}
+                  className={`border ${a.border} ${a.bg} rounded-xl p-6 flex flex-col`}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-lg font-mono text-muted-foreground">{a.icon}</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${a.tagColor}`}>
+                      {a.tag}
+                    </span>
+                  </div>
+                  <p className="font-bold text-base mb-3 leading-snug">{a.headline}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-6 flex-1">{a.pain}</p>
+                  <ul className="space-y-2.5 mb-6">
+                    {a.value.map((v) => (
+                      <li key={v} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className={`${a.checkColor} mt-0.5 flex-shrink-0 font-bold`}>✓</span>
+                        {v}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={a.cta.href} className={`text-xs font-semibold ${a.checkColor} hover:underline`}>
+                    {a.cta.label} →
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Timeline comparison ── */}
+        <section className="border-b border-border py-16 bg-secondary/20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2 text-center">
+              The conviction gap
+            </p>
+            <h2 className="text-2xl font-bold text-center mb-2">
+              Three weeks compressed to twenty minutes
+            </h2>
+            <p className="text-sm text-muted-foreground text-center mb-10 max-w-xl mx-auto">
+              The analysis is the same. The data is the same. The difference is the infrastructure that assembles it for you.
+            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+              {/* Without */}
+              <div className="border border-border rounded-xl overflow-hidden bg-card">
+                <div className="px-5 py-3 border-b border-border bg-secondary/50">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    Without Prime Atlas
+                  </p>
+                </div>
+                <div className="p-5 space-y-3.5">
+                  {TIMELINE_WITHOUT.map((row, i) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <span className="text-[10px] font-mono text-muted-foreground flex-shrink-0 w-20 mt-0.5">
+                        {row.marker}
+                      </span>
+                      <span className={`text-xs leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-red-400 font-medium" : "text-muted-foreground"}`}>
+                        {row.action}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* With */}
+              <div className="border border-pa-green/30 rounded-xl overflow-hidden bg-pa-green/[0.03]">
+                <div className="px-5 py-3 border-b border-pa-green/20 bg-pa-green/5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-pa-green">
+                    With Prime Atlas
+                  </p>
+                </div>
+                <div className="p-5 space-y-3.5">
+                  {TIMELINE_WITH.map((row, i) => (
+                    <div key={i} className="flex gap-3 items-start">
+                      <span className="text-[10px] font-mono text-pa-green flex-shrink-0 w-20 mt-0.5">
+                        {row.marker}
+                      </span>
+                      <span className={`text-xs leading-relaxed flex-1 ${"good" in row && row.good ? "text-pa-green font-medium" : "text-foreground"}`}>
+                        {row.action}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ── Pain points ── */}
+        <section className="border-b border-border py-16">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2">
+              The cost of slow conviction
+            </p>
+            <h2 className="text-2xl font-bold mb-10">
+              You don&apos;t have a data problem. You have a conviction-and-latency problem.
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {PAIN_POINTS.map((p) => (
                 <div key={p.label} className="border border-border rounded-xl p-5 bg-card">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="w-7 h-7 rounded border border-border flex items-center justify-center text-xs font-mono text-muted-foreground">{p.icon}</span>
-                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{p.label}</span>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded border border-border flex items-center justify-center text-xs font-mono text-muted-foreground">
+                        {p.icon}
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {p.label}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold font-mono text-foreground">{p.stat}</p>
+                      <p className="text-[9px] text-muted-foreground leading-tight">{p.statLabel}</p>
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{p.body}</p>
                 </div>
@@ -175,16 +395,25 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── The workflow ── */}
-        <section className="border-b border-border py-14">
+        {/* ── Workflow ── */}
+        <section className="border-b border-border py-16 bg-secondary/20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2">How it works</p>
-            <h2 className="text-2xl font-bold mb-10">From deal board to IC memo — same day, defensible in writing</h2>
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2">
+              How it works
+            </p>
+            <h2 className="text-2xl font-bold mb-10">
+              From deal board to IC memo — same day, defensible in writing
+            </h2>
             <div className="space-y-4">
               {WORKFLOW.map((step) => (
-                <div key={step.step} className="border border-border rounded-xl p-6 bg-card flex flex-col sm:flex-row gap-5">
+                <div
+                  key={step.step}
+                  className="border border-border rounded-xl p-6 bg-card flex flex-col sm:flex-row gap-5"
+                >
                   <div className="flex-shrink-0">
-                    <span className="text-xs font-mono text-pa-green border border-pa-green/30 rounded px-2 py-1">{step.step}</span>
+                    <span className="text-xs font-mono text-pa-green border border-pa-green/30 rounded px-2 py-1">
+                      {step.step}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm mb-2">{step.title}</p>
@@ -198,11 +427,10 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-
             <div className="mt-6 p-4 border border-border/50 rounded-xl bg-card/50 text-xs text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">About the scores.</strong>{" "}
-              Sub-scores (growth, infrastructure, development, liquidity, risk) are manually-researched composite indexes compiled from the official data sources listed below.
-              They are not generated by machine learning. The pro-forma is a standard DCF calculator — all inputs are set by you.
+              <strong className="text-foreground">Transparency.</strong>{" "}
+              Sub-scores are manually-researched composite indexes compiled from official government data sources listed below.
+              They are not black-box ML outputs. The pro-forma is a standard DCF — all inputs are set by you.
               Nothing in Prime Atlas constitutes investment advice.
             </div>
           </div>
@@ -210,11 +438,13 @@ export default async function HomePage() {
 
         {/* ── Top-ranked markets ── */}
         {topMunicipalities && topMunicipalities.length > 0 && (
-          <section className="border-b border-border py-14 bg-secondary/20">
+          <section className="border-b border-border py-16">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-1">Pre-screened pipeline</p>
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-1">
+                    Pre-screened pipeline
+                  </p>
                   <h2 className="text-2xl font-bold">Highest-conviction markets right now</h2>
                 </div>
                 <Link href="/deal-board" className="text-sm text-pa-green hover:underline whitespace-nowrap">
@@ -233,7 +463,9 @@ export default async function HomePage() {
                         <p className="text-xs text-muted-foreground font-mono mb-0.5">
                           {countryFlag[m.country] ?? "🌍"} {m.region}
                         </p>
-                        <p className="font-semibold text-sm group-hover:text-pa-green transition-colors">{m.name}</p>
+                        <p className="font-semibold text-sm group-hover:text-pa-green transition-colors">
+                          {m.name}
+                        </p>
                       </div>
                       <div className="text-right">
                         <span className={`text-2xl font-bold font-mono ${scoreColor(m.opportunity_score)}`}>
@@ -245,7 +477,15 @@ export default async function HomePage() {
                     <div className="flex gap-3 text-xs text-muted-foreground">
                       <span>Growth <strong className="text-foreground">{m.growth_score}</strong></span>
                       <span>Dev <strong className="text-foreground">{m.development_score}</strong></span>
-                      <span className={`ml-auto text-[10px] font-medium ${m.risk_score <= 40 ? "text-pa-green" : m.risk_score <= 55 ? "text-pa-amber" : "text-red-400"}`}>
+                      <span
+                        className={`ml-auto text-[10px] font-medium ${
+                          m.risk_score <= 40
+                            ? "text-pa-green"
+                            : m.risk_score <= 55
+                            ? "text-pa-amber"
+                            : "text-red-400"
+                        }`}
+                      >
                         risk {m.risk_score}
                       </span>
                       <span className="font-mono text-[10px]">#{i + 1}</span>
@@ -259,14 +499,18 @@ export default async function HomePage() {
 
         {/* ── Active opportunities ── */}
         {recentOpps && recentOpps.length > 0 && (
-          <section className="border-b border-border py-14">
+          <section className="border-b border-border py-16 bg-secondary/20">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-1">Underwrite-ready</p>
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-1">
+                    Underwrite-ready
+                  </p>
                   <h2 className="text-xl font-bold">Active opportunities — sourced &amp; scored</h2>
                 </div>
-                <Link href="/opportunities" className="text-sm text-pa-green hover:underline">All opportunities →</Link>
+                <Link href="/opportunities" className="text-sm text-pa-green hover:underline">
+                  All opportunities →
+                </Link>
               </div>
               <div className="space-y-3">
                 {recentOpps.map((opp) => {
@@ -279,13 +523,29 @@ export default async function HomePage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <span className="text-[10px] border border-border rounded px-1.5 py-0.5 text-muted-foreground font-mono">{opp.category}</span>
-                          <span className={`text-[10px] rounded px-1.5 py-0.5 font-medium ${opp.risk_level === "low" ? "text-pa-green" : opp.risk_level === "medium" ? "text-pa-amber" : "text-red-400"}`}>
+                          <span className="text-[10px] border border-border rounded px-1.5 py-0.5 text-muted-foreground font-mono">
+                            {opp.category}
+                          </span>
+                          <span
+                            className={`text-[10px] rounded px-1.5 py-0.5 font-medium ${
+                              opp.risk_level === "low"
+                                ? "text-pa-green"
+                                : opp.risk_level === "medium"
+                                ? "text-pa-amber"
+                                : "text-red-400"
+                            }`}
+                          >
                             {opp.risk_level} risk
                           </span>
-                          {muni && <span className="text-[10px] text-muted-foreground">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
+                          {muni && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {countryFlag[muni.country] ?? ""} {muni.name}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm font-medium leading-snug group-hover:text-pa-green transition-colors truncate">{opp.title}</p>
+                        <p className="text-sm font-medium leading-snug group-hover:text-pa-green transition-colors truncate">
+                          {opp.title}
+                        </p>
                       </div>
                       <div className="flex-shrink-0 ml-4 text-right">
                         <p className={`text-xl font-bold font-mono ${scoreColor(opp.opportunity_score)}`}>
@@ -301,28 +561,39 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* ── Signals ── */}
+        {/* ── Conviction signals ── */}
         {recentSignals && recentSignals.length > 0 && (
-          <section className="border-b border-border py-14 bg-secondary/20">
+          <section className="border-b border-border py-16">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center gap-3 mb-6">
                 <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
                 <div>
-                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Conviction signals</p>
-                  <p className="text-xs text-muted-foreground">Major employer moves, infrastructure approvals, and planning decisions that change a market's score</p>
+                  <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">
+                    Conviction signals
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Employer moves, infrastructure approvals, and planning decisions that materially change a market&apos;s conviction score
+                  </p>
                 </div>
               </div>
               <div className="space-y-3">
                 {recentSignals.map((sig) => {
                   const muni = sig.municipalities as { name: string; country: string } | null;
                   return (
-                    <div key={sig.id} className="flex items-center justify-between border border-border rounded-xl px-5 py-3.5 bg-card">
+                    <div
+                      key={sig.id}
+                      className="flex items-center justify-between border border-border rounded-xl px-5 py-3.5 bg-card"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">
                             {signalTypeLabel[sig.signal_type] ?? sig.signal_type}
                           </span>
-                          {muni && <span className="text-[10px] text-muted-foreground">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
+                          {muni && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {countryFlag[muni.country] ?? ""} {muni.name}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm font-medium leading-snug truncate">{sig.title}</p>
                       </div>
@@ -339,9 +610,11 @@ export default async function HomePage() {
         )}
 
         {/* ── Browse by category ── */}
-        <section className="border-b border-border py-14">
+        <section className="border-b border-border py-16 bg-secondary/20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest text-center mb-2">Browse by format</p>
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest text-center mb-2">
+              Browse by asset class
+            </p>
             <h2 className="text-2xl font-bold text-center mb-8">Pre-screened by property category</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {CATEGORIES.map((cat) => (
@@ -351,7 +624,9 @@ export default async function HomePage() {
                   className="border border-border rounded-xl p-4 bg-card hover:border-pa-green/40 transition-colors group flex items-center gap-3"
                 >
                   <span className="text-2xl">{cat.icon}</span>
-                  <span className="font-semibold text-sm group-hover:text-pa-green transition-colors">{cat.label}</span>
+                  <span className="font-semibold text-sm group-hover:text-pa-green transition-colors">
+                    {cat.label}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -359,14 +634,20 @@ export default async function HomePage() {
         </section>
 
         {/* ── Auditable data sources ── */}
-        <section className="border-b border-border py-14 bg-secondary/20">
+        <section className="border-b border-border py-16">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest text-center mb-2">Auditable sources</p>
-            <h2 className="text-2xl font-bold text-center mb-3">Every score is traceable to a named government source</h2>
-            <p className="text-sm text-muted-foreground text-center mb-10 max-w-xl mx-auto">
-              An IC will ask where your numbers come from. Every score, signal, and opportunity in Prime Atlas links back to the original planning portal, official housing authority, or statistical body — not a model you can't explain.
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest text-center mb-2">
+              Auditable sources
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+            <h2 className="text-2xl font-bold text-center mb-3">
+              Every score is traceable to a named government source
+            </h2>
+            <p className="text-sm text-muted-foreground text-center mb-10 max-w-2xl mx-auto">
+              An IC will ask where your numbers come from. Every score, signal, and opportunity in Prime Atlas
+              links back to the original planning portal, official housing authority, or statistical body —
+              not a model you can&apos;t explain.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-6">
               {DATA_SOURCES.map((ds) => (
                 <div key={ds.label} className="text-center">
                   <p className="text-3xl mb-2">{ds.flag}</p>
@@ -379,14 +660,17 @@ export default async function HomePage() {
         </section>
 
         {/* ── Free report ── */}
-        <section className="border-b border-border py-14">
+        <section className="border-b border-border py-16 bg-secondary/20">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-3">Free quarterly report</p>
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-3">
+              Free quarterly report
+            </p>
             <h2 className="text-2xl font-bold mb-4">
               The 25 Most Undersupplied Multifamily Submarkets — Q2 2026
             </h2>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed max-w-xl mx-auto">
-              Ranked by ROI Feasibility Index. Covers UK, US, Australia, and Canada. Free, ungated, sourced from official data.
+              Ranked by ROI Feasibility Index. Covers UK, US, Australia, and Canada.
+              Free, ungated, sourced from official data.
             </p>
             <Link
               href="/reports/undersupplied-markets"
@@ -398,25 +682,37 @@ export default async function HomePage() {
         </section>
 
         {/* ── Final CTA ── */}
-        <section className="py-20">
+        <section className="py-24">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-4">Start compressing your conviction timeline</p>
-            <h2 className="text-3xl font-bold mb-4">
-              Know which sites are worth your committee's time.<br/>
-              <span className="text-pa-green">Before your competitor's analyst finishes pulling zoning.</span>
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-5">
+              Start compressing your conviction timeline
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
+              The deal you miss because you were slow.<br />
+              The deal that dies because you committed too early.{" "}
+              <span className="text-pa-green">Prime Atlas ends both.</span>
             </h2>
             <p className="text-muted-foreground text-sm mb-8 leading-relaxed max-w-lg mx-auto">
-              Free tier includes the full Deal Board, preliminary underwrite, and pre-screened pipeline across 5 markets per country.
-              Pro unlocks all 80+ markets, full evidence layers, and IC memo export.
+              Free tier: full Deal Board, preliminary underwrite, pre-screened pipeline across 5 markets per country.
+              Pro: all 80+ markets, full evidence layers, IC memo export.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/auth/signup" className="inline-block bg-pa-green text-pa-navy font-semibold px-8 py-3.5 rounded-lg hover:bg-pa-green/90 transition-colors text-sm">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+              <Link
+                href="/auth/signup"
+                className="inline-block bg-pa-green text-pa-navy font-semibold px-8 py-3.5 rounded-lg hover:bg-pa-green/90 transition-colors text-sm"
+              >
                 Get access — free
               </Link>
-              <Link href="/deal-board" className="inline-block border border-border text-foreground px-8 py-3.5 rounded-lg hover:bg-secondary transition-colors text-sm">
+              <Link
+                href="/deal-board"
+                className="inline-block border border-border text-foreground px-8 py-3.5 rounded-lg hover:bg-secondary transition-colors text-sm"
+              >
                 Open Deal Board →
               </Link>
             </div>
+            <p className="text-xs text-muted-foreground">
+              No credit card required · Upgrade or cancel at any time
+            </p>
           </div>
         </section>
 

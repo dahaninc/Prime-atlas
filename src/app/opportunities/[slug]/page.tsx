@@ -6,6 +6,8 @@ import { scoreColor, scoreColor as sc, formatCurrency } from "@/lib/utils";
 import { ScoreBadge, ScoreBar } from "@/components/ui/ScoreBadge";
 import { ScoreRadar } from "@/components/charts/ScoreRadar";
 import { ScoreBreakdown } from "@/components/charts/ScoreBreakdown";
+import { LiveListings } from "@/components/listings/LiveListings";
+import type { Listing } from "@/components/listings/LiveListings";
 import type { Signal, InfrastructureProject } from "@/types";
 
 // Skip static generation — municipalities require auth via RLS.
@@ -59,11 +61,13 @@ export default async function MunicipalityPage({ params }: PageProps) {
     { data: signals },
     { data: infraProjects },
     { data: planningApps },
+    { data: listings },
   ] = await Promise.all([
     supabase.from("opportunities").select("*").eq("municipality_id", municipality.id).eq("status", "active").order("opportunity_score", { ascending: false }),
     supabase.from("signals").select("*").eq("municipality_id", municipality.id).order("detected_at", { ascending: false }).limit(5),
     supabase.from("infrastructure_projects").select("*").eq("municipality_id", municipality.id).order("impact_score", { ascending: false }),
     supabase.from("planning_applications").select("*").eq("municipality_id", municipality.id).order("application_date", { ascending: false }).limit(5),
+    supabase.from("listings").select("*").eq("municipality_id", municipality.id).in("status", ["active","under_offer"]).order("featured", { ascending: false }).order("date_listed", { ascending: false }),
   ]);
 
   const jsonLd = {
@@ -332,6 +336,25 @@ export default async function MunicipalityPage({ params }: PageProps) {
             </Link>
           </div>
         </div>
+
+        {/* Live Listings */}
+        {listings && listings.length > 0 && (
+          <section className="mt-10 border-t border-border pt-10">
+            <LiveListings
+              listings={listings as Listing[]}
+              marketContext={{
+                name:              municipality.name,
+                slug:              municipality.slug,
+                country:           country,
+                opportunity_score: municipality.opportunity_score,
+                growth_score:      municipality.growth_score,
+                risk_score:        municipality.risk_score,
+              }}
+              heading={`Live Listings · ${municipality.name}`}
+              showMarketLink
+            />
+          </section>
+        )}
 
         {/* Footer links */}
         <section className="mt-12 pt-8 border-t border-border">
