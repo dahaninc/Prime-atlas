@@ -93,7 +93,7 @@ export default async function ListingDetailPage(
         municipalities(
           name, slug, country,
           opportunity_score, growth_score, risk_score,
-          population, median_yield, gdp_growth_rate
+          population
         )
       `)
       .eq("id", id)
@@ -106,7 +106,7 @@ export default async function ListingDetailPage(
   const muni       = listing.municipalities as {
     name: string; slug: string; country: string;
     opportunity_score: number; growth_score: number; risk_score: number;
-    population?: number; median_yield?: number; gdp_growth_rate?: number;
+    population?: number;
   } | null;
   const planCfg    = listing.planning_status
     ? PLANNING_STATUS_CONFIG[listing.planning_status] ?? { label: listing.planning_status, classes: "text-muted-foreground border-border" }
@@ -333,17 +333,6 @@ export default async function ListingDetailPage(
                     <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">risk</p>
                   </div>
                 </div>
-
-                {muni.median_yield && (
-                  <div className="border-t border-border pt-3 mb-3">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Market median yield</span>
-                      <span className="font-semibold font-mono text-pa-green">
-                        {muni.median_yield.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                )}
 
                 <Link
                   href={`/opportunities/${muni.slug}`}
