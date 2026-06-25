@@ -19,6 +19,16 @@ export interface Listing {
   date_listed: string | null;
   status: string;
   featured: boolean;
+  // detail fields
+  images?: string[] | null;
+  features?: string[] | null;
+  highlights?: string[] | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  tenure?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
   // joined from municipalities
   municipality_id?: string;
   municipalities?: {
@@ -201,16 +211,12 @@ function ListingCard({ listing, market }: {
 
         {/* CTAs */}
         <div className="flex gap-2 mt-auto">
-          {listing.source_url && (
-            <a
-              href={listing.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 text-center text-xs font-semibold bg-pa-green text-pa-navy py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
-            >
-              View listing ↗
-            </a>
-          )}
+          <Link
+            href={`/listings/${listing.id}`}
+            className="flex-1 text-center text-xs font-semibold bg-pa-green text-pa-navy py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+          >
+            View listing →
+          </Link>
           <a
             href={`mailto:deals@prime-atlas.com?subject=${interestSubject}&body=${interestBody}`}
             className="flex-1 text-center text-xs font-semibold border border-border text-foreground py-2.5 rounded-lg hover:border-pa-green/40 hover:text-pa-green transition-colors"
