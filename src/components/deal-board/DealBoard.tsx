@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * PRIME ATLAS — site-acquisition terminal
- * Bloomberg-style deal board with market tape, evidence layers, live pro-forma
+ * PRIME ATLAS — conviction terminal
+ * Pre-screened pipeline · Preliminary underwrite · One-click IC memo
  */
 
 import { useState, useMemo, useEffect } from "react";
@@ -29,11 +29,23 @@ export interface DealRow {
   slug: string;
 }
 
+export interface LiveOpportunity {
+  id: string;
+  municipality_id: string;
+  title: string;
+  category: string;
+  opportunity_score: number;
+  risk_level: string;
+  source_name: string | null;
+  source_url: string | null;
+}
+
 interface DealBoardProps {
   rows: DealRow[];
   tier: "free" | "pro" | "investor" | "institutional";
   freshnessMap: Record<string, string>;
   userEmail?: string;
+  opportunitiesMap?: Record<string, LiveOpportunity[]>;
 }
 
 // ─── Market Tape Data ─────────────────────────────────────────────────────────
@@ -146,14 +158,14 @@ function symFor(code: string) {
   return code === "GBP" ? "£" : code === "USD" ? "$" : code === "AUD" ? "A$" : code === "CAD" ? "C$" : "€";
 }
 
-// Evidence layer definitions
+// Conviction checklist items
 const EVIDENCE_LAYERS = [
-  { key: "sourcing",    label: "Opportunity sourcing",  desc: "Source identification & data pipeline" },
-  { key: "demand",      label: "Regional demand",        desc: "Population growth, migration, employment" },
-  { key: "shortfall",   label: "Housing shortfall",      desc: "Supply gap vs household formation rate" },
-  { key: "conversion",  label: "Conversion potential",   desc: "Zoning flexibility, permitted uses" },
-  { key: "cost",        label: "Cost & timeline",        desc: "Build cost index, programme risk" },
-  { key: "zoning",      label: "Zoning & permits",       desc: "Recent approvals, pipeline velocity" },
+  { key: "sourcing",    label: "Source & pipeline",      desc: "Official planning portal cross-checked" },
+  { key: "demand",      label: "Demand fundamentals",    desc: "Population growth, migration, employment" },
+  { key: "shortfall",   label: "Supply shortfall",       desc: "Supply gap vs household formation rate" },
+  { key: "conversion",  label: "Zoning viability",       desc: "Permitted uses, by-right entitlement" },
+  { key: "cost",        label: "Cost & programme",       desc: "Build cost index, delivery risk" },
+  { key: "zoning",      label: "Planning velocity",      desc: "Recent approvals, consent pipeline" },
 ] as const;
 
 // ─── Pro-Forma ────────────────────────────────────────────────────────────────
@@ -228,7 +240,7 @@ type SortMode = "roi" | "zoning" | "demand";
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProps) {
+export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMap = {} }: DealBoardProps) {
   const isPro = tier !== "free";
 
   const [country,     setCountry]     = useState("United States");
@@ -344,7 +356,7 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
       <div className="flex items-center justify-between px-5 py-3 border-b border-[#1E2D40] bg-[#0D1221]">
         <div className="flex items-center gap-3">
           <span className="text-white font-bold tracking-widest text-base">PRIME ATLAS</span>
-          <span className="text-[#4A6080] text-xs">site-acquisition terminal</span>
+          <span className="text-[#4A6080] text-xs">conviction terminal · go/no-go in 10 minutes</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -426,8 +438,8 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-bold text-white">
-              Deal board
-              <span className="text-[#4A6080] font-normal ml-2">· {sorted.length} ranked</span>
+              Pre-screened pipeline
+              <span className="text-[#4A6080] font-normal ml-2">· {sorted.length} markets · click row to underwrite</span>
             </span>
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-[#3A5068] mr-1">sort</span>
@@ -461,35 +473,58 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
             {sorted.map((row, i) => {
               const locked   = !isPro && i >= FREE_LIMIT;
               const selected = selectedId === row.id;
+              const oppCount = (opportunitiesMap[row.id] ?? []).length;
+              if (locked) {
+                return (
+                  <div
+                    key={row.id}
+                    className="grid grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 px-4 py-3 border-b border-[#1A2535] opacity-30 select-none"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold leading-snug">████████████</div>
+                      <div className="text-[11px] text-[#4A6080] mt-0.5">████████</div>
+                    </div>
+                    <div className="flex items-center justify-center"><span className="text-[#1A2535]">██</span></div>
+                    <div className="flex items-center justify-center"><span className="text-[#1A2535]">██</span></div>
+                    <div className="flex items-center justify-center"><span className="text-[#1A2535]">██</span></div>
+                    <div className="flex items-center justify-end text-sm font-bold">——</div>
+                  </div>
+                );
+              }
               return (
-                <div
-                  key={row.id}
-                  onClick={() => !locked && setSelectedId(selected ? null : row.id)}
-                  className={`grid grid-cols-[1fr_5rem_5rem_5rem_6rem] gap-2 px-4 py-3 border-b border-[#1A2535] transition-colors ${
-                    locked   ? "opacity-30 pointer-events-none select-none" :
-                    selected ? "bg-[#0D2040] cursor-pointer" :
-                               "hover:bg-[#111827] cursor-pointer"
-                  }`}
-                >
-                  <div>
-                    <div className={`text-sm font-semibold leading-snug ${locked ? "" : "text-white"}`}>
-                      {locked ? "████████████" : row.name}
+                <div key={row.id} className="border-b border-[#1A2535]">
+                  {/* Main clickable row — click opens detail panel */}
+                  <div
+                    onClick={() => setSelectedId(selected ? null : row.id)}
+                    className={`grid grid-cols-[1fr_5rem_5rem_5rem_7rem] gap-2 px-4 py-3 transition-colors cursor-pointer ${
+                      selected ? "bg-[#0D2040]" : "hover:bg-[#111827]"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm font-semibold leading-snug text-white flex items-center gap-2">
+                        {row.name}
+                        {oppCount > 0 && (
+                          <span className="text-[9px] text-emerald-400 border border-emerald-800 rounded px-1 py-0.5 font-mono">
+                            {oppCount} live
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#4A6080] mt-0.5">{row.region}, {row.country}</div>
                     </div>
-                    <div className="text-[11px] text-[#4A6080] mt-0.5">
-                      {locked ? "████████" : `${row.region}, ${row.country}`}
+                    <div className="flex items-center justify-center"><Badge score={row.opportunity_score} /></div>
+                    <div className="flex items-center justify-center"><Badge score={row.development_score} /></div>
+                    <div className="flex items-center justify-center"><Badge score={row.growth_score} /></div>
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-sm font-bold text-white">{gdvEst(row)}</span>
+                      <Link
+                        href={`/opportunities/${row.slug}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10px] text-[#4A7090] hover:text-emerald-400 transition-colors"
+                        title="View live opportunities"
+                      >
+                        ↗
+                      </Link>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-center">
-                    {locked ? <span className="text-[#1A2535]">██</span> : <Badge score={row.opportunity_score} />}
-                  </div>
-                  <div className="flex items-center justify-center">
-                    {locked ? <span className="text-[#1A2535]">██</span> : <Badge score={row.development_score} />}
-                  </div>
-                  <div className="flex items-center justify-center">
-                    {locked ? <span className="text-[#1A2535]">██</span> : <Badge score={row.growth_score} />}
-                  </div>
-                  <div className="flex items-center justify-end text-sm font-bold text-white">
-                    {locked ? "——" : gdvEst(row)}
                   </div>
                 </div>
               );
@@ -520,7 +555,7 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
             <div className="flex items-start justify-between px-5 py-4 border-b border-[#1E2D40]">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[9px] tracking-widest text-[#4A6080] uppercase">Selected market</span>
+                  <span className="text-[9px] tracking-widest text-[#4A6080] uppercase">Preliminary underwrite</span>
                 </div>
                 <div className="text-lg font-bold text-white">{selectedRow.name}</div>
                 <div className="text-xs text-[#4A6080]">
@@ -554,9 +589,72 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
               </div>
             </div>
 
-            {/* Evidence layers */}
+            {/* Live Opportunities */}
+            {(() => {
+              const opps = opportunitiesMap[selectedRow.id] ?? [];
+              return opps.length > 0 ? (
+                <div className="px-5 pt-4 pb-4 border-b border-[#1E2D40]">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase">
+                      Live Opportunities <span className="text-emerald-400">· {opps.length}</span>
+                    </span>
+                    <Link
+                      href={`/opportunities/${selectedRow.slug}`}
+                      className="text-[10px] text-[#4A7090] hover:text-emerald-400 transition-colors"
+                    >
+                      View all ↗
+                    </Link>
+                  </div>
+                  <div className="space-y-2">
+                    {opps.slice(0, 3).map((opp) => (
+                      <div key={opp.id} className="bg-[#0D1624] border border-[#1E2D40] px-3 py-2.5 flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-white leading-snug mb-1">{opp.title}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[9px] border border-[#2A3D54] rounded px-1.5 py-0.5 text-[#4A6080]">{opp.category}</span>
+                            <span className={`text-[9px] font-medium ${
+                              opp.risk_level === "low" ? "text-emerald-400" :
+                              opp.risk_level === "medium" ? "text-amber-400" : "text-red-400"
+                            }`}>{opp.risk_level} risk</span>
+                            {opp.source_url && (
+                              <a href={opp.source_url} target="_blank" rel="noopener noreferrer"
+                                className="text-[9px] text-[#3A5068] hover:text-emerald-400 transition-colors">
+                                {opp.source_name ?? "source"} ↗
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <Badge score={opp.opportunity_score} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {opps.length > 3 && (
+                    <Link
+                      href={`/opportunities/${selectedRow.slug}`}
+                      className="mt-2 block text-center text-[10px] text-[#3A5068] hover:text-emerald-400 transition-colors py-1"
+                    >
+                      +{opps.length - 3} more opportunities →
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="px-5 py-3 border-b border-[#1E2D40]">
+                  <Link
+                    href={`/opportunities/${selectedRow.slug}`}
+                    className="block text-center py-3 border border-dashed border-[#1E3050] text-[10px] text-[#4A6080] hover:text-emerald-400 hover:border-emerald-900 transition-colors"
+                  >
+                    View opportunities & market data for {selectedRow.name} ↗
+                  </Link>
+                </div>
+              );
+            })()}
+
+            {/* Conviction checklist */}
             <div className="px-5 pt-4 pb-3 border-b border-[#1E2D40]">
-              <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-3">Evidence Layers</div>
+              <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-1">Conviction Checklist</div>
+              <div className="text-[10px] text-[#2E4560] mb-3">Tick each dimension you have reviewed — checked layers are included in the IC memo export</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {EVIDENCE_LAYERS.map((layer) => {
                   const checked = checkedLayers.has(layer.key);
@@ -595,9 +693,11 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
             {/* Pro-forma */}
             {pf && pfOut && (
               <div className="px-5 pt-4 pb-5">
-                <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-3">
-                  Pro-Forma — editable, recalculates live{" "}
-                  <span className="text-[#2E4560] normal-case tracking-normal">(opex held at 32% of gross)</span>
+                <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-1">
+                  Preliminary Underwrite
+                </div>
+                <div className="text-[10px] text-[#2E4560] mb-3 normal-case tracking-normal">
+                  Editable DCF · recalculates live · opex held at 32% of gross income
                 </div>
 
                 {/* Inputs grid */}
@@ -657,20 +757,20 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
                   </div>
                 </div>
 
-                {/* Generate IC memo button */}
+                {/* IC Memo — primary CTA */}
                 <button
                   onClick={generateMemo}
-                  className="w-full py-3.5 bg-gradient-to-r from-[#163559] to-[#0E3070] border border-[#1E4A7A] text-white text-sm font-semibold hover:from-[#1A4070] hover:to-[#1248A0] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-gradient-to-r from-[#163559] to-[#0E3070] border border-[#1E4A7A] text-white text-sm font-bold hover:from-[#1A4070] hover:to-[#1248A0] transition-all flex items-center justify-center gap-2"
                 >
                   <span className={checkedLayers.size > 0 ? "text-emerald-400" : "text-[#4A6080]"}>
                     {checkedLayers.size > 0 ? "☑" : "☐"}
                   </span>
-                  Generate IC memo ↗
+                  Export IC Memo — defend this in committee ↗
                 </button>
                 <div className="text-[9px] text-[#2E4560] mt-2 text-center">
                   {checkedLayers.size > 0
-                    ? `${checkedLayers.size} evidence layer${checkedLayers.size > 1 ? "s" : ""} will be included in the memo`
-                    : "Select evidence layers above to include in IC memo"}
+                    ? `${checkedLayers.size} conviction dimension${checkedLayers.size > 1 ? "s" : ""} included · scores, sources, and pro-forma outputs`
+                    : "Tick conviction checklist dimensions above to include in the IC memo"}
                 </div>
 
                 {/* Link to full city deal page */}
@@ -685,12 +785,12 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
           </div>
         )}
 
-        {/* Free-tier pro-forma CTA */}
+        {/* Free-tier upgrade wall */}
         {selectedRow && !isPro && (
           <div className="border border-[#1E2D40] bg-[#0D1624] px-5 py-5 text-center">
-            <div className="text-sm font-semibold text-white mb-1">Evidence layers & pro-forma are Pro features</div>
+            <div className="text-sm font-semibold text-white mb-1">Preliminary underwrite &amp; IC memo are Pro features</div>
             <div className="text-xs text-[#4A6080] mb-4">
-              Pro unlocks full evidence layers, editable yield pro-forma (units / GSF / NOI / margin on cost), and one-click IC memo export.
+              Pro unlocks all markets, the conviction checklist, editable preliminary underwrite (yield-on-cost · NOI · margin), and one-click IC memo export — the output you bring to committee.
             </div>
             <Link href="/pricing" className="inline-block bg-[#163559] border border-[#1E4A7A] text-white text-xs px-6 py-2.5 hover:bg-[#1A4070] transition-colors">
               Upgrade to Pro →
@@ -700,10 +800,10 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail }: DealBoardProp
 
         {/* Footer disclaimer */}
         <div className="text-[9px] text-[#2E4560] pb-6 leading-relaxed">
-          Scores are manually-researched composite indexes compiled from the public data sources shown on each market tape.
-          Sub-scores (growth, development, infrastructure, liquidity, risk) are static integer values updated periodically — not computed by machine learning.
-          The pro-forma is a standard DCF calculator: all inputs and outputs are user-defined.
-          Nothing here constitutes investment advice. past performance does not guarantee future results.
+          Sub-scores (growth, development, infrastructure, liquidity, risk) are manually-researched composite indexes compiled from the public data sources shown on each market tape — not generated by machine learning.
+          The preliminary underwrite is a standard DCF calculator: all inputs and assumptions are set by you.
+          IC memo output is illustrative and for internal use only. Nothing here constitutes investment advice.
+          Past performance does not guarantee future results.
         </div>
 
       </div>

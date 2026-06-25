@@ -11,66 +11,83 @@ const MARKETS = [
   {
     flag: "🇬🇧", label: "United Kingdom", code: "UK",
     cities: [
-      { name: "Cambridge",   slug: "cambridge"        },
+      { name: "London",      slug: "london"           },
       { name: "Manchester",  slug: "manchester"       },
+      { name: "Cambridge",   slug: "cambridge"        },
+      { name: "Birmingham",  slug: "birmingham"       },
       { name: "Bristol",     slug: "bristol"          },
       { name: "Edinburgh",   slug: "edinburgh"        },
-      { name: "Birmingham",  slug: "birmingham"       },
+      { name: "Oxford",      slug: "oxford"           },
       { name: "Leeds",       slug: "leeds"            },
       { name: "Glasgow",     slug: "glasgow"          },
-      { name: "Cardiff",     slug: "cardiff"          },
       { name: "Liverpool",   slug: "liverpool"        },
+      { name: "Cardiff",     slug: "cardiff"          },
       { name: "Sheffield",   slug: "sheffield"        },
-      { name: "Leicester",   slug: "leicester"        },
       { name: "Nottingham",  slug: "nottingham"       },
+      { name: "Leicester",   slug: "leicester"        },
     ],
   },
   {
     flag: "🇺🇸", label: "United States", code: "US",
     cities: [
-      { name: "Austin",         slug: "austin-tx"           },
-      { name: "Nashville",      slug: "nashville-tn"        },
-      { name: "Raleigh",        slug: "raleigh-nc"          },
-      { name: "Phoenix",        slug: "phoenix-az"          },
-      { name: "Denver",         slug: "denver-co"           },
-      { name: "Charlotte",      slug: "charlotte-nc"        },
-      { name: "Salt Lake City", slug: "salt-lake-city-ut"   },
-      { name: "Tampa",          slug: "tampa-fl"            },
-      { name: "Columbus",       slug: "columbus-oh"         },
-      { name: "Indianapolis",   slug: "indianapolis-in"     },
+      { name: "New York City",  slug: "new-york-ny"        },
+      { name: "Los Angeles",    slug: "los-angeles-ca"     },
+      { name: "Chicago",        slug: "chicago-il"         },
+      { name: "Houston",        slug: "houston-tx"         },
+      { name: "Miami",          slug: "miami-fl"           },
+      { name: "Seattle",        slug: "seattle-wa"         },
+      { name: "Boston",         slug: "boston-ma"          },
+      { name: "San Francisco",  slug: "san-francisco-ca"   },
+      { name: "Austin",         slug: "austin-tx"          },
+      { name: "Nashville",      slug: "nashville-tn"       },
+      { name: "Raleigh",        slug: "raleigh-nc"         },
+      { name: "Phoenix",        slug: "phoenix-az"         },
+      { name: "Denver",         slug: "denver-co"          },
+      { name: "Charlotte",      slug: "charlotte-nc"       },
+      { name: "Tampa",          slug: "tampa-fl"           },
     ],
   },
   {
     flag: "🇦🇺", label: "Australia", code: "AU",
     cities: [
-      { name: "Brisbane",       slug: "brisbane-qld"        },
-      { name: "Gold Coast",     slug: "gold-coast-qld"      },
-      { name: "Perth",          slug: "perth-wa"            },
-      { name: "Adelaide",       slug: "adelaide-sa"         },
-      { name: "Canberra",       slug: "canberra-act"        },
-      { name: "Geelong",        slug: "geelong-vic"         },
-      { name: "Sunshine Coast", slug: "sunshine-coast-qld"  },
-      { name: "Newcastle",      slug: "newcastle-nsw"       },
-      { name: "Hobart",         slug: "hobart-tas"          },
-      { name: "Wollongong",     slug: "wollongong-nsw"      },
+      { name: "Sydney",         slug: "sydney-nsw"         },
+      { name: "Melbourne",      slug: "melbourne-vic"      },
+      { name: "Brisbane",       slug: "brisbane-qld"       },
+      { name: "Perth",          slug: "perth-wa"           },
+      { name: "Adelaide",       slug: "adelaide-sa"        },
+      { name: "Gold Coast",     slug: "gold-coast-qld"     },
+      { name: "Canberra",       slug: "canberra-act"       },
+      { name: "Geelong",        slug: "geelong-vic"        },
+      { name: "Sunshine Coast", slug: "sunshine-coast-qld" },
+      { name: "Newcastle",      slug: "newcastle-nsw"      },
+      { name: "Wollongong",     slug: "wollongong-nsw"     },
+      { name: "Hobart",         slug: "hobart-tas"         },
     ],
   },
   {
     flag: "🇨🇦", label: "Canada", code: "CA",
     cities: [
-      { name: "Calgary",    slug: "calgary-ab"   },
-      { name: "Ottawa",     slug: "ottawa-on"    },
-      { name: "Halifax",    slug: "halifax-ns"   },
-      { name: "Hamilton",   slug: "hamilton-on"  },
-      { name: "Kelowna",    slug: "kelowna-bc"   },
-      { name: "Victoria",   slug: "victoria-bc"  },
-      { name: "Edmonton",   slug: "edmonton-ab"  },
-      { name: "Saskatoon",  slug: "saskatoon-sk" },
+      { name: "Toronto",     slug: "toronto-on"    },
+      { name: "Vancouver",   slug: "vancouver-bc"  },
+      { name: "Montreal",    slug: "montreal-qc"   },
+      { name: "Calgary",     slug: "calgary-ab"    },
+      { name: "Ottawa",      slug: "ottawa-on"     },
+      { name: "Edmonton",    slug: "edmonton-ab"   },
+      { name: "Halifax",     slug: "halifax-ns"    },
+      { name: "Hamilton",    slug: "hamilton-on"   },
+      { name: "Kelowna",     slug: "kelowna-bc"    },
+      { name: "Victoria",    slug: "victoria-bc"   },
+      { name: "Saskatoon",   slug: "saskatoon-sk"  },
     ],
   },
   {
     flag: "🇪🇸", label: "Spain", code: "ES",
     cities: [
+      { name: "Madrid",          slug: "madrid"           },
+      { name: "Barcelona",       slug: "barcelona"        },
+      { name: "Valencia",        slug: "valencia"         },
+      { name: "Seville",         slug: "seville"          },
+      { name: "Bilbao",          slug: "bilbao"           },
       { name: "Torrevieja",      slug: "torrevieja"       },
       { name: "Alicante",        slug: "alicante"         },
       { name: "Benidorm",        slug: "benidorm"         },
@@ -114,7 +131,7 @@ export function Navbar({ user }: NavbarProps) {
           <Link href="/" className="flex items-center gap-2 flex-shrink-0" onClick={close}>
             <span className="text-pa-green font-mono font-bold text-base tracking-tight">prime-atlas</span>
             <span className="hidden sm:inline text-[10px] text-muted-foreground border border-border rounded px-1.5 py-0.5 font-mono">
-              RE Intelligence
+              conviction terminal
             </span>
           </Link>
 
@@ -144,7 +161,7 @@ export function Navbar({ user }: NavbarProps) {
                 </svg>
               </button>
               {marketsOpen && (
-                <div className="absolute top-full left-0 mt-1 w-[680px] bg-background border border-border rounded-xl shadow-xl p-4 grid grid-cols-5 gap-3 z-50">
+                <div className="absolute top-full left-0 mt-1 w-[860px] bg-background border border-border rounded-xl shadow-xl p-4 grid grid-cols-5 gap-3 z-50">
                   {MARKETS.map((mkt) => (
                     <div key={mkt.code}>
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1">
@@ -257,7 +274,7 @@ export function Navbar({ user }: NavbarProps) {
                 className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
               >
                 <span className="text-pa-green">⬛</span> Deal Board
-                <span className="ml-auto text-xs text-muted-foreground">All 58 markets ranked</span>
+                <span className="ml-auto text-xs text-muted-foreground">All markets ranked</span>
               </Link>
 
               {/* Divider */}

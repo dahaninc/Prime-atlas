@@ -9,20 +9,22 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: {
-    default: "prime-atlas | Real Estate Investment Opportunity Intelligence",
+    default: "prime-atlas | Go/no-go in 10 minutes. IC memo in one click.",
     template: "%s | prime-atlas",
   },
   description:
-    "Ranked composite scores for real estate and development markets across the UK, US, Australia, and Canada. Built from publicly available planning data, price indices, rental growth, and infrastructure pipelines.",
+    "Prime Atlas compresses time-to-defensible-conviction on real estate sites — from weeks of analyst labour to ten minutes you can put in front of a committee. Pre-screened pipeline, preliminary underwrite, one-click IC memo across UK, US, Australia, Canada, and Spain.",
   keywords: [
-    "investment market index",
-    "municipality opportunity score",
-    "global property investment",
-    "UK land registry data",
-    "development opportunity index",
-    "market ranking tool",
-    "real estate opportunity score",
-    "capital allocation intelligence",
+    "real estate investment conviction",
+    "IC memo generator real estate",
+    "site acquisition decision tool",
+    "go no-go site analysis",
+    "development site pre-screening",
+    "investment committee memo",
+    "real estate preliminary underwrite",
+    "ROI feasibility index",
+    "deal board real estate",
+    "capital allocation real estate",
   ],
   authors: [{ name: "prime-atlas" }],
   creator: "prime-atlas",
@@ -31,14 +33,14 @@ export const metadata: Metadata = {
     locale: "en_GB",
     url: process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app",
     siteName: "prime-atlas",
-    title: "prime-atlas | Ranked Investment Market Index",
+    title: "prime-atlas | Go/no-go in 10 minutes. IC memo in one click.",
     description:
-      "Data-driven opportunity scores for property and development markets. Built for investors, developers, and capital allocators.",
+      "Pre-screened pipeline, preliminary underwrite, one-click IC memo. Compress time-to-defensible-conviction before the off-market window closes.",
   },
   twitter: {
     card: "summary_large_image",
     title: "prime-atlas",
-    description: "Find Tomorrow's Winners Before Everyone Else.",
+    description: "Go/no-go in 10 minutes. IC memo in one click. Before your competitor finishes pulling zoning.",
   },
   manifest: "/manifest.json",
   appleWebApp: {
