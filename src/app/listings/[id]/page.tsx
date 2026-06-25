@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ImageGallery } from "@/components/listings/ImageGallery";
 import { InquireForm } from "@/components/listings/InquireForm";
+import { ComparablesPanel } from "@/components/listings/ComparablesPanel";
 import { scoreColor } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,11 @@ export default async function ListingDetailPage(
 
   if (!listing) notFound();
 
+  type ComparableItem = {
+    address: string; price: number; date: string; type?: string;
+    sqm?: number; source: string; source_label?: string; distance_m?: number; currency?: string;
+  };
+
   const muni       = listing.municipalities as {
     name: string; slug: string; country: string;
     opportunity_score: number; growth_score: number; risk_score: number;
@@ -111,9 +117,10 @@ export default async function ListingDetailPage(
   const planCfg    = listing.planning_status
     ? PLANNING_STATUS_CONFIG[listing.planning_status] ?? { label: listing.planning_status, classes: "text-muted-foreground border-border" }
     : null;
-  const images     = (listing.images as string[] | null) ?? [];
-  const features   = (listing.features as string[] | null) ?? [];
-  const highlights = (listing.highlights as string[] | null) ?? [];
+  const images      = (listing.images as string[] | null) ?? [];
+  const features    = (listing.features as string[] | null) ?? [];
+  const highlights  = (listing.highlights as string[] | null) ?? [];
+  const seededComps = (listing.comparables as ComparableItem[] | null) ?? [];
 
   return (
     <>
@@ -287,6 +294,14 @@ export default async function ListingDetailPage(
                 )}
               </p>
             )}
+
+            {/* Comparables panel — live LR for UK, seeded JSONB for non-UK */}
+            <ComparablesPanel
+              postcode={listing.postcode ?? null}
+              seeded={seededComps}
+              askingPrice={listing.asking_price}
+              currency={listing.currency_code}
+            />
           </div>
 
           {/* ── Right / Sidebar (1/3) ── */}
