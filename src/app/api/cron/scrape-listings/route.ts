@@ -83,7 +83,7 @@ export const maxDuration = 300;   // Vercel Pro / Enterprise only
 export const dynamic     = "force-dynamic";
 
 const SCRAPEOPS_BASE      = "https://proxy.scrapeops.io/v1/";
-const REQUEST_TIMEOUT_MS  = 45_000;   // abort a single ScrapeOps call after 45s
+const REQUEST_TIMEOUT_MS  = 30_000;   // abort a single ScrapeOps call after 30s (was 45s)
 const RETRY_BASE_DELAY_MS = 2_000;    // exponential-backoff base (doubles per retry)
 const INTER_URL_DELAY_MS  = 2_500;    // polite pause between consecutive page fetches
 const SUPABASE_BATCH_SIZE = 100;      // rows per upsert call
@@ -122,6 +122,10 @@ interface ProviderConfig {
   currency:      string;
   proxyCountry:  string;
   europeanPrice: boolean;
+  /** Whether to request JS rendering from ScrapeOps (default true). Set false
+   *  for providers whose search pages are server-rendered HTML — avoids the
+   *  ~30–45s headless-Chromium overhead and prevents Vercel timeout. */
+  renderJs:      boolean;
   baseUrl:       string;
   searchTargets: SearchTarget[];
   extract:       (html: string, baseUrl: string, listingType: ListingType) => ParsedProperty[];
@@ -196,7 +200,8 @@ function safeInt(n: number, max = 99): number | null {
 async function fetchViaScrapeOps(
   targetUrl:    string,
   proxyCountry: string,
-  retries = 2,
+  renderJs    = true,
+  retries     = 0,   // 0 = fail-fast (no retry) — reduces Vercel wall-clock risk
 ): Promise<string> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
   if (!apiKey) throw new Error("SCRAPEOPS_API_KEY is not configured");
@@ -204,7 +209,7 @@ async function fetchViaScrapeOps(
   const qs = new URLSearchParams({
     api_key:     apiKey,
     url:         targetUrl,
-    render_js:   "true",
+    render_js:   renderJs ? "true" : "false",
     residential: "true",
     country:     proxyCountry,
   });
@@ -611,6 +616,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
+    renderJs:      true,   // Next.js SPA — needs Chromium to hydrate listing cards
     baseUrl:       "https://www.zoopla.co.uk",
     searchTargets: [
       {
@@ -630,6 +636,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "USD",
     proxyCountry:  "us",
     europeanPrice: false,
+    renderJs:      true,   // React SPA — needs JS rendering
     baseUrl:       "https://www.zillow.com",
     searchTargets: [
       {
@@ -649,6 +656,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "CAD",
     proxyCountry:  "ca",
     europeanPrice: false,
+    renderJs:      true,   // React SPA
     baseUrl:       "https://www.realtor.ca",
     searchTargets: [
       {
@@ -668,6 +676,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "AUD",
     proxyCountry:  "au",
     europeanPrice: false,
+    renderJs:      true,   // React SPA
     baseUrl:       "https://www.realestate.com.au",
     searchTargets: [
       {
@@ -687,6 +696,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "EUR",
     proxyCountry:  "es",
     europeanPrice: true,
+    renderJs:      false,  // Idealista is server-rendered Django — no JS needed; avoids 30–45s Chromium overhead
     baseUrl:       "https://www.idealista.com",
     searchTargets: [
       {
@@ -767,7 +777,7 @@ async function scrapeProvider(config: ProviderConfig): Promise<ScrapeReport> {
     try {
       console.log(`[${config.name}] ↗ ScrapeOps → ${target.url}`);
 
-      const html     = await fetchViaScrapeOps(target.url, config.proxyCountry);
+      const html     = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs);
       const listings = config.extract(html, config.baseUrl, target.listingType);
 
       console.log(`[${config.name}] ✓ ${listings.length} listings parsed (${target.listingType})`);
