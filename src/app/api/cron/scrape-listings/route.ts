@@ -83,7 +83,7 @@ export const maxDuration = 300;   // Vercel Pro / Enterprise only
 export const dynamic     = "force-dynamic";
 
 const SCRAPEOPS_BASE      = "https://proxy.scrapeops.io/v1/";
-const REQUEST_TIMEOUT_MS  = 30_000;   // abort a single ScrapeOps call after 30s (was 45s)
+const REQUEST_TIMEOUT_MS  = 45_000;   // abort a single ScrapeOps call after 45s (safe: retries=0, so max 45s×2URLs+delay=~93s)
 const RETRY_BASE_DELAY_MS = 2_000;    // exponential-backoff base (doubles per retry)
 const INTER_URL_DELAY_MS  = 2_500;    // polite pause between consecutive page fetches
 const SUPABASE_BATCH_SIZE = 100;      // rows per upsert call
@@ -700,11 +700,11 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     baseUrl:       "https://www.idealista.com",
     searchTargets: [
       {
-        url:         "https://www.idealista.com/venta-viviendas/madrid/",
+        url:         "https://www.idealista.com/venta-viviendas/madrid-municipio/",
         listingType: "sale",
       },
       {
-        url:         "https://www.idealista.com/alquiler-viviendas/barcelona/",
+        url:         "https://www.idealista.com/alquiler-viviendas/barcelona-municipio/",
         listingType: "rent",
       },
     ],
