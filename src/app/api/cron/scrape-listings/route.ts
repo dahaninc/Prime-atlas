@@ -878,13 +878,30 @@ export async function GET(request: Request): Promise<Response> {
     const target = cfg.searchTargets[0];
     try {
       const html = await fetchViaScrapeOps(target.url, cfg.proxyCountry, cfg.renderJs);
+
+      // Find first occurrence of key identifiers to locate property card structure
+      const markers = ["zpid", "data-zpid", "property-card", "listing-card", "ListItem", "StyledCard", "article"];
+      const found: Record<string, { index: number; context: string }> = {};
+      for (const marker of markers) {
+        const idx = html.indexOf(marker);
+        if (idx !== -1) {
+          found[marker] = {
+            index: idx,
+            // 800 chars of context around the first match
+            context: html.slice(Math.max(0, idx - 100), idx + 700),
+          };
+          break; // stop at first found marker
+        }
+      }
+
       return NextResponse.json({
-        debug:  true,
+        debug:    true,
         provider: providerParam,
-        url:    target.url,
-        length: html.length,
-        // First 4000 chars — enough to see card structure without exceeding response limits
-        snippet: html.slice(0, 4000),
+        url:      target.url,
+        length:   html.length,
+        markers:  found,
+        // Also include chars 80k-83k — middle of page where cards typically live
+        midSnippet: html.slice(80_000, 83_000),
       });
     } catch (err) {
       return NextResponse.json({ debug: true, error: (err as Error).message }, { status: 500 });
