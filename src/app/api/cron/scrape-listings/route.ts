@@ -322,66 +322,88 @@ function extractZoopla(
 
 // ─── 2. ZILLOW (US) ──────────────────────────────────────────────────────────
 //
-// Zillow renders property cards as <article data-zpid="..."> elements.
-// The zpid (Zillow Property ID) is the canonical stable identifier and lives
-// on both the article element and the detail URL (/homedetails/{id}_zpid/).
-// Bed / bath / sqft figures appear in a <ul> of <li> elements per card.
+// Zillow is a Next.js SSR app that embeds all search results as JSON in a
+// <script id="__NEXT_DATA__"> tag. The listing array lives at:
+//   props.pageProps.searchPageState.cat1.searchResults.listResults[]
+//
+// Each entry has: zpid, price, unformattedPrice, address (obj), beds, baths,
+// area (sqft), detailUrl, hdpData.homeInfo.homeType, etc.
+//
+// URL must include a city/region — the generic /homes/for_sale/ returns 0 results.
+// Use the _{rb} suffix for Zillow region-based searches.
 
 function extractZillow(
   html: string,
   _baseUrl: string,
   listingType: ListingType,
 ): ParsedProperty[] {
-  const $       = load(html);
   const results: ParsedProperty[] = [];
-  const now     = new Date().toISOString();
+  const now = new Date().toISOString();
 
-  $('article[data-zpid], [data-test="property-card"]').each((_, el) => {
-    try {
-      const card = $(el);
-      const zpid = card.attr("data-zpid") ?? "";
-
-      const linkEl  = card.find('[data-test="property-card-link"], a[href*="_zpid"]').first();
-      const href    = linkEl.attr("href") ?? "";
-      const fullUrl = href.startsWith("http") ? href : `https://www.zillow.com${href}`;
-
-      const zpidFromUrl = href.match(/(\d+)_zpid/)?.[1] ?? "";
-      const extId       = zpid || zpidFromUrl || idFromUrl(href);
-      if (!extId) return;
-
-      const priceText = card.find('[data-test="property-card-price"]').first().text().trim();
-      const address   = card.find('[data-test="property-card-addr"]').first().text().replace(/\s+/g, " ").trim();
-
-      let beds: number | null  = null;
-      let baths: number | null = null;
-      let sqft: number | null  = null;
-
-      card.find('[data-test="property-card-details"] li, .StyledPropertyCardDataArea--body li').each((_, li) => {
-        const text = $(li).text().toLowerCase().trim();
-        if (/\d+\s*(bd|bds|bed)/.test(text))       beds  = safeInt(parseInt(text, 10));
-        else if (/\d+(\.\d)?\s*(ba|bath)/.test(text)) baths = safeInt(parseFloat(text));
-        else if (/[\d,]+\s*sqft/.test(text))        sqft  = parseInt(text.replace(/,/g, ""), 10) || null;
-      });
-
-      results.push({
-        provider:             "zillow",
-        external_property_id: extId,
-        title:                address || null,
-        address:              address || null,
-        price:                parsePrice(priceText),
-        currency_code:        "USD",
-        bedrooms:             beds,
-        bathrooms:            baths,
-        size_sqm:             sqft != null ? Math.round(sqft * 0.0929) : null,
-        property_type:        null,
-        listing_type:         listingType,
-        listing_url:          fullUrl || null,
-        scraped_at:           now,
-      });
-    } catch (e) {
-      console.error("[Zillow] card parse error:", e);
+  try {
+    // Extract __NEXT_DATA__ JSON blob
+    const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!match?.[1]) {
+      console.warn("[Zillow] __NEXT_DATA__ not found in HTML");
+      return results;
     }
-  });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data       = JSON.parse(match[1]) as any;
+    const sr         = data?.props?.pageProps?.searchPageState?.cat1?.searchResults;
+    const listResults: unknown[] = sr?.listResults ?? sr?.mapResults ?? [];
+
+    for (const item of listResults) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const r = item as any;
+
+        const zpid    = r.zpid ? String(r.zpid) : null;
+        if (!zpid) continue;
+
+        const detailPath = r.detailUrl ?? `/homedetails/${zpid}_zpid/`;
+        const fullUrl    = detailPath.startsWith("http")
+          ? detailPath
+          : `https://www.zillow.com${detailPath}`;
+
+        // Price: prefer unformattedPrice (raw number), fall back to parsing price string
+        const rawPrice = r.unformattedPrice ?? r.price ?? null;
+        const price    = typeof rawPrice === "number"
+          ? Math.round(rawPrice * 100)
+          : parsePrice(String(rawPrice ?? ""));
+
+        // Address: Zillow returns an address object or a flat string
+        const addr = r.address
+          ? typeof r.address === "string"
+            ? r.address
+            : [r.address.streetAddress, r.address.city, r.address.state].filter(Boolean).join(", ")
+          : null;
+
+        const sqft   = r.area ? parseInt(String(r.area).replace(/,/g, ""), 10) : null;
+        const homeType = (r.hdpData?.homeInfo?.homeType ?? r.homeType ?? "").toLowerCase().replace(/_/g, " ");
+
+        results.push({
+          provider:             "zillow",
+          external_property_id: zpid,
+          title:                addr || null,
+          address:              addr || null,
+          price,
+          currency_code:        "USD",
+          bedrooms:             safeInt(r.beds ?? r.bedrooms ?? NaN),
+          bathrooms:            safeInt(r.baths ?? r.bathrooms ?? NaN),
+          size_sqm:             sqft != null && isFinite(sqft) ? Math.round(sqft * 0.0929) : null,
+          property_type:        homeType || null,
+          listing_type:         listingType,
+          listing_url:          fullUrl,
+          scraped_at:           now,
+        });
+      } catch (e) {
+        console.error("[Zillow] item parse error:", e);
+      }
+    }
+  } catch (e) {
+    console.error("[Zillow] __NEXT_DATA__ parse error:", e);
+  }
 
   return results;
 }
@@ -640,11 +662,11 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     baseUrl:       "https://www.zillow.com",
     searchTargets: [
       {
-        url:         "https://www.zillow.com/homes/for_sale/",
+        url:         "https://www.zillow.com/homes/for_sale/New-York-NY_rb/",
         listingType: "sale",
       },
       {
-        url:         "https://www.zillow.com/homes/for_rent/",
+        url:         "https://www.zillow.com/homes/for_rent/New-York-NY_rb/",
         listingType: "rent",
       },
     ],
