@@ -886,17 +886,32 @@ export async function GET(request: Request): Promise<Response> {
       let nextDataPreview: unknown = null;
       if (nextDataMatch?.[1]) {
         try {
-          const parsed = JSON.parse(nextDataMatch[1]) as Record<string, unknown>;
-          // Drill down to searchResults where listings live
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cat1 = (parsed?.props as any)?.pageProps?.searchPageState?.cat1;
-          const listResults = cat1?.searchResults?.listResults ?? cat1?.searchResults?.mapResults ?? null;
+          const parsed = JSON.parse(nextDataMatch[1]) as any;
+          // Navigate step by step and expose keys at each level so we can find the listings
+          const pageProps   = parsed?.props?.pageProps;
+          const ppKeys      = pageProps   ? Object.keys(pageProps)   : [];
+          const sps         = pageProps?.searchPageState;
+          const spsKeys     = sps         ? Object.keys(sps)         : [];
+          const cat1        = sps?.cat1;
+          const cat1Keys    = cat1        ? Object.keys(cat1)        : [];
+          const sr          = cat1?.searchResults;
+          const srKeys      = sr          ? Object.keys(sr)          : [];
+          const listResults = sr?.listResults ?? sr?.mapResults ?? [];
+          // Also check if listings are under a different top-level key
+          const queryState  = pageProps?.queryState;
           nextDataPreview = {
-            found:       true,
-            rawLength:   nextDataMatch[1].length,
-            listCount:   Array.isArray(listResults) ? listResults.length : "unknown",
-            // First listing object — reveals field names we can use
-            firstListing: Array.isArray(listResults) ? listResults[0] : null,
+            found:          true,
+            rawLength:      nextDataMatch[1].length,
+            pagePropKeys:   ppKeys,
+            spsKeys,
+            cat1Keys,
+            srKeys,
+            listCount:      Array.isArray(listResults) ? listResults.length : 0,
+            firstListing:   Array.isArray(listResults) && listResults[0] ? listResults[0] : null,
+            queryState:     queryState ?? null,
+            // raw first 1500 chars of the JSON as a fallback map of top-level structure
+            rawTop:         nextDataMatch[1].slice(0, 800),
           };
         } catch {
           nextDataPreview = { found: true, parseError: true, raw: nextDataMatch[1].slice(0, 500) };
