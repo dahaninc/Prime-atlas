@@ -696,7 +696,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "EUR",
     proxyCountry:  "es",
     europeanPrice: true,
-    renderJs:      false,  // Idealista is server-rendered Django — no JS needed; avoids 30–45s Chromium overhead
+    renderJs:      true,   // Idealista 404s on plain proxies — needs Chromium bypass; safe now that retries=0 (max 30s × 2 URLs = 60s)
     baseUrl:       "https://www.idealista.com",
     searchTargets: [
       {
