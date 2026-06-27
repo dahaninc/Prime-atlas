@@ -879,29 +879,45 @@ export async function GET(request: Request): Promise<Response> {
     try {
       const html = await fetchViaScrapeOps(target.url, cfg.proxyCountry, cfg.renderJs);
 
-      // Find first occurrence of key identifiers to locate property card structure
-      const markers = ["zpid", "data-zpid", "property-card", "listing-card", "ListItem", "StyledCard", "article"];
-      const found: Record<string, { index: number; context: string }> = {};
-      for (const marker of markers) {
-        const idx = html.indexOf(marker);
-        if (idx !== -1) {
-          found[marker] = {
-            index: idx,
-            // 800 chars of context around the first match
-            context: html.slice(Math.max(0, idx - 100), idx + 700),
+      // ── Zillow-specific: extract __NEXT_DATA__ JSON (Next.js SSR state) ────
+      // Zillow embeds all listing data as JSON in a <script id="__NEXT_DATA__">
+      // tag rather than rendering it as parseable HTML elements.
+      const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+      let nextDataPreview: unknown = null;
+      if (nextDataMatch?.[1]) {
+        try {
+          const parsed = JSON.parse(nextDataMatch[1]) as Record<string, unknown>;
+          // Drill down to searchResults where listings live
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cat1 = (parsed?.props as any)?.pageProps?.searchPageState?.cat1;
+          const listResults = cat1?.searchResults?.listResults ?? cat1?.searchResults?.mapResults ?? null;
+          nextDataPreview = {
+            found:       true,
+            rawLength:   nextDataMatch[1].length,
+            listCount:   Array.isArray(listResults) ? listResults.length : "unknown",
+            // First listing object — reveals field names we can use
+            firstListing: Array.isArray(listResults) ? listResults[0] : null,
           };
-          break; // stop at first found marker
+        } catch {
+          nextDataPreview = { found: true, parseError: true, raw: nextDataMatch[1].slice(0, 500) };
         }
+      } else {
+        // Fallback: find first 'zpid' occurrence if no __NEXT_DATA__
+        const zpidIdx = html.indexOf("zpid");
+        nextDataPreview = {
+          found:     false,
+          zpidAt:    zpidIdx,
+          zpidCtx:   zpidIdx >= 0 ? html.slice(zpidIdx - 50, zpidIdx + 300) : null,
+          snippet200k: html.slice(200_000, 203_000),
+        };
       }
 
       return NextResponse.json({
-        debug:    true,
-        provider: providerParam,
-        url:      target.url,
-        length:   html.length,
-        markers:  found,
-        // Also include chars 80k-83k — middle of page where cards typically live
-        midSnippet: html.slice(80_000, 83_000),
+        debug:         true,
+        provider:      providerParam,
+        url:           target.url,
+        htmlLength:    html.length,
+        nextData:      nextDataPreview,
       });
     } catch (err) {
       return NextResponse.json({ debug: true, error: (err as Error).message }, { status: 500 });
