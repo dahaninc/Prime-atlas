@@ -202,12 +202,11 @@ async function fetchViaScrapeOps(
   if (!apiKey) throw new Error("SCRAPEOPS_API_KEY is not configured");
 
   const qs = new URLSearchParams({
-    api_key:       apiKey,
-    url:           targetUrl,
-    render_js:     "true",
-    residential:   "true",
-    premium_proxy: "true",
-    country:       proxyCountry,
+    api_key:     apiKey,
+    url:         targetUrl,
+    render_js:   "true",
+    residential: "true",
+    country:     proxyCountry,
   });
 
   const proxyUrl = `${SCRAPEOPS_BASE}?${qs.toString()}`;
