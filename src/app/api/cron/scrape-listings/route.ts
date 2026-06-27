@@ -870,7 +870,28 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
-  // ── 4. Execute the scrape ─────────────────────────────────────────────────
+  // ── 4a. Debug mode — return raw HTML snippet for selector inspection ────────
+  //        GET /api/cron/scrape-listings?provider=zillow&debug=1
+  const debug = searchParams.get("debug") === "1";
+  if (debug) {
+    const cfg = PROVIDERS[providerParam];
+    const target = cfg.searchTargets[0];
+    try {
+      const html = await fetchViaScrapeOps(target.url, cfg.proxyCountry, cfg.renderJs);
+      return NextResponse.json({
+        debug:  true,
+        provider: providerParam,
+        url:    target.url,
+        length: html.length,
+        // First 4000 chars — enough to see card structure without exceeding response limits
+        snippet: html.slice(0, 4000),
+      });
+    } catch (err) {
+      return NextResponse.json({ debug: true, error: (err as Error).message }, { status: 500 });
+    }
+  }
+
+  // ── 4b. Execute the scrape ────────────────────────────────────────────────
   console.log(`[cron/scrape-listings] ▶ starting provider=${providerParam}`);
 
   try {
