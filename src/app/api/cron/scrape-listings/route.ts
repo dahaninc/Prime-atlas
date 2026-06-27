@@ -615,11 +615,11 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     baseUrl:       "https://www.zoopla.co.uk",
     searchTargets: [
       {
-        url:         "https://www.zoopla.co.uk/for-sale/property/uk/?page_size=25&results_sort=newest_listings",
+        url:         "https://www.zoopla.co.uk/for-sale/property/london/?page_size=25",
         listingType: "sale",
       },
       {
-        url:         "https://www.zoopla.co.uk/to-rent/property/uk/?page_size=25&results_sort=newest_listings",
+        url:         "https://www.zoopla.co.uk/to-rent/property/london/?page_size=25",
         listingType: "rent",
       },
     ],
