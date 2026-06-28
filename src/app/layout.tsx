@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Newsreader } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { PostHogProvider, PostHogPageView } from "@/components/analytics/PostHogProvider";
@@ -7,10 +7,11 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { BottomNav } from "@/components/layout/BottomNav";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const playfair = Playfair_Display({
+const newsreader = Newsreader({
   subsets: ["latin"],
-  weight: ["700", "900"],
-  variable: "--font-playfair",
+  style: ["normal", "italic"],
+  weight: ["400", "600", "700"],
+  variable: "--font-newsreader",
 });
 
 export const metadata: Metadata = {
@@ -79,7 +80,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-screen pb-[env(safe-area-inset-bottom)] md:pb-0`}>
+      <body className={`${inter.variable} ${newsreader.variable} font-sans antialiased min-h-screen pb-[env(safe-area-inset-bottom)] md:pb-0`}>
         <PostHogProvider>
           <AuthProvider>
           <Suspense fallback={null}><PostHogPageView /></Suspense>

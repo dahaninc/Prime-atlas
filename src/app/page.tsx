@@ -233,13 +233,13 @@ export default async function HomePage() {
                 <span className="text-sm text-black/40">Real estate intelligence</span>
               </div>
 
-              {/* Serif headline — editorial weight */}
-              <h1 className="font-serif text-[clamp(2.6rem,6vw,4.5rem)] font-black leading-[1.03] tracking-[-0.02em] text-black mb-6 max-w-[540px]">
+              {/* Serif headline — editorial weight, Newsreader */}
+              <h1 className="font-serif text-[clamp(2.6rem,6vw,4.5rem)] font-bold leading-[1.03] tracking-[-0.02em] text-black mb-6 max-w-[540px] text-balance">
                 The real estate atlas.{" "}
-                <span className="italic">Redrawn.</span>
+                <span className="italic font-semibold">Redrawn.</span>
               </h1>
 
-              <p className="text-lg text-black/55 max-w-[460px] mb-8 leading-relaxed">
+              <p className="text-lg text-black/55 max-w-[460px] mb-8 leading-relaxed text-pretty">
                 80+ markets pre-screened. Live underwrite. IC memo same day.
                 Sourced from government data you can name in committee.
               </p>
@@ -295,10 +295,10 @@ export default async function HomePage() {
         {/* ── Audience cards ── */}
         <section className="border-b border-[#27272A] py-16">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-2 text-center">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2 text-center">
               Built for every real estate investor
             </p>
-            <h2 className="text-2xl font-black text-center mb-10">
+            <h2 className="text-2xl font-black tracking-tight text-center mb-10 text-balance">
               Your edge — regardless of scale
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -335,13 +335,13 @@ export default async function HomePage() {
         {/* ── Timeline comparison ── */}
         <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-2 text-center">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2 text-center">
               The conviction gap
             </p>
-            <h2 className="text-2xl font-bold text-center mb-2">
+            <h2 className="text-2xl font-black tracking-tight text-center mb-2 text-balance">
               Three weeks compressed to twenty minutes
             </h2>
-            <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-xl mx-auto">
+            <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-xl mx-auto text-pretty">
               The analysis is the same. The data is the same. The difference is the infrastructure that assembles it for you.
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -395,30 +395,32 @@ export default async function HomePage() {
         {/* ── Pain points ── */}
         <section className="border-b border-[#27272A] py-16">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-2">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2">
               The cost of slow conviction
             </p>
-            <h2 className="text-2xl font-bold mb-10">
+            <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               You don&apos;t have a data problem. You have a conviction-and-latency problem.
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {PAIN_POINTS.map((p) => (
                 <div key={p.label} className="border border-[#27272A] rounded-xl p-5 bg-[#18181B]">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded border border-[#27272A] flex items-center justify-center text-xs font-mono text-[#A1A1AA]">
-                        {p.icon}
-                      </span>
-                      <span className="text-xs font-semibold uppercase tracking-widest text-[#A1A1AA]">
-                        {p.label}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold font-mono text-foreground">{p.stat}</p>
-                      <p className="text-[9px] text-[#A1A1AA] leading-tight">{p.statLabel}</p>
-                    </div>
+                  {/* Label row */}
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="w-6 h-6 rounded border border-[#27272A] flex items-center justify-center text-xs font-mono text-[#A1A1AA]">
+                      {p.icon}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-widest text-[#A1A1AA]">
+                      {p.label}
+                    </span>
                   </div>
-                  <p className="text-sm text-[#A1A1AA] leading-relaxed">{p.body}</p>
+                  {/* Robinhood number hierarchy */}
+                  <p className="text-3xl font-black tracking-tight tabular-nums text-white leading-none mb-1">
+                    {p.stat}
+                  </p>
+                  <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-semibold mb-4">
+                    {p.statLabel}
+                  </p>
+                  <p className="text-sm text-[#A1A1AA] leading-relaxed text-pretty">{p.body}</p>
                 </div>
               ))}
             </div>
@@ -428,10 +430,10 @@ export default async function HomePage() {
         {/* ── Workflow ── */}
         <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-2">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2">
               How it works
             </p>
-            <h2 className="text-2xl font-bold mb-10">
+            <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               From deal board to IC memo — same day, defensible in writing
             </h2>
             <div className="space-y-4">
@@ -446,8 +448,8 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm mb-2">{step.title}</p>
-                    <p className="text-sm text-[#A1A1AA] leading-relaxed mb-3">{step.body}</p>
+                    <p className="font-semibold tracking-tight text-sm mb-2">{step.title}</p>
+                    <p className="text-sm text-[#A1A1AA] leading-relaxed mb-3 text-pretty">{step.body}</p>
                     {step.cta && (
                       <Link href={step.cta.href} className="text-xs text-[#00C805] hover:underline">
                         {step.cta.label} →
@@ -472,10 +474,10 @@ export default async function HomePage() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-1">
+                  <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-1">
                     Pre-screened pipeline
                   </p>
-                  <h2 className="text-2xl font-bold">Highest-conviction markets right now</h2>
+                  <h2 className="text-2xl font-black tracking-tight">Highest-conviction markets right now</h2>
                 </div>
                 <Link href="/deal-board" className="text-sm text-[#00C805] hover:underline whitespace-nowrap">
                   Full pipeline →
@@ -498,15 +500,15 @@ export default async function HomePage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <span className={`text-2xl font-bold font-mono ${scoreColor(m.opportunity_score)}`}>
+                        <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
                           {m.opportunity_score}
                         </span>
-                        <p className="text-[9px] text-[#A1A1AA]">ROI index</p>
+                        <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">ROI index</p>
                       </div>
                     </div>
                     <div className="flex gap-3 text-xs text-[#A1A1AA]">
-                      <span>Growth <strong className="text-foreground">{m.growth_score}</strong></span>
-                      <span>Dev <strong className="text-foreground">{m.development_score}</strong></span>
+                      <span>Growth <strong className="text-white tabular-nums">{m.growth_score}</strong></span>
+                      <span>Dev <strong className="text-white tabular-nums">{m.development_score}</strong></span>
                       <span
                         className={`ml-auto text-[10px] font-medium ${
                           m.risk_score <= 40
@@ -533,10 +535,10 @@ export default async function HomePage() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-1">
+                  <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-1">
                     Underwrite-ready
                   </p>
-                  <h2 className="text-xl font-bold">Active opportunities — sourced &amp; scored</h2>
+                  <h2 className="text-xl font-black tracking-tight">Active opportunities — sourced &amp; scored</h2>
                 </div>
                 <Link href="/opportunities" className="text-sm text-[#00C805] hover:underline">
                   All opportunities →
@@ -578,10 +580,10 @@ export default async function HomePage() {
                         </p>
                       </div>
                       <div className="flex-shrink-0 ml-4 text-right">
-                        <p className={`text-xl font-bold font-mono ${scoreColor(opp.opportunity_score)}`}>
+                        <p className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(opp.opportunity_score)}`}>
                           {opp.opportunity_score}
                         </p>
-                        <p className="text-[9px] text-[#A1A1AA]">score</p>
+                        <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">score</p>
                       </div>
                     </Link>
                   );
@@ -598,7 +600,7 @@ export default async function HomePage() {
               <div className="flex items-center gap-3 mb-6">
                 <span className="w-2 h-2 rounded-full bg-[#00C805] animate-pulse" />
                 <div>
-                  <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest">
+                  <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest">
                     Conviction signals
                   </p>
                   <p className="text-xs text-[#A1A1AA]">
@@ -628,8 +630,8 @@ export default async function HomePage() {
                         <p className="text-sm font-medium leading-snug truncate">{sig.title}</p>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
-                        <p className="text-[#00C805] font-mono font-bold text-sm">+{sig.opportunity_impact}</p>
-                        <p className="text-[10px] text-[#A1A1AA]">conviction pts</p>
+                        <p className="text-[#00C805] font-black text-lg tabular-nums tracking-tight leading-none">+{sig.opportunity_impact}</p>
+                        <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mt-0.5">pts</p>
                       </div>
                     </div>
                   );
@@ -642,10 +644,10 @@ export default async function HomePage() {
         {/* ── Browse by category ── */}
         <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest text-center mb-2">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest text-center mb-2">
               Browse by asset class
             </p>
-            <h2 className="text-2xl font-bold text-center mb-8">Pre-screened by property category</h2>
+            <h2 className="text-2xl font-black tracking-tight text-center mb-8 text-balance">Pre-screened by property category</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {CATEGORIES.map((cat) => (
                 <Link
@@ -666,13 +668,13 @@ export default async function HomePage() {
         {/* ── Auditable data sources ── */}
         <section className="border-b border-[#27272A] py-16">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest text-center mb-2">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest text-center mb-2">
               Auditable sources
             </p>
-            <h2 className="text-2xl font-bold text-center mb-3">
+            <h2 className="text-2xl font-black tracking-tight text-center mb-3 text-balance">
               Every score is traceable to a named government source
             </h2>
-            <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-2xl mx-auto">
+            <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-2xl mx-auto text-pretty">
               An IC will ask where your numbers come from. Every score, signal, and opportunity in Prime Atlas
               links back to the original planning portal, official housing authority, or statistical body —
               not a model you can&apos;t explain.
@@ -692,7 +694,7 @@ export default async function HomePage() {
         {/* ── Free report ── */}
         <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-3">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-3">
               Free quarterly report
             </p>
             <h2 className="text-2xl font-bold mb-4">
@@ -719,15 +721,15 @@ export default async function HomePage() {
             style={{ background: "radial-gradient(ellipse 80% 60% at 50% 100%, #CCFF00 0%, #00C805 50%, transparent 80%)" }}
           />
           <div className="relative max-w-2xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs text-[#A1A1AA] font-mono uppercase tracking-widest mb-5">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-5">
               Start compressing your conviction timeline
             </p>
-            <h2 className="text-3xl sm:text-4xl font-black mb-4 leading-tight">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4 leading-tight text-balance">
               The deal you miss because you were slow.<br />
               The deal that dies because you committed too early.{" "}
               <span className="text-[#CCFF00]">Prime Atlas ends both.</span>
             </h2>
-            <p className="text-[#A1A1AA] text-sm mb-8 leading-relaxed max-w-lg mx-auto">
+            <p className="text-[#A1A1AA] text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
               Free tier: full Deal Board, preliminary underwrite, pre-screened pipeline across 5 markets per country.
               Pro: all 80+ markets, full evidence layers, IC memo export.
             </p>

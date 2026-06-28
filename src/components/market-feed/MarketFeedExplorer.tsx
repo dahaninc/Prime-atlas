@@ -175,7 +175,7 @@ export function MarketFeedExplorer({ properties }: Props) {
       </div>
 
       {/* ── Count line ── */}
-      <p className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-widest mb-5">
+      <p className="text-[10px] font-semibold text-[#A1A1AA] uppercase tracking-widest mb-5 tabular-nums">
         {filtered.length.toLocaleString()} listings
         {stateFilter !== "ALL" && ` · ${STATES[stateFilter] ?? stateFilter}`}
       </p>
@@ -202,7 +202,7 @@ export function MarketFeedExplorer({ properties }: Props) {
 
               {/* Row 2: Price — hero number */}
               {p.price && (
-                <p className="text-[26px] font-black text-white leading-none tabular-nums tracking-tight">
+                <p className="text-[28px] font-black text-white leading-none tabular-nums tracking-tight">
                   {fmtPrice(p.price, p.currency_code)}
                 </p>
               )}

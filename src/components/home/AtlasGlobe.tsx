@@ -119,23 +119,23 @@ export function AtlasGlobe() {
 
       {/* London — upper right */}
       <div className="absolute top-[14%] right-[2%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest font-sans">London</p>
-        <p className="text-2xl font-black text-black leading-none mt-0.5 font-sans tabular-nums">87</p>
-        <p className="text-[9px] font-bold mt-1 font-sans" style={{ color: "#00C805" }}>↑ High conviction</p>
+        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">LONDON · UK</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">87</p>
+        <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ High conviction</p>
       </div>
 
       {/* New York — left middle */}
       <div className="absolute top-[38%] -left-[4%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest font-sans">New York</p>
-        <p className="text-2xl font-black text-black leading-none mt-0.5 font-sans tabular-nums">83</p>
-        <p className="text-[9px] font-bold mt-1 font-sans" style={{ color: "#00C805" }}>↑ Growing fast</p>
+        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">NEW YORK · US</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">83</p>
+        <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ Growing fast</p>
       </div>
 
       {/* Sydney — lower right */}
       <div className="absolute bottom-[18%] right-[4%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest font-sans">Sydney</p>
-        <p className="text-2xl font-black text-black leading-none mt-0.5 font-sans tabular-nums">71</p>
-        <p className="text-[9px] font-bold mt-1 font-sans" style={{ color: "#F5A623" }}>→ Moderate</p>
+        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">SYDNEY · AU</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">71</p>
+        <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#F5A623" }}>→ Moderate</p>
       </div>
 
       {/* Market count badge — bottom left */}
