@@ -259,6 +259,13 @@ interface ProviderConfig {
    * can be slower and cause 500s on some hosts.
    */
   premiumProxy?: boolean;
+  /**
+   * CSS selector passed as wait_for to ScrapeOps. ScrapeOps returns as soon as
+   * this element appears in the DOM (instead of waiting a fixed timeout).
+   * Use for CSR/SPA sites where we know exactly which element signals that
+   * listing data is ready. Dramatically cuts response time vs. fixed timeouts.
+   */
+  waitFor?: string;
   baseUrl:       string;
   /** ISO 3166-1 alpha-2 country code for all listings from this provider */
   countryIso2:   string;
@@ -363,6 +370,7 @@ async function fetchViaScrapeOps(
   renderJs     = true,
   retries      = 0,
   premiumProxy = false,
+  waitFor?:     string,
 ): Promise<string> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
   if (!apiKey) throw new Error("SCRAPEOPS_API_KEY is not configured");
@@ -374,7 +382,8 @@ async function fetchViaScrapeOps(
     residential: "true",
     country:     proxyCountry,
   };
-  if (premiumProxy) params.premium_proxy = "true";
+  if (premiumProxy) params.premium_proxy      = "true";
+  if (waitFor)      params.wait_for_selector  = waitFor;
 
   const qs = new URLSearchParams(params);
 
@@ -1026,6 +1035,41 @@ function extractRealtorCaHtml(
   const $   = load(html);
   const now = new Date().toISOString();
 
+  // ── Strategy 0: __NEXT_DATA__ JSON ────────────────────────────────────────
+  try {
+    const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (ndMatch?.[1]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ndData  = JSON.parse(ndMatch[1]) as any;
+      const pp      = ndData?.props?.pageProps;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ndItems: any[] =
+        pp?.results ?? pp?.listings ?? pp?.searchResults ??
+        pp?.data?.results ?? pp?.data?.listings ?? [];
+
+      for (const r of ndItems) {
+        try {
+          const mlsNumber = String(r.MlsNumber ?? r.mlsNumber ?? r.id ?? "").trim();
+          if (!mlsNumber) continue;
+          const rawPrice  = Number(r.Price?.Value ?? r.price?.value ?? r.price ?? 0);
+          const price     = rawPrice > 0 ? Math.round(rawPrice * 100) : null;
+          const address   = String(r.Property?.Address?.AddressText ?? r.address ?? "").trim() || null;
+          const detailUrl = r.RelativeDetailsURL ?? `/real-estate/${mlsNumber}/listing`;
+          const fullUrl   = detailUrl.startsWith("http") ? detailUrl : `https://www.realtor.ca${detailUrl}`;
+          results.push({
+            provider: "realtor_ca", external_property_id: mlsNumber,
+            title: address, address, price, currency_code: "CAD",
+            bedrooms: null, bathrooms: null, size_sqm: null,
+            property_type: String(r.Building?.Type ?? r.Property?.Type ?? "").toLowerCase() || null,
+            listing_type: listingType, listing_url: fullUrl, scraped_at: now,
+          });
+        } catch { /* skip */ }
+      }
+    }
+  } catch { /* fall through */ }
+
+  if (results.length > 0) return results;
+
   // ── Strategy 1: embedded JSON in <script> tags ─────────────────────────────
   $("script:not([src])").each((_, script) => {
     if (results.length > 0) return; // already found via previous script
@@ -1072,18 +1116,24 @@ function extractRealtorCaHtml(
   if (results.length > 0) return results;
 
   // ── Strategy 2: link-based extraction from rendered SPA HTML ──────────────
-  // Each listing card links to /real-estate/{province}/{city}/{slug}/
+  // Realtor.ca listing URLs can be:
+  //   /real-estate/on/toronto/address-slug/18879797/
+  //   /en/real-estate/on/toronto/address-slug/18879797/
+  //   /real-estate/18879797/address-slug/
   const seen = new Set<string>();
 
   $('a[href*="/real-estate/"]').each((_, el) => {
     try {
       const href = $(el).attr("href") ?? "";
-      // Target hrefs like /real-estate/on/toronto/mls-12345678/
-      if (!href.match(/\/real-estate\/[a-z]{2}\/[^/]+\/[^/]+/i)) return;
+      // Match standard listing URLs (province/city/slug) OR numeric-ID-first format,
+      // with optional /en/ language prefix
+      if (!href.match(/(?:\/en)?\/real-estate\/(?:[a-z]{2}\/[^/]+\/[^/]+|\d{6,})/i)) return;
 
       const fullUrl  = href.startsWith("http") ? href : `https://www.realtor.ca${href}`;
+      // Prefer the trailing numeric MLS ID segment when present
+      const idMatch  = href.match(/\/(\d{6,})\/?(?:[?#]|$)/);
       const segments = href.split("/").filter(Boolean);
-      const extId    = segments.at(-1) || segments.at(-2) || "";
+      const extId    = idMatch?.[1] || segments.at(-1) || segments.at(-2) || "";
       if (!extId || seen.has(extId)) return;
       seen.add(extId);
 
@@ -1172,7 +1222,12 @@ async function scrapeRealtorCaViaApi(target: SearchTarget): Promise<ParsedProper
       // ScrapeOps premium proxy which routes through residential IPs
       if (res.status === 403 || res.status === 401 || res.status === 429) {
         console.warn(`[Realtor.ca] API HTTP ${res.status} — falling back to ScrapeOps HTML scrape`);
-        const html      = await fetchViaScrapeOps(target.url, "ca", true);
+        // Use premiumProxy so the rendered browser can call api2.realtor.ca from a residential IP;
+        // wait_for_selector ensures we wait until listing cards are present in the DOM.
+        const html      = await fetchViaScrapeOps(
+          target.url, "ca", true, 0, true,
+          '[class*="listingCard"], [class*="card-photo"], [data-testid*="card"]',
+        );
         const extracted = extractRealtorCaHtml(html, "https://www.realtor.ca", target.listingType);
         return extracted.map((p) => ({
           ...p,
@@ -1266,7 +1321,9 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
-    renderJs:      false, // Zoopla is Next.js SSR — data-testids present in initial HTML
+    renderJs:      true,          // Zoopla is CSR — listings loaded by client-side JS
+    premiumProxy:  true,          // UK anti-bot bypass
+    waitFor:       '[data-testid="regular-listings"]', // return as soon as cards appear
     baseUrl:       "https://www.zoopla.co.uk",
     countryIso2:   "GB",
     searchTargets: [
@@ -1352,7 +1409,9 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "AUD",
     proxyCountry:  "au",
     europeanPrice: false,
-    renderJs:      false, // REA Group uses SSR — renderJs=true caused ~30s timeouts
+    renderJs:      true,          // Akamai requires full browser fingerprint to serve listings
+    premiumProxy:  true,          // Premium residential proxy needed to bypass Akamai bot manager
+    waitFor:       '[data-testid="listing-card-wrapper"]', // wait for cards before returning
     baseUrl:       "https://www.realestate.com.au",
     countryIso2:   "AU",
     searchTargets: [
@@ -1367,7 +1426,9 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "EUR",
     proxyCountry:  "es",
     europeanPrice: true,
-    renderJs:      false, // Idealista SSR — article.item is in initial HTML without JS
+    renderJs:      true,          // Idealista rejects non-browser requests with 404 (requires JS)
+    premiumProxy:  true,          // Spanish anti-bot bypass
+    waitFor:       "article.item", // wait for listing articles before returning HTML
     baseUrl:       "https://www.idealista.com",
     countryIso2:   "ES",
     searchTargets: [
@@ -1529,7 +1590,7 @@ async function scrapeProvider(
         raw = await config.directScraper(target);
       } else {
         // Default: ScrapeOps proxy → HTML → extractor
-        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, 0, config.premiumProxy ?? false);
+        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, 0, config.premiumProxy ?? false, config.waitFor);
         const extracted = config.extract(html, config.baseUrl, target.listingType);
 
         // ── ETL enrichment ────────────────────────────────────────────────────
