@@ -95,7 +95,7 @@ export const maxDuration = 300;   // Vercel Pro / Enterprise only
 export const dynamic     = "force-dynamic";
 
 const SCRAPEOPS_BASE      = "https://proxy.scrapeops.io/v1/";
-const REQUEST_TIMEOUT_MS  = 60_000;
+const REQUEST_TIMEOUT_MS  = 90_000;   // raised — Idealista / REA pages need more headroom
 const RETRY_BASE_DELAY_MS = 2_000;
 const INTER_URL_DELAY_MS  = 2_500;
 const SUPABASE_BATCH_SIZE = 100;
@@ -1218,16 +1218,97 @@ async function scrapeRealtorCaViaApi(target: SearchTarget): Promise<ParsedProper
     );
 
     if (!res.ok) {
-      // api2.realtor.ca blocks Vercel server IPs with 403 — fall back to
-      // ScrapeOps premium proxy which routes through residential IPs
       if (res.status === 403 || res.status === 401 || res.status === 429) {
-        console.warn(`[Realtor.ca] API HTTP ${res.status} — falling back to ScrapeOps HTML scrape`);
-        // Use premiumProxy so the rendered browser can call api2.realtor.ca from a residential IP;
-        // wait_for_selector ensures we wait until listing cards are present in the DOM.
-        const html      = await fetchViaScrapeOps(
-          target.url, "ca", true, 0, true,
-          '[class*="listingCard"], [class*="card-photo"], [data-testid*="card"]',
-        );
+        // api2.realtor.ca blocks Vercel egress IPs. Strategy A: re-send the
+        // same POST through ScrapeOps' HTTP rotating proxy (undici ProxyAgent).
+        // This routes the request from a Canadian residential IP so the API
+        // believes it's a real browser. Strategy B (HTML scrape) is kept as a
+        // last resort but rarely yields data from Realtor.ca's map SPA.
+        console.warn(`[Realtor.ca] API HTTP ${res.status} — retrying via ScrapeOps HTTP proxy`);
+        const scraperApiKey = process.env.SCRAPEOPS_API_KEY ?? "";
+        try {
+          // Dynamic import keeps the undici dep tree-shaken in other code paths.
+          // Node 18+ ships undici natively; Next.js 14 inherits it.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { ProxyAgent, fetch: proxyFetch } = await import("undici") as any;
+          const proxyUri = `http://proxy.scrapeops.io:5353`;
+          const token    = Buffer
+            .from(`${scraperApiKey}:residential=true&country=ca`)
+            .toString("base64");
+          const dispatcher = new ProxyAgent({ uri: proxyUri, token: `Basic ${token}` });
+
+          const proxyRes = await proxyFetch(
+            "https://api2.realtor.ca/Listing.svc/PropertySearch_Post",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":    "application/x-www-form-urlencoded; charset=UTF-8",
+                "Accept":          "application/json, text/javascript, */*; q=0.01",
+                "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Origin":          "https://www.realtor.ca",
+                "Referer":         "https://www.realtor.ca/map",
+                "X-Requested-With": "XMLHttpRequest",
+              },
+              body:       body.toString(),
+              dispatcher,
+            },
+          );
+
+          if (proxyRes.ok) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const proxyData = (await proxyRes.json()) as any;
+            const proxyListings: unknown[] = proxyData?.Results ?? [];
+            if (proxyListings.length > 0) {
+              console.log(`[Realtor.ca] proxy POST succeeded — ${proxyListings.length} results`);
+              // Parse exactly the same way as the direct API success path below
+              const proxyResults: ParsedProperty[] = [];
+              for (const item of proxyListings) {
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const r          = item as any;
+                  const mlsNumber  = String(r.MlsNumber ?? "").trim();
+                  if (!mlsNumber) continue;
+                  const rawPrice   = Number(r.Price?.Value ?? 0);
+                  const price      = rawPrice > 0 ? Math.round(rawPrice * 100) : null;
+                  const address    = String(r.Property?.Address?.AddressText ?? "").trim() || null;
+                  const bedsStr    = String(r.Building?.Bedrooms ?? "");
+                  const bedrooms   = bedsStr ? safeInt(parseInt(bedsStr.replace(/\+.*$/, ""), 10)) : null;
+                  const bathrooms  = r.Building?.BathroomTotal != null
+                    ? safeInt(parseInt(String(r.Building.BathroomTotal), 10))
+                    : null;
+                  const sizeRaw    = String(r.Building?.SizeInterior ?? "");
+                  const sizeMatch  = sizeRaw.match(/[\d,]+/);
+                  let   sqm: number | null = null;
+                  if (sizeMatch) {
+                    const sizeNum = parseInt(sizeMatch[0].replace(/,/g, ""), 10);
+                    if (isFinite(sizeNum) && sizeNum > 0) sqm = Math.round(sizeNum * 0.0929);
+                  }
+                  const typeRaw   = String(r.Building?.Type ?? r.Property?.Type ?? "").toLowerCase().trim() || null;
+                  const detailUrl = r.RelativeDetailsURL ?? `/real-estate/${mlsNumber}/listing`;
+                  const listingUrl = detailUrl.startsWith("http") ? detailUrl : `https://www.realtor.ca${detailUrl}`;
+                  proxyResults.push({
+                    provider: "realtor_ca", external_property_id: mlsNumber,
+                    title: address, address, price, currency_code: "CAD",
+                    country_iso2: "CA", bedrooms, bathrooms, size_sqm: sqm,
+                    property_type_raw: typeRaw,
+                    property_type: normalisePropertyType(typeRaw),
+                    listing_type: target.listingType, listing_url: listingUrl,
+                    scraped_at: now,
+                  });
+                } catch { /* skip item */ }
+              }
+              return proxyResults;
+            }
+          } else {
+            console.warn(`[Realtor.ca] proxy POST HTTP ${proxyRes.status}`);
+          }
+        } catch (proxyErr) {
+          console.warn("[Realtor.ca] undici proxy failed:", (proxyErr as Error).message);
+        }
+
+        // Strategy B: HTML scrape via ScrapeOps (last resort — map SPA rarely exposes listing links)
+        console.warn("[Realtor.ca] falling back to ScrapeOps HTML scrape");
+        const html      = await fetchViaScrapeOps(target.url, "ca", true, 0, true);
         const extracted = extractRealtorCaHtml(html, "https://www.realtor.ca", target.listingType);
         return extracted.map((p) => ({
           ...p,
@@ -1322,8 +1403,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     proxyCountry:  "gb",
     europeanPrice: false,
     renderJs:      true,          // Zoopla is CSR — listings loaded by client-side JS
-    premiumProxy:  true,          // UK anti-bot bypass
-    waitFor:       '[data-testid="regular-listings"]', // return as soon as cards appear
+    premiumProxy:  true,          // UK anti-bot bypass (same config as Rightmove/OTM)
     baseUrl:       "https://www.zoopla.co.uk",
     countryIso2:   "GB",
     searchTargets: [
@@ -1411,7 +1491,6 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     europeanPrice: false,
     renderJs:      true,          // Akamai requires full browser fingerprint to serve listings
     premiumProxy:  true,          // Premium residential proxy needed to bypass Akamai bot manager
-    waitFor:       '[data-testid="listing-card-wrapper"]', // wait for cards before returning
     baseUrl:       "https://www.realestate.com.au",
     countryIso2:   "AU",
     searchTargets: [
@@ -1428,12 +1507,11 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     europeanPrice: true,
     renderJs:      true,          // Idealista rejects non-browser requests with 404 (requires JS)
     premiumProxy:  true,          // Spanish anti-bot bypass
-    waitFor:       "article.item", // wait for listing articles before returning HTML
     baseUrl:       "https://www.idealista.com",
     countryIso2:   "ES",
     searchTargets: [
       { url: "https://www.idealista.com/venta-viviendas/madrid-municipio/", listingType: "sale" },
-      { url: "https://www.idealista.com/alquiler-viviendas/barcelona/",     listingType: "rent" }, // /barcelona-municipio/ was 404
+      { url: "https://www.idealista.com/alquiler-viviendas/madrid-municipio/", listingType: "rent" }, // barcelona/* returns 404; use Madrid for both
     ],
     extract: extractIdealista,
   },
