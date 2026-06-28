@@ -1,20 +1,11 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=realtor_ca",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=realestate_au",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=idealista",
-      "schedule": "0 6 * * *"
-    }
+    { "path": "/api/cron/scrape-listings?provider=zoopla",        "schedule": "0 2 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow",        "schedule": "0 3 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=realtor_ca",    "schedule": "0 4 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=realestate_au", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=idealista",     "schedule": "0 6 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove",     "schedule": "0 7 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=onthemarket",   "schedule": "0 8 * * *" }
   ]
 }

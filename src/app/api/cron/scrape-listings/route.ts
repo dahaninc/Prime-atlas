@@ -206,7 +206,7 @@ const PROPERTY_TYPE_MAP: Record<string, string> = {
    TYPES
 ───────────────────────────────────────────────────────────────────────────── */
 
-type Provider    = "zoopla" | "zillow" | "realtor_ca" | "realestate_au" | "idealista";
+type Provider    = "zoopla" | "zillow" | "realtor_ca" | "realestate_au" | "idealista" | "rightmove" | "onthemarket";
 type ListingType = "sale" | "rent";
 
 /**
@@ -685,6 +685,212 @@ function extractIdealista(
   return results;
 }
 
+// ─── 5. RIGHTMOVE (UK) ───────────────────────────────────────────────────────
+//
+// Rightmove is a Next.js app that embeds all listing data inside
+// <script id="__NEXT_DATA__">. The canonical path is:
+//   props.pageProps.properties[]
+// Each entry carries: id, price.amount (major units), displayAddress,
+// bedrooms, bathrooms, propertySubType, propertyUrl.
+//
+// URL uses Rightmove region codes: REGION%5E87490 = London.
+
+function extractRightmove(
+  html: string,
+  _baseUrl: string,
+  listingType: ListingType,
+): ExtractedProperty[] {
+  const results: ExtractedProperty[] = [];
+  const now = new Date().toISOString();
+
+  try {
+    const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (!match?.[1]) {
+      console.warn("[Rightmove] __NEXT_DATA__ not found in HTML");
+      return results;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = JSON.parse(match[1]) as any;
+
+    // Try primary path, fall back to older schema variants
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const properties: any[] =
+      data?.props?.pageProps?.properties ??
+      data?.props?.pageProps?.searchResult?.properties ??
+      data?.props?.pageProps?.results ??
+      [];
+
+    for (const r of properties) {
+      try {
+        const id = r.id ? String(r.id) : null;
+        if (!id) continue;
+
+        // propertyUrl includes an anchor fragment — strip it for a clean URL
+        const rawPath = (r.propertyUrl ?? `/properties/${id}`).split("#")[0];
+        const fullUrl = rawPath.startsWith("http")
+          ? rawPath
+          : `https://www.rightmove.co.uk${rawPath}`;
+
+        // price.amount is already in major units (£450000) — convert to pence
+        const rawPrice = r.price?.amount ?? r.price?.value ?? null;
+        const price    = typeof rawPrice === "number" && rawPrice > 0
+          ? Math.round(rawPrice * 100)
+          : null;
+
+        const address  = r.displayAddress ?? null;
+        const typeRaw  = (r.propertySubType ?? r.propertyType ?? "").toLowerCase().trim();
+
+        results.push({
+          provider:             "rightmove",
+          external_property_id: id,
+          title:                address,
+          address,
+          price,
+          currency_code:        "GBP",
+          bedrooms:             safeInt(r.bedrooms ?? NaN),
+          bathrooms:            safeInt(r.bathrooms ?? NaN),
+          size_sqm:             null, // not present in search results; available on detail page
+          property_type:        typeRaw || null,
+          listing_type:         listingType,
+          listing_url:          fullUrl,
+          scraped_at:           now,
+        });
+      } catch (e) {
+        console.error("[Rightmove] item parse error:", e);
+      }
+    }
+  } catch (e) {
+    console.error("[Rightmove] __NEXT_DATA__ parse error:", e);
+  }
+
+  return results;
+}
+
+// ─── 6. ONTHEMARKET (UK) ─────────────────────────────────────────────────────
+//
+// OnTheMarket is a Next.js app. Strategy: try __NEXT_DATA__ first (faster,
+// structured), fall back to Cheerio HTML parsing if the JSON path changes.
+
+function extractOnTheMarket(
+  html: string,
+  _baseUrl: string,
+  listingType: ListingType,
+): ExtractedProperty[] {
+  const results: ExtractedProperty[] = [];
+  const now = new Date().toISOString();
+
+  // ── Attempt 1: __NEXT_DATA__ JSON ─────────────────────────────────────────
+  try {
+    const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    if (match?.[1]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = JSON.parse(match[1]) as any;
+      const pp   = data?.props?.pageProps;
+
+      // OTM has changed path several times — try all known variants
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const listings: any[] =
+        pp?.searchResults?.results ??
+        pp?.results ??
+        pp?.listings ??
+        pp?.properties ??
+        [];
+
+      if (listings.length > 0) {
+        for (const r of listings) {
+          try {
+            const id = String(r.id ?? r.listingId ?? "").trim();
+            if (!id) continue;
+
+            const rawHref = r.detailUrl ?? r.propertyUrl ?? r.url ?? `/property/${id}`;
+            const fullUrl = rawHref.startsWith("http")
+              ? rawHref
+              : `https://www.onthemarket.com${rawHref}`;
+
+            const rawPrice = r.price?.value ?? r.pricing?.value ?? r.price ?? null;
+            const price    = typeof rawPrice === "number" && rawPrice > 0
+              ? Math.round(rawPrice * 100)
+              : typeof rawPrice === "string"
+                ? parsePrice(rawPrice)
+                : null;
+
+            const address = r.displayAddress ?? r.address?.displayAddress ?? r.address ?? null;
+            const typeRaw = (r.propertyType ?? r.type ?? "").toLowerCase().trim();
+            const sqm     = r.floorArea?.value != null ? Number(r.floorArea.value) : null;
+
+            results.push({
+              provider:             "onthemarket",
+              external_property_id: id,
+              title:                address,
+              address,
+              price,
+              currency_code:        "GBP",
+              bedrooms:             safeInt(r.bedrooms ?? NaN),
+              bathrooms:            safeInt(r.bathrooms ?? NaN),
+              size_sqm:             sqm && isFinite(sqm) ? sqm : null,
+              property_type:        typeRaw || null,
+              listing_type:         listingType,
+              listing_url:          fullUrl,
+              scraped_at:           now,
+            });
+          } catch (e) {
+            console.error("[OnTheMarket] JSON item parse error:", e);
+          }
+        }
+        return results;
+      }
+    }
+  } catch {
+    // Fall through to HTML parsing
+  }
+
+  // ── Attempt 2: HTML Cheerio fallback ──────────────────────────────────────
+  const $ = load(html);
+
+  $('[class*="property-card"], [data-testid*="property-result"], li[class*="result-"]').each((_, el) => {
+    try {
+      const card   = $(el);
+      const linkEl = card.find('a[href*="/property/"]').first();
+      const href   = linkEl.attr("href") ?? "";
+      if (!href) return;
+
+      const fullUrl = href.startsWith("http") ? href : `https://www.onthemarket.com${href}`;
+      const extId   = idFromUrl(href);
+      if (!extId) return;
+
+      const priceText = card.find('[class*="price"], [class*="Price"]').first().text().trim();
+      const address   = card.find('[class*="address"], [class*="Address"], [class*="title"]')
+        .first().text().replace(/\s+/g, " ").trim();
+      const typeRaw   = card.find('[class*="type"], [class*="property-type"]')
+        .first().text().trim().toLowerCase();
+
+      const bedsRaw  = card.find('[class*="bed"], [class*="Bed"]').first().text().trim();
+      const bathsRaw = card.find('[class*="bath"], [class*="Bath"]').first().text().trim();
+
+      results.push({
+        provider:             "onthemarket",
+        external_property_id: extId,
+        title:                address || null,
+        address:              address || null,
+        price:                parsePrice(priceText),
+        currency_code:        "GBP",
+        bedrooms:             safeInt(parseInt(bedsRaw, 10)),
+        bathrooms:            safeInt(parseInt(bathsRaw, 10)),
+        size_sqm:             null,
+        property_type:        typeRaw || null,
+        listing_type:         listingType,
+        listing_url:          fullUrl,
+        scraped_at:           now,
+      });
+    } catch (e) {
+      console.error("[OnTheMarket] HTML card parse error:", e);
+    }
+  });
+
+  return results;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    REALTOR.CA — DIRECT JSON API
    Uses the public api2.realtor.ca PropertySearch_Post endpoint instead of
@@ -938,6 +1144,49 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
       { url: "https://www.idealista.com/alquiler-viviendas/barcelona-municipio/", listingType: "rent" },
     ],
     extract: extractIdealista,
+  },
+
+  rightmove: {
+    name:          "rightmove",
+    currency:      "GBP",
+    proxyCountry:  "gb",
+    europeanPrice: false,
+    renderJs:      true,   // Next.js SPA — needs Chromium for __NEXT_DATA__ hydration
+    baseUrl:       "https://www.rightmove.co.uk",
+    countryIso2:   "GB",
+    searchTargets: [
+      {
+        // REGION%5E87490 = Greater London (Rightmove region code)
+        url:         "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&sortType=6&numberOfPropertiesPerPage=24&index=0",
+        listingType: "sale",
+      },
+      {
+        url:         "https://www.rightmove.co.uk/property-to-rent/find.html?locationIdentifier=REGION%5E87490&sortType=6&numberOfPropertiesPerPage=24&index=0",
+        listingType: "rent",
+      },
+    ],
+    extract: extractRightmove,
+  },
+
+  onthemarket: {
+    name:          "onthemarket",
+    currency:      "GBP",
+    proxyCountry:  "gb",
+    europeanPrice: false,
+    renderJs:      true,   // Next.js app — Cheerio fallback if __NEXT_DATA__ path changes
+    baseUrl:       "https://www.onthemarket.com",
+    countryIso2:   "GB",
+    searchTargets: [
+      {
+        url:         "https://www.onthemarket.com/for-sale/property/london/",
+        listingType: "sale",
+      },
+      {
+        url:         "https://www.onthemarket.com/to-rent/property/london/",
+        listingType: "rent",
+      },
+    ],
+    extract: extractOnTheMarket,
   },
 };
 
