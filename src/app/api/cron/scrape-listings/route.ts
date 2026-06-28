@@ -3,11 +3,10 @@
  *
  * Enterprise real-estate listing scraper — five platforms, one route.
  *
- * All target URLs are proxied through the ScrapeOps Proxy API Gateway, which
- * handles JS rendering (headless Chromium), residential IP rotation, and
- * Akamai / Cloudflare / Kasada anti-bot bypasses entirely on its own
- * infrastructure. Our Next.js handler makes a single lightweight fetch() per
- * page and receives clean, fully-rendered HTML in return.
+ * All target URLs (except Realtor.ca, which uses a direct JSON API) are proxied
+ * through the ScrapeOps Proxy API Gateway, which handles JS rendering (headless
+ * Chromium), residential IP rotation, and Akamai / Cloudflare / Kasada anti-bot
+ * bypasses entirely on its own infrastructure.
  *
  * ─── QUICK SETUP ─────────────────────────────────────────────────────────────
  *
@@ -19,14 +18,16 @@
  *       CRON_SECRET=<random 32-char secret>
  *       SUPABASE_SERVICE_ROLE_KEY=<service role key>
  *       NEXT_PUBLIC_SUPABASE_URL=<already set>
+ *       SLACK_WEBHOOK_URL=<optional — Incoming Webhook URL for alerts>
  *
- *  3. Run the Supabase migration below (SQL editor → New query).
+ *  3. Run the Supabase migration (already applied via MCP):
+ *       add_etl_columns_and_scraper_runs
  *
- *  4. Invoke per-provider — each run stays comfortably within Vercel timeouts:
+ *  4. Invoke per-provider:
  *       GET /api/cron/scrape-listings?provider=zillow
  *       Authorization: Bearer <CRON_SECRET>
  *
- *  5. Schedule with vercel.json (Vercel Pro required for maxDuration > 60s):
+ *  5. Schedule with vercel.json:
  *       {
  *         "crons": [
  *           { "path": "/api/cron/scrape-listings?provider=zoopla",        "schedule": "0 2 * * *" },
@@ -36,21 +37,26 @@
  *           { "path": "/api/cron/scrape-listings?provider=idealista",     "schedule": "0 6 * * *" }
  *         ]
  *       }
- *     Vercel automatically sends Authorization: Bearer <CRON_SECRET> in prod.
  *
- * ─── SUPABASE MIGRATION ───────────────────────────────────────────────────────
+ * ─── SUPABASE SCHEMA (current) ───────────────────────────────────────────────
  *
+ *   -- Core listings table
  *   CREATE TABLE IF NOT EXISTS public.properties (
  *     id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
  *     provider             TEXT        NOT NULL,
  *     external_property_id TEXT        NOT NULL,
  *     title                TEXT,
  *     address              TEXT,
+ *     city                 TEXT,
+ *     state_region         TEXT,
+ *     postcode             TEXT,
+ *     country_iso2         CHAR(2),
  *     price                BIGINT,
  *     currency_code        TEXT        NOT NULL DEFAULT 'GBP',
  *     bedrooms             INTEGER,
  *     bathrooms            INTEGER,
  *     size_sqm             NUMERIC,
+ *     property_type_raw    TEXT,
  *     property_type        TEXT,
  *     listing_type         TEXT        NOT NULL DEFAULT 'sale',
  *     listing_url          TEXT,
@@ -61,14 +67,20 @@
  *     CONSTRAINT uq_provider_external_id UNIQUE (provider, external_property_id)
  *   );
  *
- *   CREATE INDEX IF NOT EXISTS idx_properties_provider     ON public.properties (provider);
- *   CREATE INDEX IF NOT EXISTS idx_properties_price        ON public.properties (price);
- *   CREATE INDEX IF NOT EXISTS idx_properties_scraped_at   ON public.properties (scraped_at DESC);
- *   CREATE INDEX IF NOT EXISTS idx_properties_listing_type ON public.properties (listing_type);
- *
- *   ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
- *   CREATE POLICY "properties_public_read" ON public.properties
- *     FOR SELECT TO anon USING (status = 'active');
+ *   -- Scraper audit log
+ *   CREATE TABLE IF NOT EXISTS public.scraper_runs (
+ *     id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+ *     provider         TEXT        NOT NULL,
+ *     started_at       TIMESTAMPTZ NOT NULL,
+ *     finished_at      TIMESTAMPTZ NOT NULL,
+ *     records_scraped  INTEGER     NOT NULL DEFAULT 0,
+ *     records_upserted INTEGER     NOT NULL DEFAULT 0,
+ *     records_failed   INTEGER     NOT NULL DEFAULT 0,
+ *     errors           JSONB       NOT NULL DEFAULT '[]',
+ *     exit_status      TEXT        NOT NULL,
+ *     duration_ms      INTEGER     NOT NULL DEFAULT 0,
+ *     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ *   );
  */
 
 import { NextResponse } from "next/server";
@@ -83,10 +95,112 @@ export const maxDuration = 300;   // Vercel Pro / Enterprise only
 export const dynamic     = "force-dynamic";
 
 const SCRAPEOPS_BASE      = "https://proxy.scrapeops.io/v1/";
-const REQUEST_TIMEOUT_MS  = 45_000;   // abort a single ScrapeOps call after 45s (safe: retries=0, so max 45s×2URLs+delay=~93s)
-const RETRY_BASE_DELAY_MS = 2_000;    // exponential-backoff base (doubles per retry)
-const INTER_URL_DELAY_MS  = 2_500;    // polite pause between consecutive page fetches
-const SUPABASE_BATCH_SIZE = 100;      // rows per upsert call
+const REQUEST_TIMEOUT_MS  = 45_000;
+const RETRY_BASE_DELAY_MS = 2_000;
+const INTER_URL_DELAY_MS  = 2_500;
+const SUPABASE_BATCH_SIZE = 100;
+
+/** Minimum listings expected per URL — fire Slack alert if below this. */
+const MIN_RECORDS_PER_URL = 3;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PROPERTY TYPE TAXONOMY MAP
+   Maps raw scraped strings → RESO-aligned canonical labels.
+   Key: lower-case, underscores replaced with spaces.
+───────────────────────────────────────────────────────────────────────────── */
+
+const PROPERTY_TYPE_MAP: Record<string, string> = {
+  // ── Apartment / Flat ────────────────────────────────────────────────────────
+  "apartment":                 "Apartment",
+  "apartments":                "Apartment",
+  "flat":                      "Apartment",
+  "flats":                     "Apartment",
+  "piso":                      "Apartment",
+  "appartement":               "Apartment",
+  "studio":                    "Apartment",
+  "studio apartment":          "Apartment",
+  "studio flat":               "Apartment",
+  "penthouse":                 "Apartment",
+  "atico":                     "Apartment",
+  "ático":                     "Apartment",
+  "duplex":                    "Apartment",
+  "dúplex":                    "Apartment",
+  "maisonette":                "Apartment",
+  "ground floor flat":         "Apartment",
+  "upper floor flat":          "Apartment",
+  "lower floor flat":          "Apartment",
+  // ── House ────────────────────────────────────────────────────────────────────
+  "house":                     "House",
+  "houses":                    "House",
+  "single family home":        "House",
+  "single family residence":   "House",
+  "single family":             "House",
+  "detached":                  "House",
+  "detached house":            "House",
+  "semi-detached":             "House",
+  "semi detached":             "House",
+  "semi-detached house":       "House",
+  "terraced":                  "House",
+  "terraced house":            "House",
+  "end of terrace":            "House",
+  "end-of-terrace":            "House",
+  "link detached house":       "House",
+  "mews house":                "House",
+  "villa":                     "House",
+  "villas":                    "House",
+  "casa":                      "House",
+  "chalet":                    "House",
+  "bungalow":                  "House",
+  "townhouse":                 "House",
+  "town house":                "House",
+  "cottage":                   "House",
+  "farmhouse":                 "House",
+  "country house":             "House",
+  // ── Condo ────────────────────────────────────────────────────────────────────
+  "condo":                     "Condo",
+  "condominium":               "Condo",
+  "condos":                    "Condo",
+  "strata":                    "Condo",
+  // ── Multi-family ─────────────────────────────────────────────────────────────
+  "multi family":              "Multi-family",
+  "multi-family":              "Multi-family",
+  "multifamily":               "Multi-family",
+  "apartment building":        "Multi-family",
+  "block of flats":            "Multi-family",
+  // ── Land ─────────────────────────────────────────────────────────────────────
+  "land":                      "Land",
+  "solar":                     "Land",
+  "plot":                      "Land",
+  "plots":                     "Land",
+  "building plot":             "Land",
+  "parcela":                   "Land",
+  "terrain":                   "Land",
+  "development land":          "Land",
+  // ── Commercial ───────────────────────────────────────────────────────────────
+  "commercial":                "Commercial",
+  "office":                    "Commercial",
+  "retail":                    "Commercial",
+  "shop":                      "Commercial",
+  "industrial":                "Commercial",
+  "warehouse":                 "Commercial",
+  "local":                     "Commercial",
+  "negocio":                   "Commercial",
+  "business":                  "Commercial",
+  // ── Parking / Garage ─────────────────────────────────────────────────────────
+  "garage":                    "Parking",
+  "parking":                   "Parking",
+  "garaje":                    "Parking",
+  // ── Other ────────────────────────────────────────────────────────────────────
+  "mobile home":               "Mobile Home",
+  "manufactured":              "Mobile Home",
+  "manufactured home":         "Mobile Home",
+  "farm":                      "Farm",
+  "rural":                     "Farm",
+  "finca":                     "Farm",
+  "acreage":                   "Farm",
+  "room":                      "Room",
+  "rooms":                     "Room",
+};
 
 /* ─────────────────────────────────────────────────────────────────────────────
    TYPES
@@ -95,21 +209,36 @@ const SUPABASE_BATCH_SIZE = 100;      // rows per upsert call
 type Provider    = "zoopla" | "zillow" | "realtor_ca" | "realestate_au" | "idealista";
 type ListingType = "sale" | "rent";
 
-interface ParsedProperty {
+/**
+ * Raw output from individual extractor functions.
+ * Does not yet include country_iso2 / property_type_raw — those are injected
+ * by scrapeProvider's post-processing step.
+ */
+interface ExtractedProperty {
   provider:              Provider;
   external_property_id:  string;
   title:                 string | null;
   address:               string | null;
-  /** Stored in minor currency units: pence (GBP), cents (USD/AUD/CAD), eurocents (EUR) */
+  /** Minor currency units (pence / cents / eurocents) */
   price:                 number | null;
   currency_code:         string;
   bedrooms:              number | null;
   bathrooms:             number | null;
   size_sqm:              number | null;
+  /** Raw string from the source — normalised to ParsedProperty.property_type in post-processing */
   property_type:         string | null;
   listing_type:          ListingType;
   listing_url:           string | null;
   scraped_at:            string;
+}
+
+/**
+ * Fully enriched property ready to upsert into public.properties.
+ */
+interface ParsedProperty extends ExtractedProperty {
+  country_iso2:      string;       // ISO 3166-1 alpha-2, from provider config
+  property_type_raw: string | null; // original scraped value preserved for debug
+  // property_type is overwritten with canonical label during enrichment
 }
 
 interface SearchTarget {
@@ -122,21 +251,27 @@ interface ProviderConfig {
   currency:      string;
   proxyCountry:  string;
   europeanPrice: boolean;
-  /** Whether to request JS rendering from ScrapeOps (default true). Set false
-   *  for providers whose search pages are server-rendered HTML — avoids the
-   *  ~30–45s headless-Chromium overhead and prevents Vercel timeout. */
   renderJs:      boolean;
   baseUrl:       string;
+  /** ISO 3166-1 alpha-2 country code for all listings from this provider */
+  countryIso2:   string;
   searchTargets: SearchTarget[];
-  extract:       (html: string, baseUrl: string, listingType: ListingType) => ParsedProperty[];
+  extract:       (html: string, baseUrl: string, listingType: ListingType) => ExtractedProperty[];
+  /**
+   * Optional: if defined, replaces the ScrapeOps fetch → extract pipeline
+   * with a direct call (e.g. a JSON API). Receives the SearchTarget and
+   * returns enriched ParsedProperty[] directly (country_iso2 already set).
+   */
+  directScraper?: (target: SearchTarget) => Promise<ParsedProperty[]>;
 }
 
 interface ScrapeReport {
-  provider:      Provider;
-  scrapedCount:  number;
-  upsertedCount: number;
-  errors:        string[];
-  durationMs:    number;
+  provider:       Provider;
+  scrapedCount:   number;
+  upsertedCount:  number;
+  failedCount:    number;
+  errors:         string[];
+  durationMs:     number;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -147,61 +282,79 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 
 /**
  * Convert a localised price string to a minor-unit integer.
- *
  * English  (en):  "£1,250,000" → 125_000_000 pence
- *                 "$450,000"   →  45_000_000 cents
  * European (es):  "250.000 €"  →  25_000_000 eurocents
- *                 "1.250.000"  → 125_000_000 eurocents
  */
 function parsePrice(raw: string, european = false): number | null {
   const stripped = raw.replace(/[^\d.,]/g, "").trim();
   if (!stripped) return null;
 
   const normalised = european
-    ? stripped.replace(/\./g, "").replace(",", ".") // 250.000,50 → 250000.50
-    : stripped.replace(/,/g, "");                   // 1,250,000  → 1250000
+    ? stripped.replace(/\./g, "").replace(",", ".")
+    : stripped.replace(/,/g, "");
 
   const n = parseFloat(normalised);
   if (!isFinite(n) || n <= 0) return null;
   return Math.round(n * 100);
 }
 
-/** Return the last non-empty path segment of a URL (often the platform's property ID). */
+/** Return the last non-empty path segment of a URL. */
 function idFromUrl(url: string): string {
   return (
     url.split("?")[0].replace(/\/$/, "").split("/").filter(Boolean).pop() ?? ""
   );
 }
 
-/**
- * Clamp a parsed integer to a sensible range.
- * Returns null for NaN, negative values, or values exceeding max.
- */
+/** Clamp a parsed integer to a sensible range, returning null for out-of-range values. */
 function safeInt(n: number, max = 99): number | null {
   return isFinite(n) && n >= 0 && n <= max ? Math.round(n) : null;
+}
+
+/**
+ * Normalise a raw property type string to a canonical RESO-aligned label.
+ * Falls back to the original value (trimmed) if no map entry exists.
+ */
+function normalisePropertyType(raw: string | null): string | null {
+  if (!raw) return null;
+  const key = raw.toLowerCase().trim().replace(/_/g, " ");
+  return PROPERTY_TYPE_MAP[key] ?? raw.trim();
+}
+
+/**
+ * Critical-field validation. Returns false (skip record) only when both
+ * price AND address are null — a record with neither is un-displayable.
+ */
+function validateRecord(p: ExtractedProperty): boolean {
+  return !(p.price === null && p.address === null);
+}
+
+/**
+ * Fire a Slack Incoming Webhook alert. Silent no-op if SLACK_WEBHOOK_URL
+ * is not configured — never throws.
+ */
+async function sendSlackAlert(text: string): Promise<void> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ text }),
+    });
+  } catch (err) {
+    console.error("[Slack] alert dispatch failed:", (err as Error).message);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SCRAPEOPS PROXY GATEWAY
 ───────────────────────────────────────────────────────────────────────────── */
 
-/**
- * Route a target URL through the ScrapeOps Proxy API (v1).
- *
- * ScrapeOps executes on its own infrastructure:
- *   • residential=true      — rotates residential IPs to bypass IP-reputation blocks
- *   • render_js=true        — runs headless Chromium; returns fully hydrated HTML
- *   • premium_proxy=true    — activates specialised Akamai / Kasada / Cloudflare bypass
- *   • country=<2-letter>    — pins proxy exit node to the target site's home country
- *
- * Our server sends one plain fetch() and receives clean HTML — zero browser
- * process overhead on the Next.js side.
- */
 async function fetchViaScrapeOps(
   targetUrl:    string,
   proxyCountry: string,
   renderJs    = true,
-  retries     = 0,   // 0 = fail-fast (no retry) — reduces Vercel wall-clock risk
+  retries     = 0,
 ): Promise<string> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
   if (!apiKey) throw new Error("SCRAPEOPS_API_KEY is not configured");
@@ -245,31 +398,22 @@ async function fetchViaScrapeOps(
     }
   }
 
-  // unreachable — the final-attempt throw above always fires
   throw new Error("fetchViaScrapeOps: all retries exhausted");
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    PLATFORM EXTRACTORS
-   Each function receives the fully-rendered HTML string from ScrapeOps,
-   the provider's base URL for resolving relative hrefs, and the listing type.
-   It returns an array of ParsedProperty objects — never throws.
 ───────────────────────────────────────────────────────────────────────────── */
 
 // ─── 1. ZOOPLA (UK) ──────────────────────────────────────────────────────────
-//
-// Zoopla is a Next.js app. With render_js=true, listing cards hydrate under
-// [data-testid="regular-listings"] as <li> elements. The numeric tail of the
-// detail URL (/for-sale/property/.../listing-{ID}/) is the stable external ID.
-// data-testid attributes are intentionally stable across Zoopla deploys.
 
 function extractZoopla(
   html: string,
   _baseUrl: string,
   listingType: ListingType,
-): ParsedProperty[] {
+): ExtractedProperty[] {
   const $       = load(html);
-  const results: ParsedProperty[] = [];
+  const results: ExtractedProperty[] = [];
   const now     = new Date().toISOString();
 
   $(
@@ -321,27 +465,16 @@ function extractZoopla(
 }
 
 // ─── 2. ZILLOW (US) ──────────────────────────────────────────────────────────
-//
-// Zillow is a Next.js SSR app that embeds all search results as JSON in a
-// <script id="__NEXT_DATA__"> tag. The listing array lives at:
-//   props.pageProps.searchPageState.cat1.searchResults.listResults[]
-//
-// Each entry has: zpid, price, unformattedPrice, address (obj), beds, baths,
-// area (sqft), detailUrl, hdpData.homeInfo.homeType, etc.
-//
-// URL must include a city/region — the generic /homes/for_sale/ returns 0 results.
-// Use the _{rb} suffix for Zillow region-based searches.
 
 function extractZillow(
   html: string,
   _baseUrl: string,
   listingType: ListingType,
-): ParsedProperty[] {
-  const results: ParsedProperty[] = [];
+): ExtractedProperty[] {
+  const results: ExtractedProperty[] = [];
   const now = new Date().toISOString();
 
   try {
-    // Extract __NEXT_DATA__ JSON blob
     const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (!match?.[1]) {
       console.warn("[Zillow] __NEXT_DATA__ not found in HTML");
@@ -358,7 +491,7 @@ function extractZillow(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const r = item as any;
 
-        const zpid    = r.zpid ? String(r.zpid) : null;
+        const zpid = r.zpid ? String(r.zpid) : null;
         if (!zpid) continue;
 
         const detailPath = r.detailUrl ?? `/homedetails/${zpid}_zpid/`;
@@ -366,20 +499,18 @@ function extractZillow(
           ? detailPath
           : `https://www.zillow.com${detailPath}`;
 
-        // Price: prefer unformattedPrice (raw number), fall back to parsing price string
         const rawPrice = r.unformattedPrice ?? r.price ?? null;
         const price    = typeof rawPrice === "number"
           ? Math.round(rawPrice * 100)
           : parsePrice(String(rawPrice ?? ""));
 
-        // Address: Zillow returns an address object or a flat string
         const addr = r.address
           ? typeof r.address === "string"
             ? r.address
             : [r.address.streetAddress, r.address.city, r.address.state].filter(Boolean).join(", ")
           : null;
 
-        const sqft   = r.area ? parseInt(String(r.area).replace(/,/g, ""), 10) : null;
+        const sqft     = r.area ? parseInt(String(r.area).replace(/,/g, ""), 10) : null;
         const homeType = (r.hdpData?.homeInfo?.homeType ?? r.homeType ?? "").toLowerCase().replace(/_/g, " ");
 
         results.push({
@@ -408,83 +539,18 @@ function extractZillow(
   return results;
 }
 
-// ─── 3. REALTOR.CA (Canada) ──────────────────────────────────────────────────
+// ─── 3. REALESTATE.COM.AU (Australia) ────────────────────────────────────────
 //
-// Realtor.ca is a React SPA. Card elements carry compound CSS-module class
-// names — we match on substrings with [class*="..."] selectors. The MLS®
-// number lives in the URL path (/real-estate/{mlsNumber}/slug) or as a
-// data-id attribute directly on the card element.
-
-function extractRealtorCa(
-  html: string,
-  _baseUrl: string,
-  listingType: ListingType,
-): ParsedProperty[] {
-  const $       = load(html);
-  const results: ParsedProperty[] = [];
-  const now     = new Date().toISOString();
-
-  $('[class*="cardCon"], [class*="listingCard"], [data-id]').each((_, el) => {
-    try {
-      const card   = $(el);
-      const dataId = card.attr("data-id") ?? "";
-
-      const linkEl  = card.find('[class*="listingDetails"], a[href*="/real-estate/"]').first();
-      const href    = linkEl.attr("href") ?? "";
-      if (!href) return;
-
-      const fullUrl  = href.startsWith("http") ? href : `https://www.realtor.ca${href}`;
-      const mlsMatch = href.match(/\/real-estate\/(\d+)\//);
-      const extId    = dataId || mlsMatch?.[1] || idFromUrl(href);
-      if (!extId) return;
-
-      const priceText = card.find('[class*="listingCardPrice"], [class*="Price"]').first().text().trim();
-      const address   = card.find('[class*="listingCardAddress"], [class*="Address"]').first().text().replace(/\s+/g, " ").trim();
-      const title     = card.find('[class*="listingCardTitle"], h2, h3').first().text().replace(/\s+/g, " ").trim() || address;
-
-      const bedsRaw  = card.find('[class*="bedroomNumber"], [class*="Bedroom"]').first().text().trim();
-      const bathsRaw = card.find('[class*="bathroomNumber"], [class*="Bathroom"]').first().text().trim();
-      const sqftRaw  = card.find('[class*="sqft"], [class*="SquareFeet"]').first().text().trim();
-      const sqft     = sqftRaw ? parseInt(sqftRaw.replace(/,/g, ""), 10) : null;
-      const typeRaw  = card.find('[class*="PropertyType"], [class*="propertyType"]').first().text().trim().toLowerCase();
-
-      results.push({
-        provider:             "realtor_ca",
-        external_property_id: String(extId),
-        title:                title   || null,
-        address:              address || null,
-        price:                parsePrice(priceText),
-        currency_code:        "CAD",
-        bedrooms:             safeInt(parseInt(bedsRaw, 10)),
-        bathrooms:            safeInt(parseFloat(bathsRaw)),
-        size_sqm:             sqft != null ? Math.round(sqft * 0.0929) : null,
-        property_type:        typeRaw || null,
-        listing_type:         listingType,
-        listing_url:          fullUrl,
-        scraped_at:           now,
-      });
-    } catch (e) {
-      console.error("[Realtor.ca] card parse error:", e);
-    }
-  });
-
-  return results;
-}
-
-// ─── 4. REALESTATE.COM.AU (Australia) ────────────────────────────────────────
-//
-// REA Group uses data-testid attributes throughout. Property IDs are embedded
-// in the URL slug as the final long numeric segment (/property-house-nsw-12345678).
-// Bed / bath / land-size features render as adjacent <span> pairs:
-//   <span>3</span><span>Beds</span>
+// renderJs is now false — REA Group pages are server-side rendered (Kotlin/React
+// SSR). Removing headless Chromium cuts ~30s timeout risk per URL.
 
 function extractRealestateAu(
   html: string,
   _baseUrl: string,
   listingType: ListingType,
-): ParsedProperty[] {
+): ExtractedProperty[] {
   const $       = load(html);
-  const results: ParsedProperty[] = [];
+  const results: ExtractedProperty[] = [];
   const now     = new Date().toISOString();
 
   $('[data-testid*="listing-card-wrapper"], article[class*="residential-card"]').each((_, el) => {
@@ -515,15 +581,14 @@ function extractRealestateAu(
       let baths: number | null = null;
       let sqm: number | null   = null;
 
-      // Feature spans: value span followed by label span
       card.find('[data-testid*="features"] span, [class*="propertyFeature"] span').each((_, span) => {
         const value = $(span).text().trim();
         const label = $(span).next("span").text().toLowerCase().trim();
         const n     = parseInt(value, 10);
 
-        if (label.startsWith("bed") || label === "br")                 beds  = safeInt(n);
-        else if (label.startsWith("bath"))                             baths = safeInt(n);
-        else if (label.includes("m²") || label.includes("sqm"))       sqm   = isFinite(n) ? n : null;
+        if (label.startsWith("bed") || label === "br")            beds  = safeInt(n);
+        else if (label.startsWith("bath"))                        baths = safeInt(n);
+        else if (label.includes("m²") || label.includes("sqm"))  sqm   = isFinite(n) ? n : null;
       });
 
       const typeRaw = card
@@ -553,20 +618,15 @@ function extractRealestateAu(
   return results;
 }
 
-// ─── 5. IDEALISTA (Spain / Italy / Portugal) ─────────────────────────────────
-//
-// Idealista listing cards are <article class="item" data-element-id="...">.
-// data-element-id is the canonical stable identifier across all three markets.
-// Prices use European locale (. = thousands separator, , = decimal separator).
-// Room counts appear as: "3 habs." (bedrooms), "2 baños" (bathrooms), "90 m²".
+// ─── 4. IDEALISTA (Spain / Italy / Portugal) ─────────────────────────────────
 
 function extractIdealista(
   html: string,
   _baseUrl: string,
   listingType: ListingType,
-): ParsedProperty[] {
+): ExtractedProperty[] {
   const $       = load(html);
-  const results: ParsedProperty[] = [];
+  const results: ExtractedProperty[] = [];
   const now     = new Date().toISOString();
 
   $("article.item").each((_, el) => {
@@ -591,17 +651,15 @@ function extractIdealista(
       let baths: number | null = null;
       let sqm: number | null   = null;
 
-      // Detail chips: "3 habs.", "2 baños", "90 m²", "piso" (type), etc.
       card.find(".item-detail-char li, .item-detail").each((_, li) => {
         const text = $(li).text().toLowerCase().trim();
         const n    = parseInt(text, 10);
 
-        if ((text.includes("hab") || text.includes("dorm")) && isFinite(n)) beds  = safeInt(n);
+        if ((text.includes("hab") || text.includes("dorm")) && isFinite(n))      beds  = safeInt(n);
         else if ((text.includes("baño") || text.includes("aseo")) && isFinite(n)) baths = safeInt(n);
         else if ((text.includes("m²") || text.includes("m2")) && isFinite(n))    sqm   = n;
       });
 
-      // The first chip typically describes property type (piso, casa, chalet…)
       const typeRaw = card.find(".item-detail-char li").first().text().trim().toLowerCase() || null;
 
       results.push({
@@ -609,7 +667,7 @@ function extractIdealista(
         external_property_id: String(resolvedId),
         title:                address || null,
         address:              address || null,
-        price:                parsePrice(priceText, true), // European locale
+        price:                parsePrice(priceText, true),
         currency_code:        "EUR",
         bedrooms:             beds,
         bathrooms:            baths,
@@ -628,6 +686,139 @@ function extractIdealista(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   REALTOR.CA — DIRECT JSON API
+   Uses the public api2.realtor.ca PropertySearch_Post endpoint instead of
+   scraping the React SPA via ScrapeOps (more reliable, no renderJs cost).
+   Bounding boxes cover Greater Toronto and Metro Vancouver respectively.
+───────────────────────────────────────────────────────────────────────────── */
+
+interface RealtorCaBbox {
+  latMax: number; latMin: number; lonMax: number; lonMin: number;
+}
+
+const REALTOR_CA_BBOXES: Record<string, RealtorCaBbox> = {
+  toronto:   { latMax: 43.8556, latMin: 43.5799, lonMax: -79.1191, lonMin: -79.6395 },
+  vancouver: { latMax: 49.3147, latMin: 49.0127, lonMax: -122.9987, lonMin: -123.2780 },
+};
+
+async function scrapeRealtorCaViaApi(target: SearchTarget): Promise<ParsedProperty[]> {
+  // Determine bounding box from target URL
+  const cityKey   = target.url.includes("vancouver") ? "vancouver" : "toronto";
+  const bbox      = REALTOR_CA_BBOXES[cityKey];
+  const txType    = target.listingType === "sale" ? "2" : "3";
+  const now       = new Date().toISOString();
+
+  const body = new URLSearchParams({
+    ZoomLevel:              "11",
+    LatitudeMax:            String(bbox.latMax),
+    LatitudeMin:            String(bbox.latMin),
+    LongitudeMax:           String(bbox.lonMax),
+    LongitudeMin:           String(bbox.lonMin),
+    CurrentPage:            "1",
+    RecordsPerPage:         "50",
+    MaximumResults:         "200",
+    PropertySearchTypeId:   "1",
+    TransactionTypeId:      txType,
+    ApplicationId:          "1",
+    CultureId:              "1",
+    Version:                "7.0",
+  });
+
+  const controller = new AbortController();
+  const timer      = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(
+      "https://api2.realtor.ca/Listing.svc/PropertySearch_Post",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":    "application/x-www-form-urlencoded; charset=UTF-8",
+          "Accept":          "application/json, text/javascript, */*; q=0.01",
+          "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Origin":          "https://www.realtor.ca",
+          "Referer":         "https://www.realtor.ca/map",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body:   body.toString(),
+        signal: controller.signal,
+      },
+    );
+
+    if (!res.ok) throw new Error(`Realtor.ca API HTTP ${res.status}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data    = (await res.json()) as any;
+    const listings: unknown[] = data?.Results ?? [];
+
+    const results: ParsedProperty[] = [];
+
+    for (const item of listings) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const r = item as any;
+
+        const mlsNumber = String(r.MlsNumber ?? "").trim();
+        if (!mlsNumber) continue;
+
+        const rawPrice  = Number(r.Price?.Value ?? 0);
+        const price     = rawPrice > 0 ? Math.round(rawPrice * 100) : null;
+        const address   = String(r.Property?.Address?.AddressText ?? "").trim() || null;
+
+        // Bedrooms: Realtor.ca returns "3" or "3+" — take the numeric part
+        const bedsStr   = String(r.Building?.Bedrooms ?? "");
+        const bedrooms  = bedsStr ? safeInt(parseInt(bedsStr.replace(/\+.*$/, ""), 10)) : null;
+        const bathrooms = r.Building?.BathroomTotal != null
+          ? safeInt(parseInt(String(r.Building.BathroomTotal), 10))
+          : null;
+
+        // Size: "900 sqft" or "84 m²" — extract numeric portion
+        const sizeRaw   = String(r.Building?.SizeInterior ?? "");
+        const sizeMatch = sizeRaw.match(/[\d,]+/);
+        let   sqm: number | null = null;
+        if (sizeMatch) {
+          const sizeNum = parseInt(sizeMatch[0].replace(/,/g, ""), 10);
+          if (isFinite(sizeNum) && sizeNum > 0) {
+            // Realtor.ca typically returns sqft — convert to sqm
+            sqm = Math.round(sizeNum * 0.0929);
+          }
+        }
+
+        const typeRaw   = String(r.Building?.Type ?? r.Property?.Type ?? "").toLowerCase().trim() || null;
+        const detailUrl = r.RelativeDetailsURL ?? `/real-estate/${mlsNumber}/listing`;
+        const listingUrl = detailUrl.startsWith("http")
+          ? detailUrl
+          : `https://www.realtor.ca${detailUrl}`;
+
+        results.push({
+          provider:             "realtor_ca",
+          external_property_id: mlsNumber,
+          title:                address,
+          address,
+          price,
+          currency_code:        "CAD",
+          country_iso2:         "CA",
+          bedrooms,
+          bathrooms,
+          size_sqm:             sqm,
+          property_type_raw:    typeRaw,
+          property_type:        normalisePropertyType(typeRaw),
+          listing_type:         target.listingType,
+          listing_url:          listingUrl,
+          scraped_at:           now,
+        });
+      } catch (e) {
+        console.error("[Realtor.ca API] item parse error:", e);
+      }
+    }
+
+    return results;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    PROVIDER REGISTRY
 ───────────────────────────────────────────────────────────────────────────── */
 
@@ -638,17 +829,12 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
-    renderJs:      true,   // Next.js SPA — needs Chromium to hydrate listing cards
+    renderJs:      true,
     baseUrl:       "https://www.zoopla.co.uk",
+    countryIso2:   "GB",
     searchTargets: [
-      {
-        url:         "https://www.zoopla.co.uk/for-sale/property/london/?page_size=25",
-        listingType: "sale",
-      },
-      {
-        url:         "https://www.zoopla.co.uk/to-rent/property/london/?page_size=25",
-        listingType: "rent",
-      },
+      { url: "https://www.zoopla.co.uk/for-sale/property/london/?page_size=25", listingType: "sale" },
+      { url: "https://www.zoopla.co.uk/to-rent/property/london/?page_size=25",  listingType: "rent" },
     ],
     extract: extractZoopla,
   },
@@ -658,10 +844,11 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "USD",
     proxyCountry:  "us",
     europeanPrice: false,
-    renderJs:      true,   // React SPA — needs JS rendering
+    renderJs:      true,
     baseUrl:       "https://www.zillow.com",
+    countryIso2:   "US",
     searchTargets: [
-      // ── For sale — 30 major US cities (one per state) ─────────────────────
+      // ── For sale — 30 major US cities ──────────────────────────────────────
       { url: "https://www.zillow.com/homes/for_sale/New-York-NY_rb/",         listingType: "sale" },
       { url: "https://www.zillow.com/homes/for_sale/Los-Angeles-CA_rb/",      listingType: "sale" },
       { url: "https://www.zillow.com/homes/for_sale/Chicago-IL_rb/",          listingType: "sale" },
@@ -692,7 +879,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
       { url: "https://www.zillow.com/homes/for_sale/Minneapolis-MN_rb/",      listingType: "sale" },
       { url: "https://www.zillow.com/homes/for_sale/Boston-MA_rb/",           listingType: "sale" },
       { url: "https://www.zillow.com/homes/for_sale/Detroit-MI_rb/",          listingType: "sale" },
-      // ── For rent — top 10 metro rental markets ────────────────────────────
+      // ── For rent — top 10 metro rental markets ─────────────────────────────
       { url: "https://www.zillow.com/homes/for_rent/New-York-NY_rb/",         listingType: "rent" },
       { url: "https://www.zillow.com/homes/for_rent/Los-Angeles-CA_rb/",      listingType: "rent" },
       { url: "https://www.zillow.com/homes/for_rent/Chicago-IL_rb/",          listingType: "rent" },
@@ -712,19 +899,15 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "CAD",
     proxyCountry:  "ca",
     europeanPrice: false,
-    renderJs:      true,   // React SPA
+    renderJs:      false, // uses directScraper — not fetched via ScrapeOps
     baseUrl:       "https://www.realtor.ca",
+    countryIso2:   "CA",
     searchTargets: [
-      {
-        url:         "https://www.realtor.ca/real-estate/on/toronto",
-        listingType: "sale",
-      },
-      {
-        url:         "https://www.realtor.ca/real-estate/bc/vancouver",
-        listingType: "sale",
-      },
+      { url: "https://www.realtor.ca/real-estate/on/toronto",   listingType: "sale" },
+      { url: "https://www.realtor.ca/real-estate/bc/vancouver", listingType: "sale" },
     ],
-    extract: extractRealtorCa,
+    extract:       () => [], // unused — directScraper takes precedence
+    directScraper: scrapeRealtorCaViaApi,
   },
 
   realestate_au: {
@@ -732,17 +915,12 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "AUD",
     proxyCountry:  "au",
     europeanPrice: false,
-    renderJs:      true,   // React SPA
+    renderJs:      false, // REA Group uses SSR — renderJs=true caused ~30s timeouts
     baseUrl:       "https://www.realestate.com.au",
+    countryIso2:   "AU",
     searchTargets: [
-      {
-        url:         "https://www.realestate.com.au/buy/in-sydney,+nsw/list-1",
-        listingType: "sale",
-      },
-      {
-        url:         "https://www.realestate.com.au/rent/in-sydney,+nsw/list-1",
-        listingType: "rent",
-      },
+      { url: "https://www.realestate.com.au/buy/in-sydney,+nsw/list-1",  listingType: "sale" },
+      { url: "https://www.realestate.com.au/rent/in-sydney,+nsw/list-1", listingType: "rent" },
     ],
     extract: extractRealestateAu,
   },
@@ -752,17 +930,12 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "EUR",
     proxyCountry:  "es",
     europeanPrice: true,
-    renderJs:      true,   // Idealista 404s on plain proxies — needs Chromium bypass; safe now that retries=0 (max 30s × 2 URLs = 60s)
+    renderJs:      true,
     baseUrl:       "https://www.idealista.com",
+    countryIso2:   "ES",
     searchTargets: [
-      {
-        url:         "https://www.idealista.com/venta-viviendas/madrid-municipio/",
-        listingType: "sale",
-      },
-      {
-        url:         "https://www.idealista.com/alquiler-viviendas/barcelona-municipio/",
-        listingType: "rent",
-      },
+      { url: "https://www.idealista.com/venta-viviendas/madrid-municipio/",      listingType: "sale" },
+      { url: "https://www.idealista.com/alquiler-viviendas/barcelona-municipio/", listingType: "rent" },
     ],
     extract: extractIdealista,
   },
@@ -772,23 +945,19 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
    SUPABASE UPSERT
 ───────────────────────────────────────────────────────────────────────────── */
 
-/**
- * Upsert parsed properties into public.properties using the service role key
- * (bypasses RLS). Conflict on the compound unique key (provider,
- * external_property_id) — existing rows are updated (price, beds, etc. stay
- * fresh); created_at is preserved by the database DEFAULT.
- *
- * Rows are chunked to SUPABASE_BATCH_SIZE to stay within PostgREST payload
- * limits. Returns the total count of rows inserted or updated.
- */
-async function upsertProperties(rows: ParsedProperty[]): Promise<number> {
-  if (!rows.length) return 0;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseClient = any;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+/**
+ * Upsert enriched ParsedProperty rows using the passed service-role client.
+ * The client is created once per request in the handler and passed here to
+ * avoid re-instantiating per batch.
+ */
+async function upsertProperties(
+  rows:     ParsedProperty[],
+  supabase: SupabaseClient,
+): Promise<number> {
+  if (!rows.length) return 0;
 
   let total = 0;
 
@@ -798,11 +967,12 @@ async function upsertProperties(rows: ParsedProperty[]): Promise<number> {
       updated_at: new Date().toISOString(),
     }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase
       .from("properties")
-      .upsert(batch, {
+      .upsert(batch as any, {
         onConflict:       "provider,external_property_id",
-        ignoreDuplicates: false, // update price / address on re-scrape
+        ignoreDuplicates: false,
       })
       .select("id");
 
@@ -818,41 +988,112 @@ async function upsertProperties(rows: ParsedProperty[]): Promise<number> {
   return total;
 }
 
+/**
+ * Write a completed scrape run to the scraper_runs audit table.
+ * Never throws — failure is logged but does not affect the scrape response.
+ */
+async function upsertScraperRun(
+  report:   ScrapeReport,
+  startedAt: string,
+  supabase:  SupabaseClient,
+): Promise<void> {
+  try {
+    const exitStatus: "success" | "partial" | "failure" =
+      report.errors.length === 0 ? "success"
+      : report.upsertedCount > 0  ? "partial"
+      :                             "failure";
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from("scraper_runs") as any).insert({
+      provider:         report.provider,
+      started_at:       startedAt,
+      finished_at:      new Date().toISOString(),
+      records_scraped:  report.scrapedCount,
+      records_upserted: report.upsertedCount,
+      records_failed:   report.failedCount,
+      errors:           report.errors,
+      exit_status:      exitStatus,
+      duration_ms:      report.durationMs,
+    });
+  } catch (err) {
+    console.error("[scraper_runs] audit write failed:", (err as Error).message);
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    SCRAPE ORCHESTRATOR
 ───────────────────────────────────────────────────────────────────────────── */
 
-async function scrapeProvider(config: ProviderConfig): Promise<ScrapeReport> {
-  const t0             = Date.now();
-  const errors:  string[]           = [];
-  const parsed:  ParsedProperty[]   = [];
+async function scrapeProvider(
+  config:   ProviderConfig,
+  supabase: SupabaseClient,
+): Promise<ScrapeReport> {
+  const t0          = Date.now();
+  const startedAt   = new Date().toISOString();
+  const errors:     string[]          = [];
+  const allParsed:  ParsedProperty[]  = [];
+  let   failedCount = 0;
 
   for (let i = 0; i < config.searchTargets.length; i++) {
     const target = config.searchTargets[i];
 
     try {
-      console.log(`[${config.name}] ↗ ScrapeOps → ${target.url}`);
+      console.log(`[${config.name}] ↗ ${config.directScraper ? "API" : "ScrapeOps"} → ${target.url}`);
 
-      const html     = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs);
-      const listings = config.extract(html, config.baseUrl, target.listingType);
+      let raw: ParsedProperty[];
 
-      console.log(`[${config.name}] ✓ ${listings.length} listings parsed (${target.listingType})`);
-      parsed.push(...listings);
+      if (config.directScraper) {
+        // Provider uses its own fetch+parse pipeline (e.g. Realtor.ca JSON API)
+        raw = await config.directScraper(target);
+      } else {
+        // Default: ScrapeOps proxy → HTML → extractor
+        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs);
+        const extracted = config.extract(html, config.baseUrl, target.listingType);
+
+        // ── ETL enrichment ────────────────────────────────────────────────────
+        raw = extracted.map((p) => ({
+          ...p,
+          country_iso2:      config.countryIso2,
+          property_type_raw: p.property_type,
+          property_type:     normalisePropertyType(p.property_type),
+        }));
+      }
+
+      // ── Critical field validation — drop un-displayable records ────────────
+      const valid    = raw.filter(validateRecord);
+      const rejected = raw.length - valid.length;
+      if (rejected > 0) {
+        console.warn(`[${config.name}] ⚠ dropped ${rejected} records with no price AND no address`);
+        failedCount += rejected;
+      }
+
+      console.log(
+        `[${config.name}] ✓ ${valid.length} valid listings (${target.listingType}) from ${target.url}`,
+      );
+
+      // ── Minimum record threshold alert ────────────────────────────────────
+      if (valid.length < MIN_RECORDS_PER_URL) {
+        const alertMsg = `⚠️ *Prime Atlas scraper* — \`${config.name}\` returned only ${valid.length} records for ${target.url} (threshold: ${MIN_RECORDS_PER_URL}). Possible selector drift or ban.`;
+        console.warn(`[${config.name}] ${alertMsg}`);
+        await sendSlackAlert(alertMsg);
+        errors.push(`Low record count for ${target.url}: ${valid.length} < ${MIN_RECORDS_PER_URL}`);
+      }
+
+      allParsed.push(...valid);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${target.url}: ${msg}`);
       console.error(`[${config.name}] ✗ scrape failed for ${target.url}:`, msg);
     }
 
-    // Polite inter-request delay — skip after the final URL
     if (i < config.searchTargets.length - 1) {
       await sleep(INTER_URL_DELAY_MS);
     }
   }
 
-  // Deduplicate within this batch before writing to Supabase
+  // ── Deduplicate within this batch ─────────────────────────────────────────
   const seen   = new Set<string>();
-  const unique = parsed.filter(({ provider, external_property_id: eid }) => {
+  const unique = allParsed.filter(({ provider, external_property_id: eid }) => {
     if (!eid) return false;
     const key = `${provider}::${eid}`;
     if (seen.has(key)) return false;
@@ -864,7 +1105,7 @@ async function scrapeProvider(config: ProviderConfig): Promise<ScrapeReport> {
 
   if (unique.length > 0) {
     try {
-      upsertedCount = await upsertProperties(unique);
+      upsertedCount = await upsertProperties(unique, supabase);
       console.log(`[${config.name}] ✓ upserted ${upsertedCount}/${unique.length} rows`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -873,13 +1114,19 @@ async function scrapeProvider(config: ProviderConfig): Promise<ScrapeReport> {
     }
   }
 
-  return {
+  const report: ScrapeReport = {
     provider:      config.name,
     scrapedCount:  unique.length,
     upsertedCount,
+    failedCount,
     errors,
     durationMs:    Date.now() - t0,
   };
+
+  // ── Write audit record ────────────────────────────────────────────────────
+  await upsertScraperRun(report, startedAt, supabase);
+
+  return report;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -918,93 +1165,88 @@ export async function GET(request: Request): Promise<Response> {
   if (!providerParam || !(providerParam in PROVIDERS)) {
     return NextResponse.json(
       {
-        error:           "Missing or invalid ?provider= query parameter",
-        validProviders:  Object.keys(PROVIDERS) as Provider[],
-        exampleRequest:  "/api/cron/scrape-listings?provider=zillow",
+        error:          "Missing or invalid ?provider= query parameter",
+        validProviders: Object.keys(PROVIDERS) as Provider[],
+        exampleRequest: "/api/cron/scrape-listings?provider=zillow",
       },
       { status: 400 },
     );
   }
 
-  // ── 4a. Debug mode — return raw HTML snippet for selector inspection ────────
-  //        GET /api/cron/scrape-listings?provider=zillow&debug=1
+  // ── 4a. Debug mode — return raw HTML snippet for selector inspection ──────
   const debug = searchParams.get("debug") === "1";
   if (debug) {
-    const cfg = PROVIDERS[providerParam];
+    const cfg    = PROVIDERS[providerParam];
     const target = cfg.searchTargets[0];
     try {
       const html = await fetchViaScrapeOps(target.url, cfg.proxyCountry, cfg.renderJs);
 
-      // ── Zillow-specific: extract __NEXT_DATA__ JSON (Next.js SSR state) ────
-      // Zillow embeds all listing data as JSON in a <script id="__NEXT_DATA__">
-      // tag rather than rendering it as parseable HTML elements.
       const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
       let nextDataPreview: unknown = null;
       if (nextDataMatch?.[1]) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const parsed = JSON.parse(nextDataMatch[1]) as any;
-          // Navigate step by step and expose keys at each level so we can find the listings
+          const parsed      = JSON.parse(nextDataMatch[1]) as any;
           const pageProps   = parsed?.props?.pageProps;
-          const ppKeys      = pageProps   ? Object.keys(pageProps)   : [];
           const sps         = pageProps?.searchPageState;
-          const spsKeys     = sps         ? Object.keys(sps)         : [];
           const cat1        = sps?.cat1;
-          const cat1Keys    = cat1        ? Object.keys(cat1)        : [];
           const sr          = cat1?.searchResults;
-          const srKeys      = sr          ? Object.keys(sr)          : [];
           const listResults = sr?.listResults ?? sr?.mapResults ?? [];
-          // Also check if listings are under a different top-level key
-          const queryState  = pageProps?.queryState;
-          nextDataPreview = {
-            found:          true,
-            rawLength:      nextDataMatch[1].length,
-            pagePropKeys:   ppKeys,
-            spsKeys,
-            cat1Keys,
-            srKeys,
-            listCount:      Array.isArray(listResults) ? listResults.length : 0,
-            firstListing:   Array.isArray(listResults) && listResults[0] ? listResults[0] : null,
-            queryState:     queryState ?? null,
-            // raw first 1500 chars of the JSON as a fallback map of top-level structure
-            rawTop:         nextDataMatch[1].slice(0, 800),
+          nextDataPreview   = {
+            found:        true,
+            rawLength:    nextDataMatch[1].length,
+            pagePropKeys: pageProps   ? Object.keys(pageProps)   : [],
+            spsKeys:      sps         ? Object.keys(sps)         : [],
+            cat1Keys:     cat1        ? Object.keys(cat1)        : [],
+            srKeys:       sr          ? Object.keys(sr)          : [],
+            listCount:    Array.isArray(listResults) ? listResults.length : 0,
+            firstListing: Array.isArray(listResults) && listResults[0] ? listResults[0] : null,
           };
         } catch {
           nextDataPreview = { found: true, parseError: true, raw: nextDataMatch[1].slice(0, 500) };
         }
       } else {
-        // Fallback: find first 'zpid' occurrence if no __NEXT_DATA__
         const zpidIdx = html.indexOf("zpid");
         nextDataPreview = {
-          found:     false,
-          zpidAt:    zpidIdx,
-          zpidCtx:   zpidIdx >= 0 ? html.slice(zpidIdx - 50, zpidIdx + 300) : null,
-          snippet200k: html.slice(200_000, 203_000),
+          found:   false,
+          zpidAt:  zpidIdx,
+          zpidCtx: zpidIdx >= 0 ? html.slice(zpidIdx - 50, zpidIdx + 300) : null,
         };
       }
 
       return NextResponse.json({
-        debug:         true,
-        provider:      providerParam,
-        url:           target.url,
-        htmlLength:    html.length,
-        nextData:      nextDataPreview,
+        debug: true, provider: providerParam, url: target.url,
+        htmlLength: html.length, nextData: nextDataPreview,
       });
     } catch (err) {
       return NextResponse.json({ debug: true, error: (err as Error).message }, { status: 500 });
     }
   }
 
-  // ── 4b. Execute the scrape ────────────────────────────────────────────────
+  // ── 4b. Create Supabase service-role client (one per request) ────────────
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+
+  // ── 4c. Execute the scrape ────────────────────────────────────────────────
   console.log(`[cron/scrape-listings] ▶ starting provider=${providerParam}`);
 
   try {
-    const report = await scrapeProvider(PROVIDERS[providerParam]);
+    const report = await scrapeProvider(PROVIDERS[providerParam], supabase);
 
-    // 200 = complete success | 207 = partial (errors but some data) | 500 = total failure
-    const status = report.errors.length === 0      ? 200
-                 : report.upsertedCount  > 0        ? 207
-                 :                                    500;
+    // ── Slack alert on total failure ────────────────────────────────────────
+    if (report.upsertedCount === 0 && report.errors.length > 0) {
+      await sendSlackAlert(
+        `🚨 *Prime Atlas scraper* — \`${providerParam}\` total failure. 0 records upserted.\n\`\`\`${report.errors.slice(0, 3).join("\n")}\`\`\``,
+      );
+    }
+
+    // 200 = success | 207 = partial (errors but some data saved) | 500 = total failure
+    const status = report.errors.length === 0     ? 200
+                 : report.upsertedCount > 0        ? 207
+                 :                                   500;
 
     return NextResponse.json(
       {
@@ -1021,6 +1263,11 @@ export async function GET(request: Request): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unexpected error";
     console.error("[cron/scrape-listings] Fatal error:", err);
+
+    await sendSlackAlert(
+      `🚨 *Prime Atlas scraper* — \`${providerParam}\` crashed with fatal error: ${message}`,
+    );
+
     return NextResponse.json(
       { ok: false, error: message, provider: providerParam },
       { status: 500 },
