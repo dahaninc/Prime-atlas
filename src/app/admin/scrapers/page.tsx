@@ -11,10 +11,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminScrapersPage() {
-  // ── Auth gate — must be signed in ────────────────────────────────────────
+  // ── Auth gate — admin emails only ────────────────────────────────────────
+  const ADMIN_EMAILS = ["admin@prime-atlas.io"];
+
   const ssrClient = await createSsrClient();
   const { data: { user } } = await ssrClient.auth.getUser();
-  if (!user) redirect("/auth/login");
+  if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/auth/login");
 
   // ── Service-role client bypasses RLS on scraper_runs ─────────────────────
   const supabase = createClient(
