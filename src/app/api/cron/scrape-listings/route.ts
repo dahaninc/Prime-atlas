@@ -252,6 +252,13 @@ interface ProviderConfig {
   proxyCountry:  string;
   europeanPrice: boolean;
   renderJs:      boolean;
+  /**
+   * When true, passes premium_proxy=true to ScrapeOps for this provider.
+   * Only enable for sites where standard residential proxies are insufficient
+   * (e.g. Rightmove, OnTheMarket). Leave false for SSR sites — premium proxies
+   * can be slower and cause 500s on some hosts.
+   */
+  premiumProxy?: boolean;
   baseUrl:       string;
   /** ISO 3166-1 alpha-2 country code for all listings from this provider */
   countryIso2:   string;
@@ -353,20 +360,23 @@ async function sendSlackAlert(text: string): Promise<void> {
 async function fetchViaScrapeOps(
   targetUrl:    string,
   proxyCountry: string,
-  renderJs    = true,
-  retries     = 0,
+  renderJs     = true,
+  retries      = 0,
+  premiumProxy = false,
 ): Promise<string> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
   if (!apiKey) throw new Error("SCRAPEOPS_API_KEY is not configured");
 
-  const qs = new URLSearchParams({
-    api_key:       apiKey,
-    url:           targetUrl,
-    render_js:     renderJs ? "true" : "false",
-    residential:   "true",
-    premium_proxy: "true",
-    country:       proxyCountry,
-  });
+  const params: Record<string, string> = {
+    api_key:     apiKey,
+    url:         targetUrl,
+    render_js:   renderJs ? "true" : "false",
+    residential: "true",
+    country:     proxyCountry,
+  };
+  if (premiumProxy) params.premium_proxy = "true";
+
+  const qs = new URLSearchParams(params);
 
   const proxyUrl = `${SCRAPEOPS_BASE}?${qs.toString()}`;
 
@@ -1256,7 +1266,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
-    renderJs:      true,
+    renderJs:      false, // Zoopla is Next.js SSR — data-testids present in initial HTML
     baseUrl:       "https://www.zoopla.co.uk",
     countryIso2:   "GB",
     searchTargets: [
@@ -1357,12 +1367,12 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "EUR",
     proxyCountry:  "es",
     europeanPrice: true,
-    renderJs:      true,
+    renderJs:      false, // Idealista SSR — article.item is in initial HTML without JS
     baseUrl:       "https://www.idealista.com",
     countryIso2:   "ES",
     searchTargets: [
-      { url: "https://www.idealista.com/venta-viviendas/madrid-municipio/",      listingType: "sale" },
-      { url: "https://www.idealista.com/alquiler-viviendas/barcelona-municipio/", listingType: "rent" },
+      { url: "https://www.idealista.com/venta-viviendas/madrid-municipio/", listingType: "sale" },
+      { url: "https://www.idealista.com/alquiler-viviendas/barcelona/",     listingType: "rent" }, // /barcelona-municipio/ was 404
     ],
     extract: extractIdealista,
   },
@@ -1372,7 +1382,8 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
-    renderJs:      true,   // Next.js SPA — needs Chromium for __NEXT_DATA__ hydration
+    renderJs:      true,
+    premiumProxy:  true,   // premium proxy confirmed working — 50 records at 22s
     baseUrl:       "https://www.rightmove.co.uk",
     countryIso2:   "GB",
     searchTargets: [
@@ -1394,7 +1405,8 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
-    renderJs:      true,   // Next.js app — Cheerio fallback if __NEXT_DATA__ path changes
+    renderJs:      true,
+    premiumProxy:  true,   // UK sites need premium proxy to bypass anti-bot
     baseUrl:       "https://www.onthemarket.com",
     countryIso2:   "GB",
     searchTargets: [
@@ -1517,7 +1529,7 @@ async function scrapeProvider(
         raw = await config.directScraper(target);
       } else {
         // Default: ScrapeOps proxy → HTML → extractor
-        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs);
+        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, 0, config.premiumProxy ?? false);
         const extracted = config.extract(html, config.baseUrl, target.listingType);
 
         // ── ETL enrichment ────────────────────────────────────────────────────
