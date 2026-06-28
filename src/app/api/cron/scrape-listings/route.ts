@@ -95,7 +95,7 @@ export const maxDuration = 300;   // Vercel Pro / Enterprise only
 export const dynamic     = "force-dynamic";
 
 const SCRAPEOPS_BASE      = "https://proxy.scrapeops.io/v1/";
-const REQUEST_TIMEOUT_MS  = 45_000;
+const REQUEST_TIMEOUT_MS  = 60_000;
 const RETRY_BASE_DELAY_MS = 2_000;
 const INTER_URL_DELAY_MS  = 2_500;
 const SUPABASE_BATCH_SIZE = 100;
@@ -360,11 +360,12 @@ async function fetchViaScrapeOps(
   if (!apiKey) throw new Error("SCRAPEOPS_API_KEY is not configured");
 
   const qs = new URLSearchParams({
-    api_key:     apiKey,
-    url:         targetUrl,
-    render_js:   renderJs ? "true" : "false",
-    residential: "true",
-    country:     proxyCountry,
+    api_key:       apiKey,
+    url:           targetUrl,
+    render_js:     renderJs ? "true" : "false",
+    residential:   "true",
+    premium_proxy: "true",
+    country:       proxyCountry,
   });
 
   const proxyUrl = `${SCRAPEOPS_BASE}?${qs.toString()}`;
@@ -713,55 +714,116 @@ function extractRightmove(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = JSON.parse(match[1]) as any;
 
-    // Try primary path, fall back to older schema variants
+    // Try all known __NEXT_DATA__ path variants (Rightmove has changed this several times)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pp = data?.props?.pageProps;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const properties: any[] =
-      data?.props?.pageProps?.properties ??
-      data?.props?.pageProps?.searchResult?.properties ??
-      data?.props?.pageProps?.results ??
+      pp?.properties ??
+      pp?.searchProductResponse?.properties ??
+      pp?.searchResult?.properties ??
+      pp?.result?.properties ??
+      pp?.l1Props?.searchProductResponse?.properties ??
+      pp?.initialProps?.searchResult?.properties ??
+      pp?.searchResults?.properties ??
+      pp?.results ??
       [];
 
-    for (const r of properties) {
+    if (properties.length > 0) {
+      for (const r of properties) {
+        try {
+          const id = r.id ? String(r.id) : null;
+          if (!id) continue;
+
+          // propertyUrl includes an anchor fragment — strip it for a clean URL
+          const rawPath = (r.propertyUrl ?? `/properties/${id}`).split("#")[0];
+          const fullUrl = rawPath.startsWith("http")
+            ? rawPath
+            : `https://www.rightmove.co.uk${rawPath}`;
+
+          // price.amount is already in major units (£450000) — convert to pence
+          const rawPrice = r.price?.amount ?? r.price?.value ?? null;
+          const price    = typeof rawPrice === "number" && rawPrice > 0
+            ? Math.round(rawPrice * 100)
+            : null;
+
+          const address  = r.displayAddress ?? null;
+          const typeRaw  = (r.propertySubType ?? r.propertyType ?? "").toLowerCase().trim();
+
+          results.push({
+            provider:             "rightmove",
+            external_property_id: id,
+            title:                address,
+            address,
+            price,
+            currency_code:        "GBP",
+            bedrooms:             safeInt(r.bedrooms ?? NaN),
+            bathrooms:            safeInt(r.bathrooms ?? NaN),
+            size_sqm:             null,
+            property_type:        typeRaw || null,
+            listing_type:         listingType,
+            listing_url:          fullUrl,
+            scraped_at:           now,
+          });
+        } catch (e) {
+          console.error("[Rightmove] item parse error:", e);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[Rightmove] __NEXT_DATA__ parse error:", e);
+  }
+
+  // ── HTML Cheerio fallback (when __NEXT_DATA__ path has changed) ────────────
+  if (results.length === 0) {
+    const $    = load(html);
+    const seen = new Set<string>();
+
+    // Rightmove property IDs appear in links: /properties/12345678#/
+    $('a[href*="/properties/"]').each((_, el) => {
       try {
-        const id = r.id ? String(r.id) : null;
-        if (!id) continue;
+        const href    = $(el).attr("href") ?? "";
+        const idMatch = href.match(/\/properties\/(\d{6,})/);
+        const id      = idMatch?.[1];
+        if (!id || seen.has(id)) return;
+        seen.add(id);
 
-        // propertyUrl includes an anchor fragment — strip it for a clean URL
-        const rawPath = (r.propertyUrl ?? `/properties/${id}`).split("#")[0];
-        const fullUrl = rawPath.startsWith("http")
-          ? rawPath
-          : `https://www.rightmove.co.uk${rawPath}`;
+        const cleanPath = href.split("#")[0];
+        const fullUrl   = cleanPath.startsWith("http")
+          ? cleanPath
+          : `https://www.rightmove.co.uk${cleanPath}`;
 
-        // price.amount is already in major units (£450000) — convert to pence
-        const rawPrice = r.price?.amount ?? r.price?.value ?? null;
-        const price    = typeof rawPrice === "number" && rawPrice > 0
-          ? Math.round(rawPrice * 100)
-          : null;
-
-        const address  = r.displayAddress ?? null;
-        const typeRaw  = (r.propertySubType ?? r.propertyType ?? "").toLowerCase().trim();
+        // Walk up to enclosing card element
+        const card      = $(el).closest("article, [class*='propertyCard'], [class*='property-card'], li");
+        const priceText = (
+          card.find('[class*="price"], [class*="Price"]').first().text() ||
+          card.text().match(/£[\d,]+/)?.[0] || ""
+        ).trim();
+        const address   = (
+          card.find('address, [class*="address"], [class*="Address"]').first().text() ||
+          $(el).attr("aria-label") || ""
+        ).replace(/\s+/g, " ").trim();
+        const typeRaw   = card.find('[class*="type"], [class*="Type"]').first().text().trim().toLowerCase();
 
         results.push({
           provider:             "rightmove",
           external_property_id: id,
-          title:                address,
-          address,
-          price,
+          title:                address || null,
+          address:              address || null,
+          price:                parsePrice(priceText),
           currency_code:        "GBP",
-          bedrooms:             safeInt(r.bedrooms ?? NaN),
-          bathrooms:            safeInt(r.bathrooms ?? NaN),
-          size_sqm:             null, // not present in search results; available on detail page
+          bedrooms:             null,
+          bathrooms:            null,
+          size_sqm:             null,
           property_type:        typeRaw || null,
           listing_type:         listingType,
           listing_url:          fullUrl,
           scraped_at:           now,
         });
       } catch (e) {
-        console.error("[Rightmove] item parse error:", e);
+        console.error("[Rightmove] HTML fallback parse error:", e);
       }
-    }
-  } catch (e) {
-    console.error("[Rightmove] __NEXT_DATA__ parse error:", e);
+    });
   }
 
   return results;
@@ -792,9 +854,14 @@ function extractOnTheMarket(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const listings: any[] =
         pp?.searchResults?.results ??
+        pp?.searchResults?.listings ??
+        pp?.searchResults?.properties ??
         pp?.results ??
         pp?.listings ??
         pp?.properties ??
+        pp?.search?.results ??
+        pp?.data?.listings ??
+        pp?.initialState?.listings?.results ??
         [];
 
       if (listings.length > 0) {
@@ -848,7 +915,12 @@ function extractOnTheMarket(
   // ── Attempt 2: HTML Cheerio fallback ──────────────────────────────────────
   const $ = load(html);
 
-  $('[class*="property-card"], [data-testid*="property-result"], li[class*="result-"]').each((_, el) => {
+  // Broad selector set — OTM has used many class name patterns across versions
+  $(
+    '[class*="property-card"], [class*="PropertyCard"], [class*="otm-PropertyCard"],' +
+    '[data-testid*="property-result"], [data-testid*="PropertyCard"], [data-testid*="olt-PropertyCard"],' +
+    'li[class*="result-"], li[class*="otm-item"], article[class*="property"]',
+  ).each((_, el) => {
     try {
       const card   = $(el);
       const linkEl = card.find('a[href*="/property/"]').first();
@@ -860,8 +932,10 @@ function extractOnTheMarket(
       if (!extId) return;
 
       const priceText = card.find('[class*="price"], [class*="Price"]').first().text().trim();
-      const address   = card.find('[class*="address"], [class*="Address"], [class*="title"]')
-        .first().text().replace(/\s+/g, " ").trim();
+      const address   = (
+        card.find('[data-testid*="address"], [data-testid*="Address"]').first().text() ||
+        card.find('[class*="address"], [class*="Address"], [class*="title"]').first().text()
+      ).replace(/\s+/g, " ").trim();
       const typeRaw   = card.find('[class*="type"], [class*="property-type"]')
         .first().text().trim().toLowerCase();
 
@@ -888,13 +962,145 @@ function extractOnTheMarket(
     }
   });
 
+  // If card-level selectors found nothing, fall back to link harvesting
+  if (results.length === 0) {
+    const seen = new Set<string>();
+    $('a[href*="/property/"]').each((_, el) => {
+      try {
+        const href  = $(el).attr("href") ?? "";
+        const extId = idFromUrl(href);
+        if (!extId || seen.has(extId) || extId.length < 4) return;
+        seen.add(extId);
+
+        const fullUrl   = href.startsWith("http") ? href : `https://www.onthemarket.com${href}`;
+        const container = $(el).closest("li, article, section, div[class]");
+        const priceText = container.find('[class*="price"], [class*="Price"]').first().text().trim();
+        const address   = $(el).text().replace(/\s+/g, " ").trim() || null;
+
+        results.push({
+          provider:             "onthemarket",
+          external_property_id: extId,
+          title:                address,
+          address,
+          price:                parsePrice(priceText),
+          currency_code:        "GBP",
+          bedrooms:             null,
+          bathrooms:            null,
+          size_sqm:             null,
+          property_type:        null,
+          listing_type:         listingType,
+          listing_url:          fullUrl,
+          scraped_at:           now,
+        });
+      } catch (e) {
+        console.error("[OnTheMarket] link fallback parse error:", e);
+      }
+    });
+  }
+
+  return results;
+}
+
+// ─── 7. REALTOR.CA — HTML fallback (used when direct API is blocked) ─────────
+//
+// Renders the Next.js SPA via ScrapeOps premium proxy and extracts listings.
+// Strategy 1: find serialised Results[] in an inline <script> tag.
+// Strategy 2: link-based extraction from rendered card HTML.
+
+function extractRealtorCaHtml(
+  html: string,
+  _baseUrl: string,
+  listingType: ListingType,
+): ExtractedProperty[] {
+  const results: ExtractedProperty[] = [];
+  const $   = load(html);
+  const now = new Date().toISOString();
+
+  // ── Strategy 1: embedded JSON in <script> tags ─────────────────────────────
+  $("script:not([src])").each((_, script) => {
+    if (results.length > 0) return; // already found via previous script
+    const src = $(script).html() ?? "";
+
+    // Match serialised Results array (e.g. "Results":[...], "Paging":...)
+    const resultPattern = /"Results"\s*:\s*(\[[\s\S]*?\])\s*,?\s*"(?:Paging|Total)/;
+    const m = src.match(resultPattern);
+    if (!m) return;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items: any[] = JSON.parse(m[1]);
+      for (const r of items) {
+        try {
+          const mlsNumber = String(r.MlsNumber ?? r.mlsNumber ?? "").trim();
+          if (!mlsNumber) continue;
+
+          const rawPrice = Number(r.Price?.Value ?? r.price?.value ?? 0);
+          const price    = rawPrice > 0 ? Math.round(rawPrice * 100) : null;
+          const address  = String(r.Property?.Address?.AddressText ?? r.address ?? "").trim() || null;
+          const detailUrl = r.RelativeDetailsURL ?? `/real-estate/${mlsNumber}/listing`;
+          const fullUrl   = detailUrl.startsWith("http") ? detailUrl : `https://www.realtor.ca${detailUrl}`;
+          const typeRaw   = String(r.Building?.Type ?? r.Property?.Type ?? "").toLowerCase().trim() || null;
+
+          const bedsStr  = String(r.Building?.Bedrooms ?? "");
+          const beds     = bedsStr ? safeInt(parseInt(bedsStr.replace(/\+.*$/, ""), 10)) : null;
+          const baths    = r.Building?.BathroomTotal != null
+            ? safeInt(parseInt(String(r.Building.BathroomTotal), 10))
+            : null;
+
+          results.push({
+            provider: "realtor_ca", external_property_id: mlsNumber,
+            title: address, address, price, currency_code: "CAD",
+            bedrooms: beds, bathrooms: baths,
+            size_sqm: null, property_type: typeRaw,
+            listing_type: listingType, listing_url: fullUrl, scraped_at: now,
+          });
+        } catch { /* skip individual item */ }
+      }
+    } catch { /* JSON parse failed */ }
+  });
+
+  if (results.length > 0) return results;
+
+  // ── Strategy 2: link-based extraction from rendered SPA HTML ──────────────
+  // Each listing card links to /real-estate/{province}/{city}/{slug}/
+  const seen = new Set<string>();
+
+  $('a[href*="/real-estate/"]').each((_, el) => {
+    try {
+      const href = $(el).attr("href") ?? "";
+      // Target hrefs like /real-estate/on/toronto/mls-12345678/
+      if (!href.match(/\/real-estate\/[a-z]{2}\/[^/]+\/[^/]+/i)) return;
+
+      const fullUrl  = href.startsWith("http") ? href : `https://www.realtor.ca${href}`;
+      const segments = href.split("/").filter(Boolean);
+      const extId    = segments.at(-1) || segments.at(-2) || "";
+      if (!extId || seen.has(extId)) return;
+      seen.add(extId);
+
+      // Walk up DOM to find card container with price/address data
+      const card       = $(el).closest('[class*="Card"], [class*="card"], [class*="listing"], li, article');
+      const cardText   = card.text();
+      const priceMatch = cardText.match(/\$[\d,]+/);
+      const priceText  = priceMatch?.[0] ?? "";
+      const address    = $(el).text().replace(/\s+/g, " ").trim() || null;
+
+      results.push({
+        provider: "realtor_ca", external_property_id: extId,
+        title: address, address, price: parsePrice(priceText),
+        currency_code: "CAD", bedrooms: null, bathrooms: null,
+        size_sqm: null, property_type: null, listing_type: listingType,
+        listing_url: fullUrl, scraped_at: now,
+      });
+    } catch { /* skip */ }
+  });
+
   return results;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   REALTOR.CA — DIRECT JSON API
-   Uses the public api2.realtor.ca PropertySearch_Post endpoint instead of
-   scraping the React SPA via ScrapeOps (more reliable, no renderJs cost).
+   REALTOR.CA — DIRECT JSON API  (falls back to ScrapeOps HTML on 403)
+   Primary: POST to api2.realtor.ca/Listing.svc/PropertySearch_Post.
+   Fallback: ScrapeOps premium proxy (renderJs=true) + extractRealtorCaHtml().
    Bounding boxes cover Greater Toronto and Metro Vancouver respectively.
 ───────────────────────────────────────────────────────────────────────────── */
 
@@ -951,7 +1157,22 @@ async function scrapeRealtorCaViaApi(target: SearchTarget): Promise<ParsedProper
       },
     );
 
-    if (!res.ok) throw new Error(`Realtor.ca API HTTP ${res.status}`);
+    if (!res.ok) {
+      // api2.realtor.ca blocks Vercel server IPs with 403 — fall back to
+      // ScrapeOps premium proxy which routes through residential IPs
+      if (res.status === 403 || res.status === 401 || res.status === 429) {
+        console.warn(`[Realtor.ca] API HTTP ${res.status} — falling back to ScrapeOps HTML scrape`);
+        const html      = await fetchViaScrapeOps(target.url, "ca", true);
+        const extracted = extractRealtorCaHtml(html, "https://www.realtor.ca", target.listingType);
+        return extracted.map((p) => ({
+          ...p,
+          country_iso2:      "CA",
+          property_type_raw: p.property_type,
+          property_type:     normalisePropertyType(p.property_type),
+        }));
+      }
+      throw new Error(`Realtor.ca API HTTP ${res.status}`);
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data    = (await res.json()) as any;
