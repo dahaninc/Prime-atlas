@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -11,27 +11,27 @@ const MARKETS = [
   {
     flag: "🇬🇧", label: "United Kingdom", code: "UK",
     cities: [
-      { name: "London",      slug: "london"      },
-      { name: "Manchester",  slug: "manchester"  },
-      { name: "Cambridge",   slug: "cambridge"   },
-      { name: "Birmingham",  slug: "birmingham"  },
-      { name: "Bristol",     slug: "bristol"     },
-      { name: "Edinburgh",   slug: "edinburgh"   },
-      { name: "Oxford",      slug: "oxford"      },
-      { name: "Leeds",       slug: "leeds"       },
+      { name: "London",       slug: "london"       },
+      { name: "Manchester",   slug: "manchester"   },
+      { name: "Cambridge",    slug: "cambridge"    },
+      { name: "Birmingham",   slug: "birmingham"   },
+      { name: "Bristol",      slug: "bristol"      },
+      { name: "Edinburgh",    slug: "edinburgh"    },
+      { name: "Oxford",       slug: "oxford"       },
+      { name: "Leeds",        slug: "leeds"        },
     ],
   },
   {
     flag: "🇺🇸", label: "United States", code: "US",
     cities: [
-      { name: "New York",     slug: "new-york-ny"      },
-      { name: "Los Angeles",  slug: "los-angeles-ca"   },
-      { name: "Chicago",      slug: "chicago-il"       },
-      { name: "Miami",        slug: "miami-fl"         },
-      { name: "Seattle",      slug: "seattle-wa"       },
-      { name: "Austin",       slug: "austin-tx"        },
-      { name: "Boston",       slug: "boston-ma"        },
-      { name: "San Francisco",slug: "san-francisco-ca" },
+      { name: "New York",      slug: "new-york-ny"      },
+      { name: "Los Angeles",   slug: "los-angeles-ca"   },
+      { name: "Chicago",       slug: "chicago-il"       },
+      { name: "Miami",         slug: "miami-fl"         },
+      { name: "Seattle",       slug: "seattle-wa"       },
+      { name: "Austin",        slug: "austin-tx"        },
+      { name: "Boston",        slug: "boston-ma"        },
+      { name: "San Francisco", slug: "san-francisco-ca" },
     ],
   },
   {
@@ -62,26 +62,142 @@ const MARKETS = [
 ];
 
 const CATEGORIES = [
-  { label: "Build-to-Rent",    href: "/opportunities?category=BTR"      },
-  { label: "Student Housing",  href: "/opportunities?category=PBSA"     },
-  { label: "Commercial",       href: "/opportunities?category=Commercial"},
-  { label: "Industrial",       href: "/opportunities?category=Industrial"},
-  { label: "Land & Dev",       href: "/opportunities?category=Land"     },
+  { label: "Build-to-Rent",   href: "/opportunities?category=BTR"       },
+  { label: "Student Housing", href: "/opportunities?category=PBSA"      },
+  { label: "Commercial",      href: "/opportunities?category=Commercial" },
+  { label: "Industrial",      href: "/opportunities?category=Industrial" },
+  { label: "Land & Dev",      href: "/opportunities?category=Land"      },
 ];
 
 interface NavbarProps {
   user?: { email?: string } | null;
 }
 
-// ─── Desktop Markets mega-menu ───────────────────────────────────────────────
+// ─── Left sidebar ─────────────────────────────────────────────────────────────
 
-function MarketsMenu({ open }: { open: boolean }) {
-  if (!open) return null;
+function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[780px] bg-background border border-border rounded-2xl shadow-2xl p-6 grid grid-cols-5 gap-4 z-50">
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-[55] bg-black/60 transition-opacity duration-200 ${
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      />
+
+      {/* Panel */}
+      <div
+        className={`fixed top-0 left-0 bottom-0 z-[56] w-72 bg-[#111114] flex flex-col
+          transition-transform duration-200 ease-out
+          ${open ? "translate-x-0" : "-translate-x-full"}
+        `}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 h-14 border-b border-white/[0.06] shrink-0">
+          <span className="text-[#00c805] font-mono font-bold text-sm tracking-tight">prime-atlas</span>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto flex-1 py-6 px-3 space-y-8">
+
+          {/* Markets */}
+          <section>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest px-3 mb-2">Markets</p>
+            {MARKETS.map((mkt) => (
+              <Link
+                key={mkt.code}
+                href={`/opportunities/${mkt.cities[0].slug}`}
+                onClick={onClose}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+              >
+                <span className="text-base w-6 text-center">{mkt.flag}</span>
+                {mkt.label}
+                <svg className="w-3.5 h-3.5 text-zinc-600 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ))}
+          </section>
+
+          {/* Platform */}
+          <section>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest px-3 mb-2">Platform</p>
+            {[
+              { label: "Live Listings",  href: "/listings",    dot: "#00c805" },
+              { label: "Market Feed",    href: "/market-feed", dot: "#3b82f6" },
+              { label: "Deal Board",     href: "/deal-board",  dot: null      },
+            ].map(({ label, href, dot }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={onClose}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+              >
+                {dot ? (
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dot }} />
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-700 shrink-0" />
+                )}
+                {label}
+              </Link>
+            ))}
+          </section>
+
+          {/* Opportunities */}
+          <section>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest px-3 mb-2">By Category</p>
+            {CATEGORIES.map((cat) => (
+              <Link
+                key={cat.href}
+                href={cat.href}
+                onClick={onClose}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-300 hover:text-[#00c805] hover:bg-[#00c805]/5 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5 text-zinc-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                {cat.label}
+              </Link>
+            ))}
+          </section>
+
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Desktop Markets dropdown ─────────────────────────────────────────────────
+
+function MarketsDropdown({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      ref={ref}
+      className="absolute top-full left-0 mt-2 w-[820px] bg-[#111114] rounded-2xl shadow-2xl border border-white/[0.06] p-6 grid grid-cols-5 gap-4 z-50"
+    >
       {MARKETS.map((mkt) => (
         <div key={mkt.code}>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
             <span>{mkt.flag}</span>{mkt.label}
           </p>
           <div className="space-y-0.5">
@@ -89,7 +205,8 @@ function MarketsMenu({ open }: { open: boolean }) {
               <Link
                 key={c.slug}
                 href={`/opportunities/${c.slug}`}
-                className="block text-xs text-muted-foreground hover:text-pa-green px-2 py-1.5 rounded-lg hover:bg-pa-green/5 transition-all duration-100"
+                onClick={onClose}
+                className="block text-xs text-zinc-400 hover:text-[#00c805] px-2 py-1.5 rounded-lg hover:bg-[#00c805]/5 transition-all duration-100"
               >
                 {c.name}
               </Link>
@@ -101,24 +218,23 @@ function MarketsMenu({ open }: { open: boolean }) {
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
-  const [marketsOpen, setMarketsOpen] = useState(false);
-  const [drawerOpen,  setDrawerOpen]  = useState(false);
-  const [openCountry, setOpenCountry] = useState<string | null>(null);
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
+  const [marketsOpen,  setMarketsOpen]  = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openCountry, setOpenCountry]   = useState<string | null>(null);
 
-  const close = () => { setDrawerOpen(false); setOpenCountry(null); };
+  const closeMobile = () => { setMobileMenuOpen(false); setOpenCountry(null); };
 
-  const navLink = (href: string, label: string, exact = false) => (
+  const navLink = (href: string, label: string) => (
     <Link
       href={href}
       className={cn(
         "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-100",
-        (exact ? pathname === href : pathname.startsWith(href))
-          ? "text-foreground"
-          : "text-muted-foreground hover:text-foreground"
+        pathname.startsWith(href) ? "text-white" : "text-zinc-400 hover:text-white"
       )}
     >
       {label}
@@ -129,34 +245,47 @@ export function Navbar({ user }: NavbarProps) {
     <>
       {/* ── Nav bar ── */}
       <nav className="sticky top-0 z-50 bg-[#0c0d14]/95 backdrop-blur-xl border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center h-14 gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-3">
+
+          {/* LEFT: Hamburger (all viewports) */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1.5 -ml-1 text-zinc-400 hover:text-white transition-colors shrink-0"
+            aria-label="Open navigation"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0 mr-2" onClick={close}>
-            <span className="text-pa-green font-mono font-bold text-[15px] tracking-tight">prime-atlas</span>
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <span className="text-[#00c805] font-mono font-bold text-[15px] tracking-tight">prime-atlas</span>
           </Link>
 
-          {/* ── Desktop links ── */}
-          <div className="hidden md:flex items-center gap-1 flex-1">
+          {/* ── Desktop center links ── */}
+          <div className="hidden md:flex items-center gap-1 ml-4 flex-1">
 
-            {/* Markets */}
-            <div
-              className="relative"
-              onMouseEnter={() => setMarketsOpen(true)}
-              onMouseLeave={() => setMarketsOpen(false)}
-            >
-              <button className={cn(
-                "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-100",
-                pathname.startsWith("/opportunities")
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}>
+            {/* Markets — click dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setMarketsOpen(v => !v)}
+                className={cn(
+                  "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-100",
+                  marketsOpen || pathname.startsWith("/opportunities")
+                    ? "text-white bg-zinc-800"
+                    : "text-zinc-400 hover:text-white"
+                )}
+              >
                 Markets
-                <svg className="w-3.5 h-3.5 opacity-50 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className={`w-3.5 h-3.5 opacity-60 transition-transform duration-150 ${marketsOpen ? "rotate-180" : ""}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              <MarketsMenu open={marketsOpen} />
+              <MarketsDropdown open={marketsOpen} onClose={() => setMarketsOpen(false)} />
             </div>
 
             {navLink("/listings",    "Listings")}
@@ -168,16 +297,16 @@ export function Navbar({ user }: NavbarProps) {
           <div className="hidden md:flex items-center gap-3 ml-auto">
             {user ? (
               <>
-                <span className="text-sm text-muted-foreground">{user.email?.split("@")[0]}</span>
+                <span className="text-sm text-zinc-400">{user.email?.split("@")[0]}</span>
                 <form action="/auth/signout" method="post">
-                  <button type="submit" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button type="submit" className="text-sm text-zinc-400 hover:text-white transition-colors">
                     Sign out
                   </button>
                 </form>
               </>
             ) : (
               <>
-                <Link href="/auth/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/auth/login" className="text-sm text-zinc-400 hover:text-white transition-colors">
                   Log in
                 </Link>
                 <Link
@@ -190,22 +319,22 @@ export function Navbar({ user }: NavbarProps) {
             )}
           </div>
 
-          {/* ── Mobile: auth action + hamburger ── */}
-          <div className="md:hidden flex items-center gap-3 ml-auto">
+          {/* ── Mobile right: auth + hamburger ── */}
+          <div className="md:hidden flex items-center gap-2 ml-auto">
             {!user && (
               <Link
                 href="/auth/signup"
-                className="text-xs font-bold bg-[#00c805] text-black px-3 py-1.5 rounded-full hover:bg-[#00c805]/90 transition-colors"
+                className="text-xs font-bold bg-[#00c805] text-black px-3 py-1.5 rounded-full"
               >
                 Get access
               </Link>
             )}
             <button
-              onClick={() => setDrawerOpen(!drawerOpen)}
-              className="p-1.5 -mr-1 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 text-zinc-400 hover:text-white transition-colors"
               aria-label="Menu"
             >
-              {drawerOpen ? (
+              {mobileMenuOpen ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -220,19 +349,21 @@ export function Navbar({ user }: NavbarProps) {
         </div>
       </nav>
 
-      {/* ── Mobile full-screen drawer ── */}
+      {/* ── Left sidebar (all viewports) ── */}
+      <LeftSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* ── Mobile full-screen menu ── */}
       <div
         className={cn(
           "md:hidden fixed inset-0 z-40 bg-[#0c0d14] transition-opacity duration-200",
-          drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
         style={{ top: "56px" }}
       >
         <div className="overflow-y-auto h-full pb-36 px-5 pt-8 space-y-10">
 
-          {/* Quick links */}
           <section>
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Navigate</p>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Navigate</p>
             <div className="space-y-1">
               {[
                 { href: "/",            label: "Home"      },
@@ -243,12 +374,10 @@ export function Navbar({ user }: NavbarProps) {
                 <Link
                   key={href}
                   href={href}
-                  onClick={close}
+                  onClick={closeMobile}
                   className={cn(
                     "flex items-center justify-between px-4 py-4 rounded-2xl text-base font-semibold transition-colors",
-                    pathname === href
-                      ? "text-[#00c805] bg-[#00c805]/8"
-                      : "text-white hover:bg-zinc-900"
+                    pathname === href ? "text-[#00c805] bg-[#00c805]/8" : "text-white hover:bg-zinc-900"
                   )}
                 >
                   {label}
@@ -260,9 +389,8 @@ export function Navbar({ user }: NavbarProps) {
             </div>
           </section>
 
-          {/* Markets by country */}
           <section>
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Markets</p>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Markets</p>
             <div className="space-y-1">
               {MARKETS.map((mkt) => (
                 <div key={mkt.code}>
@@ -287,7 +415,7 @@ export function Navbar({ user }: NavbarProps) {
                         <Link
                           key={c.slug}
                           href={`/opportunities/${c.slug}`}
-                          onClick={close}
+                          onClick={closeMobile}
                           className="px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-[#00c805] hover:bg-[#00c805]/5 transition-colors"
                         >
                           {c.name}
@@ -300,15 +428,14 @@ export function Navbar({ user }: NavbarProps) {
             </div>
           </section>
 
-          {/* Categories */}
           <section>
-            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">By Category</p>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-4">By Category</p>
             <div className="grid grid-cols-2 gap-1">
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.href}
                   href={cat.href}
-                  onClick={close}
+                  onClick={closeMobile}
                   className="px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-[#00c805] hover:bg-[#00c805]/5 transition-colors"
                 >
                   {cat.label}
@@ -317,7 +444,6 @@ export function Navbar({ user }: NavbarProps) {
             </div>
           </section>
 
-          {/* Auth footer */}
           {user ? (
             <section className="pt-2">
               <p className="text-xs text-zinc-600 px-1 mb-3">{user.email}</p>
@@ -329,15 +455,14 @@ export function Navbar({ user }: NavbarProps) {
             </section>
           ) : (
             <section className="flex flex-col gap-3">
-              <Link href="/auth/login" onClick={close} className="px-4 py-4 rounded-2xl text-base font-medium text-zinc-400 hover:bg-zinc-900 transition-colors">
+              <Link href="/auth/login" onClick={closeMobile} className="px-4 py-4 rounded-2xl text-base font-medium text-zinc-400 hover:bg-zinc-900 transition-colors">
                 Log in
               </Link>
-              <Link href="/auth/signup" onClick={close} className="px-4 py-4 rounded-full text-base font-bold bg-[#00c805] text-black text-center hover:bg-[#00c805]/90 transition-colors">
+              <Link href="/auth/signup" onClick={closeMobile} className="px-4 py-4 rounded-full text-base font-bold bg-[#00c805] text-black text-center hover:bg-[#00c805]/90 transition-colors">
                 Get access — free
               </Link>
             </section>
           )}
-
         </div>
       </div>
     </>
