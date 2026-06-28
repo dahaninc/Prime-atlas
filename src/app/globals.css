@@ -4,36 +4,36 @@
 
 @layer base {
   :root {
-    /* prime-atlas dark theme (default) */
-    --background: 220 30% 6%;        /* #0A0E1A near-black navy */
-    --foreground: 210 20% 92%;       /* near-white */
+    /* prime-atlas — Robinhood design system tokens */
+    --background: 240 10% 6%;        /* #0c0d14 pitch black */
+    --foreground: 0 0% 100%;         /* pure white */
 
-    --card: 220 28% 10%;
-    --card-foreground: 210 20% 92%;
+    --card: 240 8% 8%;               /* #111114 elevated surface */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 220 28% 10%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 240 8% 8%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 160 100% 45%;         /* signal green #00E5A0 */
-    --primary-foreground: 220 30% 6%;
+    --primary: 117 100% 39%;         /* #00c805 Robinhood green */
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 220 25% 16%;
-    --secondary-foreground: 210 20% 92%;
+    --secondary: 240 5% 11%;         /* #1c1c1e iOS dark surface */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 25% 14%;
-    --muted-foreground: 210 15% 55%;
+    --muted: 240 5% 9%;
+    --muted-foreground: 240 5% 65%;  /* zinc-400 equivalent */
 
-    --accent: 38 90% 55%;            /* amber */
-    --accent-foreground: 220 30% 6%;
+    --accent: 38 90% 55%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 72% 60%;
-    --destructive-foreground: 210 20% 92%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 160 100% 45%;
+    --border: 240 5% 16%;            /* very subtle — #222228 */
+    --input: 240 5% 16%;
+    --ring: 117 100% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 }
 

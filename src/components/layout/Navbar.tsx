@@ -128,7 +128,7 @@ export function Navbar({ user }: NavbarProps) {
   return (
     <>
       {/* ── Nav bar ── */}
-      <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <nav className="sticky top-0 z-50 bg-[#0c0d14]/95 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center h-14 gap-6">
 
           {/* Logo */}
@@ -182,7 +182,7 @@ export function Navbar({ user }: NavbarProps) {
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="bg-pa-green text-pa-navy text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-pa-green/90 transition-colors"
+                  className="bg-[#00c805] text-black text-sm font-bold px-4 py-1.5 rounded-full hover:bg-[#00c805]/90 transition-colors"
                 >
                   Get access
                 </Link>
@@ -195,7 +195,7 @@ export function Navbar({ user }: NavbarProps) {
             {!user && (
               <Link
                 href="/auth/signup"
-                className="text-xs font-semibold bg-pa-green text-pa-navy px-3 py-1.5 rounded-full hover:bg-pa-green/90 transition-colors"
+                className="text-xs font-bold bg-[#00c805] text-black px-3 py-1.5 rounded-full hover:bg-[#00c805]/90 transition-colors"
               >
                 Get access
               </Link>
@@ -223,34 +223,36 @@ export function Navbar({ user }: NavbarProps) {
       {/* ── Mobile full-screen drawer ── */}
       <div
         className={cn(
-          "md:hidden fixed inset-0 z-40 bg-background transition-opacity duration-200",
+          "md:hidden fixed inset-0 z-40 bg-[#0c0d14] transition-opacity duration-200",
           drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
         style={{ top: "56px" }}
       >
-        <div className="overflow-y-auto h-full pb-32 px-5 py-6 space-y-8">
+        <div className="overflow-y-auto h-full pb-36 px-5 pt-8 space-y-10">
 
           {/* Quick links */}
           <section>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Navigate</p>
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Navigate</p>
             <div className="space-y-1">
               {[
-                { href: "/",           label: "Home"      },
-                { href: "/listings",   label: "Listings"  },
-                { href: "/market-feed",label: "Live Feed" },
-                { href: "/deal-board", label: "Deal Board"},
+                { href: "/",            label: "Home"      },
+                { href: "/listings",    label: "Listings"  },
+                { href: "/market-feed", label: "Live Feed" },
+                { href: "/deal-board",  label: "Deal Board"},
               ].map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
                   onClick={close}
                   className={cn(
-                    "flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-colors",
-                    pathname === href ? "text-pa-green bg-pa-green/8" : "text-foreground hover:bg-secondary"
+                    "flex items-center justify-between px-4 py-4 rounded-2xl text-base font-semibold transition-colors",
+                    pathname === href
+                      ? "text-[#00c805] bg-[#00c805]/8"
+                      : "text-white hover:bg-zinc-900"
                   )}
                 >
                   {label}
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
@@ -260,33 +262,33 @@ export function Navbar({ user }: NavbarProps) {
 
           {/* Markets by country */}
           <section>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Markets</p>
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Markets</p>
             <div className="space-y-1">
               {MARKETS.map((mkt) => (
                 <div key={mkt.code}>
                   <button
                     onClick={() => setOpenCountry(openCountry === mkt.code ? null : mkt.code)}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-4 rounded-2xl text-base font-medium text-white hover:bg-zinc-900 transition-colors"
                   >
-                    <span className="flex items-center gap-2.5">
-                      <span className="text-base">{mkt.flag}</span>
+                    <span className="flex items-center gap-3">
+                      <span className="text-lg">{mkt.flag}</span>
                       {mkt.label}
                     </span>
                     <svg
-                      className={cn("w-4 h-4 text-muted-foreground transition-transform duration-150", openCountry === mkt.code && "rotate-180")}
+                      className={cn("w-4 h-4 text-zinc-600 transition-transform duration-150", openCountry === mkt.code && "rotate-180")}
                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   {openCountry === mkt.code && (
-                    <div className="mt-1 mb-2 ml-4 grid grid-cols-2 gap-1">
+                    <div className="mt-1 mb-2 ml-5 grid grid-cols-2 gap-1">
                       {mkt.cities.map((c) => (
                         <Link
                           key={c.slug}
                           href={`/opportunities/${c.slug}`}
                           onClick={close}
-                          className="px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-pa-green hover:bg-pa-green/5 transition-colors"
+                          className="px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-[#00c805] hover:bg-[#00c805]/5 transition-colors"
                         >
                           {c.name}
                         </Link>
@@ -300,14 +302,14 @@ export function Navbar({ user }: NavbarProps) {
 
           {/* Categories */}
           <section>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">By Category</p>
+            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">By Category</p>
             <div className="grid grid-cols-2 gap-1">
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.href}
                   href={cat.href}
                   onClick={close}
-                  className="px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-pa-green hover:bg-pa-green/5 transition-colors"
+                  className="px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-[#00c805] hover:bg-[#00c805]/5 transition-colors"
                 >
                   {cat.label}
                 </Link>
@@ -317,20 +319,20 @@ export function Navbar({ user }: NavbarProps) {
 
           {/* Auth footer */}
           {user ? (
-            <section className="border-t border-border pt-6">
-              <p className="text-xs text-muted-foreground px-1 mb-3">{user.email}</p>
+            <section className="pt-2">
+              <p className="text-xs text-zinc-600 px-1 mb-3">{user.email}</p>
               <form action="/auth/signout" method="post">
-                <button type="submit" className="w-full text-left px-4 py-3 rounded-xl text-sm text-muted-foreground hover:bg-secondary transition-colors">
+                <button type="submit" className="w-full text-left px-4 py-4 rounded-2xl text-sm font-medium text-zinc-400 hover:bg-zinc-900 transition-colors">
                   Sign out
                 </button>
               </form>
             </section>
           ) : (
-            <section className="border-t border-border pt-6 flex flex-col gap-2">
-              <Link href="/auth/login" onClick={close} className="px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">
+            <section className="flex flex-col gap-3">
+              <Link href="/auth/login" onClick={close} className="px-4 py-4 rounded-2xl text-base font-medium text-zinc-400 hover:bg-zinc-900 transition-colors">
                 Log in
               </Link>
-              <Link href="/auth/signup" onClick={close} className="px-4 py-3 rounded-full text-sm font-bold bg-pa-green text-pa-navy text-center hover:bg-pa-green/90 transition-colors">
+              <Link href="/auth/signup" onClick={close} className="px-4 py-4 rounded-full text-base font-bold bg-[#00c805] text-black text-center hover:bg-[#00c805]/90 transition-colors">
                 Get access — free
               </Link>
             </section>

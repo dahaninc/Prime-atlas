@@ -45,14 +45,14 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        // Custom prime-atlas tokens
-        "pa-navy": "#0A0E1A",
-        "pa-navy-800": "#0F1629",
-        "pa-navy-700": "#1A2240",
-        "pa-navy-600": "#243059",
-        "pa-green": "#00E5A0",   // signal green
-        "pa-amber": "#F5A623",   // risk amber
-        "pa-red": "#FF4444",     // high risk
+        // Custom prime-atlas tokens — Robinhood design system
+        "pa-navy": "#0c0d14",       // pitch black base
+        "pa-navy-800": "#111114",   // card bg
+        "pa-navy-700": "#1c1c1e",   // elevated surface
+        "pa-navy-600": "#2c2c2e",   // interactive hover
+        "pa-green": "#00c805",      // Robinhood neon green
+        "pa-amber": "#F5A623",      // risk amber
+        "pa-red": "#FF4444",        // high risk
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

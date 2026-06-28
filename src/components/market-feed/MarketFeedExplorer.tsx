@@ -20,9 +20,7 @@ export interface ScrapedProperty {
   scraped_at: string;
 }
 
-interface Props {
-  properties: ScrapedProperty[];
-}
+interface Props { properties: ScrapedProperty[] }
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 
@@ -52,13 +50,6 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-const PROVIDER_LABEL: Record<string, string> = {
-  zillow:        "Zillow",
-  realtor_ca:    "Realtor.ca",
-  realestate_au: "REA",
-  idealista:     "Idealista",
-};
-
 const US_STATES: Record<string, string> = {
   NY: "New York", CA: "California", TX: "Texas", FL: "Florida",
   IL: "Illinois", PA: "Pennsylvania", OH: "Ohio", GA: "Georgia",
@@ -68,27 +59,18 @@ const US_STATES: Record<string, string> = {
   MN: "Minnesota", MA: "Massachusetts", MI: "Michigan", AZ: "Arizona",
 };
 
-/* ─── pill styles ────────────────────────────────────────────────── */
-
-const pillBase = "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors duration-[100ms] cursor-pointer whitespace-nowrap";
-const pillActive = "bg-pa-green text-pa-navy border-pa-green";
-const pillInactive = "text-muted-foreground border-border hover:border-pa-green/50 hover:text-foreground bg-transparent";
-
 /* ─── component ─────────────────────────────────────────────────── */
 
 export function MarketFeedExplorer({ properties }: Props) {
   const [typeFilter, setTypeFilter]   = useState<"all" | "sale" | "rent">("all");
   const [stateFilter, setStateFilter] = useState<string>("ALL");
   const [sortBy, setSortBy]           = useState<"recent" | "price_asc" | "price_desc">("recent");
-
-  // Drawer state
   const [stateDrawerOpen, setStateDrawerOpen] = useState(false);
-  const [sortDrawerOpen, setSortDrawerOpen]   = useState(false);
+  const [sortDrawerOpen,  setSortDrawerOpen]  = useState(false);
 
   const closeStateDrawer = useCallback(() => setStateDrawerOpen(false), []);
   const closeSortDrawer  = useCallback(() => setSortDrawerOpen(false),  []);
 
-  // Derive available states from actual data
   const availableStates = useMemo(() => {
     const set = new Set(properties.map(p => getState(p.address)).filter(s => s !== "—"));
     return Array.from(set).sort();
@@ -96,9 +78,8 @@ export function MarketFeedExplorer({ properties }: Props) {
 
   const filtered = useMemo(() => {
     let list = properties;
-    if (typeFilter !== "all") list = list.filter(p => p.listing_type === typeFilter);
-    if (stateFilter !== "ALL") list = list.filter(p => getState(p.address) === stateFilter);
-
+    if (typeFilter !== "all")   list = list.filter(p => p.listing_type === typeFilter);
+    if (stateFilter !== "ALL")  list = list.filter(p => getState(p.address) === stateFilter);
     return [...list].sort((a, b) => {
       if (sortBy === "price_asc")  return (a.price ?? 0) - (b.price ?? 0);
       if (sortBy === "price_desc") return (b.price ?? 0) - (a.price ?? 0);
@@ -106,220 +87,174 @@ export function MarketFeedExplorer({ properties }: Props) {
     });
   }, [properties, typeFilter, stateFilter, sortBy]);
 
-  const stateLabel = stateFilter === "ALL" ? "All States" : (US_STATES[stateFilter] ?? stateFilter);
+  const stateLabel = stateFilter === "ALL" ? "Location" : (US_STATES[stateFilter] ?? stateFilter);
   const sortLabel  = sortBy === "recent" ? "Recent" : sortBy === "price_asc" ? "Price ↑" : "Price ↓";
+
+  /* pill styles */
+  const pill = (active: boolean) =>
+    `shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+      active
+        ? "bg-[#00c805] text-black"
+        : "bg-zinc-800 text-zinc-400 hover:text-white"
+    }`;
+
+  const drawerOption = (active: boolean) =>
+    `w-full text-left px-5 py-4 rounded-2xl text-sm font-semibold transition-colors ${
+      active
+        ? "bg-[#00c805]/10 text-[#00c805]"
+        : "text-white hover:bg-zinc-800"
+    }`;
 
   return (
     <div>
-      {/* ── Filter bar ── */}
-      <div className="mb-5">
+      {/* ── Filter pills row ── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-6">
 
-        {/* Horizontal pill scroll row */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
+        {/* Type */}
+        {(["all", "sale", "rent"] as const).map(t => (
+          <button key={t} onClick={() => setTypeFilter(t)} className={pill(typeFilter === t)}>
+            {t === "all" ? "All" : t === "sale" ? "For Sale" : "For Rent"}
+          </button>
+        ))}
 
-          {/* Type pills — always visible */}
-          {(["all", "sale", "rent"] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
-              className={`${pillBase} ${typeFilter === t ? pillActive : pillInactive}`}
-            >
-              {t === "all" ? "All" : t === "sale" ? "For Sale" : "For Rent"}
+        <div className="shrink-0 w-px h-4 bg-zinc-700 mx-1" />
+
+        {/* State — mobile: drawer, desktop: pills */}
+        <button
+          onClick={() => setStateDrawerOpen(true)}
+          className={`md:hidden ${pill(stateFilter !== "ALL")} flex items-center gap-1`}
+        >
+          {stateLabel}
+          <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div className="hidden md:flex flex-wrap gap-1.5">
+          <button onClick={() => setStateFilter("ALL")} className={pill(stateFilter === "ALL")}>All States</button>
+          {availableStates.map(s => (
+            <button key={s} onClick={() => setStateFilter(s)} className={pill(stateFilter === s)}>
+              {US_STATES[s] ?? s}
             </button>
           ))}
+        </div>
 
-          {/* Divider */}
-          <div className="shrink-0 w-px h-5 bg-border mx-0.5" />
+        {/* Sort */}
+        <button
+          onClick={() => setSortDrawerOpen(true)}
+          className={`md:hidden ${pill(false)} flex items-center gap-1 ml-auto`}
+        >
+          {sortLabel}
+          <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" />
+          </svg>
+        </button>
 
-          {/* State filter pill — opens drawer on mobile, inline on desktop */}
-          <>
-            {/* Mobile: tap to open drawer */}
-            <button
-              onClick={() => setStateDrawerOpen(true)}
-              className={`md:hidden ${pillBase} ${stateFilter !== "ALL" ? pillActive : pillInactive} flex items-center gap-1`}
-            >
-              {stateLabel}
-              <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {/* Desktop: inline pills */}
-            <div className="hidden md:flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setStateFilter("ALL")}
-                className={`${pillBase} ${stateFilter === "ALL" ? pillActive : pillInactive}`}
-              >
-                All States
-              </button>
-              {availableStates.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStateFilter(s)}
-                  className={`${pillBase} ${stateFilter === s ? pillActive : pillInactive}`}
-                >
-                  {US_STATES[s] ?? s}
-                </button>
-              ))}
-            </div>
-          </>
-
-          {/* Sort pill — opens drawer on mobile */}
-          <button
-            onClick={() => setSortDrawerOpen(true)}
-            className={`md:hidden ${pillBase} ${pillInactive} flex items-center gap-1 ml-auto shrink-0`}
+        <div className="hidden md:flex items-center gap-2 ml-auto shrink-0">
+          <span className="text-xs text-zinc-500">Sort</span>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as typeof sortBy)}
+            className="text-xs bg-zinc-900 rounded-full px-3 py-1.5 text-white focus:outline-none"
           >
-            {sortLabel}
-            <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 14.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-6.586L3.293 6.707A1 1 0 013 6V4z" />
-            </svg>
-          </button>
-
-          {/* Desktop: select */}
-          <div className="hidden md:flex items-center gap-2 ml-auto shrink-0">
-            <span className="text-xs text-muted-foreground">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as typeof sortBy)}
-              className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground focus:outline-none"
-            >
-              <option value="recent">Most recent</option>
-              <option value="price_asc">Price ↑</option>
-              <option value="price_desc">Price ↓</option>
-            </select>
-          </div>
+            <option value="recent">Most recent</option>
+            <option value="price_asc">Price ↑</option>
+            <option value="price_desc">Price ↓</option>
+          </select>
         </div>
       </div>
 
       {/* ── Count ── */}
-      <p className="text-xs text-muted-foreground mb-4">
-        Showing <span className="text-foreground font-semibold">{filtered.length.toLocaleString()}</span> properties
-        {stateFilter !== "ALL" && <> in <span className="text-foreground">{US_STATES[stateFilter] ?? stateFilter}</span></>}
+      <p className="text-xs text-zinc-500 mb-5 uppercase tracking-wider font-semibold">
+        {filtered.length.toLocaleString()} properties
+        {stateFilter !== "ALL" && ` · ${US_STATES[stateFilter] ?? stateFilter}`}
       </p>
 
       {/* ── Grid ── */}
       {filtered.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground text-sm">No listings match these filters.</div>
+        <div className="text-center py-24 text-zinc-500 text-sm">No listings match these filters.</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(p => (
-            <div key={p.id} className="border border-border rounded-xl bg-card p-4 flex flex-col gap-3 hover:border-pa-green/40 transition-colors">
+            <div key={p.id} className="bg-zinc-900 rounded-2xl p-5 flex flex-col gap-4 hover:bg-zinc-800/80 transition-colors">
 
-              {/* Top row */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-wrap gap-1.5">
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                    p.listing_type === "sale"
-                      ? "text-pa-green border-pa-green/30 bg-pa-green/5"
-                      : "text-blue-400 border-blue-400/30 bg-blue-400/5"
-                  }`}>
-                    {p.listing_type === "sale" ? "For Sale" : "For Rent"}
-                  </span>
-                  {p.property_type && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border border-border text-muted-foreground capitalize">
-                      {p.property_type}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[9px] text-muted-foreground shrink-0">{timeAgo(p.scraped_at)}</span>
+              {/* Type + time */}
+              <div className="flex items-center justify-between">
+                <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                  p.listing_type === "sale"
+                    ? "text-[#00c805] bg-[#00c805]/10"
+                    : "text-blue-400 bg-blue-400/10"
+                }`}>
+                  {p.listing_type === "sale" ? "For Sale" : "For Rent"}
+                </span>
+                <span className="text-[9px] text-zinc-600">{timeAgo(p.scraped_at)}</span>
               </div>
 
-              {/* Address */}
-              <div>
-                <p className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
-                  {p.address ?? "Address unavailable"}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {getState(p.address) !== "—" && US_STATES[getState(p.address)]
-                    ? `${US_STATES[getState(p.address)]}, US`
-                    : p.address?.split(",").slice(-2).join(",").trim()}
-                </p>
-              </div>
-
-              {/* Price */}
+              {/* Price — hero number */}
               {p.price && (
-                <p className="text-xl font-bold font-mono text-pa-green leading-none">
+                <p className="text-2xl font-black text-[#00c805] leading-none tabular-nums">
                   {formatPrice(p.price, p.currency_code)}
                 </p>
               )}
 
-              {/* Specs */}
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                {p.bedrooms != null && (
-                  <span><span className="text-foreground font-semibold">{p.bedrooms}</span> bd</span>
-                )}
-                {p.bathrooms != null && (
-                  <span><span className="text-foreground font-semibold">{p.bathrooms}</span> ba</span>
-                )}
-                {p.size_sqm != null && (
-                  <span><span className="text-foreground font-semibold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>
+              {/* Address */}
+              <div>
+                <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+                  {p.address ?? "Address unavailable"}
+                </p>
+                {getState(p.address) !== "—" && (
+                  <p className="text-xs text-zinc-500 mt-0.5 uppercase tracking-wide">
+                    {US_STATES[getState(p.address)] ?? getState(p.address)}, US
+                  </p>
                 )}
               </div>
 
-              {/* Footer */}
-              <div className="flex items-center justify-between mt-auto pt-2 border-t border-border">
-                <span className="text-[9px] text-muted-foreground font-mono">
-                  via {PROVIDER_LABEL[p.provider] ?? p.provider}
-                </span>
-                {p.listing_url && (
-                  <a
-                    href={p.listing_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-pa-green hover:underline font-semibold"
-                  >
-                    View listing →
-                  </a>
+              {/* Specs */}
+              <div className="flex gap-4 text-xs text-zinc-400">
+                {p.bedrooms   != null && <span><span className="text-white font-bold">{p.bedrooms}</span> bd</span>}
+                {p.bathrooms  != null && <span><span className="text-white font-bold">{p.bathrooms}</span> ba</span>}
+                {p.size_sqm   != null && <span><span className="text-white font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
+                {p.property_type && (
+                  <span className="ml-auto text-zinc-600 capitalize text-[10px] uppercase tracking-wide">{p.property_type}</span>
                 )}
               </div>
+
+              {/* CTA */}
+              {p.listing_url && (
+                <a
+                  href={p.listing_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-auto text-xs font-bold text-[#00c805] hover:underline"
+                >
+                  View listing →
+                </a>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* ── State filter drawer (mobile) ── */}
-      <FilterDrawer open={stateDrawerOpen} onClose={closeStateDrawer} title="Filter by State">
+      {/* ── State drawer ── */}
+      <FilterDrawer open={stateDrawerOpen} onClose={closeStateDrawer} title="Filter by Location">
         <div className="flex flex-col gap-1">
-          <button
-            onClick={() => { setStateFilter("ALL"); closeStateDrawer(); }}
-            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-              stateFilter === "ALL"
-                ? "bg-pa-green text-pa-navy"
-                : "text-foreground hover:bg-secondary"
-            }`}
-          >
+          <button onClick={() => { setStateFilter("ALL"); closeStateDrawer(); }} className={drawerOption(stateFilter === "ALL")}>
             All States
           </button>
           {availableStates.map(s => (
-            <button
-              key={s}
-              onClick={() => { setStateFilter(s); closeStateDrawer(); }}
-              className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                stateFilter === s
-                  ? "bg-pa-green text-pa-navy"
-                  : "text-foreground hover:bg-secondary"
-              }`}
-            >
+            <button key={s} onClick={() => { setStateFilter(s); closeStateDrawer(); }} className={drawerOption(stateFilter === s)}>
               {US_STATES[s] ?? s}
-              <span className="ml-2 text-xs opacity-60">{s}</span>
+              <span className="ml-2 text-xs text-zinc-600 font-mono">{s}</span>
             </button>
           ))}
         </div>
       </FilterDrawer>
 
-      {/* ── Sort drawer (mobile) ── */}
+      {/* ── Sort drawer ── */}
       <FilterDrawer open={sortDrawerOpen} onClose={closeSortDrawer} title="Sort by">
         <div className="flex flex-col gap-1">
           {(["recent", "price_asc", "price_desc"] as const).map(opt => (
-            <button
-              key={opt}
-              onClick={() => { setSortBy(opt); closeSortDrawer(); }}
-              className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                sortBy === opt
-                  ? "bg-pa-green text-pa-navy"
-                  : "text-foreground hover:bg-secondary"
-              }`}
-            >
+            <button key={opt} onClick={() => { setSortBy(opt); closeSortDrawer(); }} className={drawerOption(sortBy === opt)}>
               {opt === "recent" ? "Most Recent" : opt === "price_asc" ? "Price: Low to High" : "Price: High to Low"}
             </button>
           ))}
