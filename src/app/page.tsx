@@ -278,14 +278,14 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── Stat strip — hard cut to dark (dramatic contrast) ── */}
-        <section className="border-b border-[#27272A] bg-black py-8">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#27272A]">
-              {STATS.map((s, i) => (
-                <div key={s.value} className={`text-center px-6 ${i === 0 ? "pl-0" : ""}`}>
-                  <p className="text-2xl font-black font-mono text-[#CCFF00]">{s.value}</p>
-                  <p className="text-xs text-[#A1A1AA] mt-1 leading-tight">{s.label}</p>
+        {/* ── Stat strip — monoblock: no dividers, generous spacing ── */}
+        <section className="py-20 bg-black">
+          <div className="max-w-4xl mx-auto px-8 sm:px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 sm:gap-8">
+              {STATS.map((s) => (
+                <div key={s.value} className="text-center">
+                  <p className="text-5xl font-black tabular-nums text-[#CCFF00] leading-none tracking-tight">{s.value}</p>
+                  <p className="text-xs text-[#A1A1AA] mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[180px] mx-auto">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -293,7 +293,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Audience cards ── */}
-        <section className="border-b border-[#27272A] py-16">
+        <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2 text-center">
               Built for every real estate investor
@@ -301,29 +301,25 @@ export default async function HomePage() {
             <h2 className="text-2xl font-black tracking-tight text-center mb-10 text-balance">
               Your edge — regardless of scale
             </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 lg:gap-8">
               {AUDIENCES.map((a) => (
-                <div
-                  key={a.tag}
-                  className={`border ${a.border} ${a.bg} rounded-xl p-6 flex flex-col`}
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-lg font-mono text-[#A1A1AA]">{a.icon}</span>
+                <div key={a.tag} className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-5">
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${a.tagColor}`}>
                       {a.tag}
                     </span>
                   </div>
-                  <p className="font-bold text-base mb-3 leading-snug">{a.headline}</p>
-                  <p className="text-sm text-[#A1A1AA] leading-relaxed mb-6 flex-1">{a.pain}</p>
-                  <ul className="space-y-2.5 mb-6">
+                  <p className="font-black text-lg tracking-tight mb-3 leading-snug text-balance">{a.headline}</p>
+                  <p className="text-sm text-[#A1A1AA] leading-relaxed mb-6 flex-1 text-pretty">{a.pain}</p>
+                  <ul className="space-y-3 mb-6">
                     {a.value.map((v) => (
-                      <li key={v} className="flex items-start gap-2 text-xs text-[#A1A1AA]">
-                        <span className={`${a.checkColor} mt-0.5 flex-shrink-0 font-bold`}>✓</span>
+                      <li key={v} className="flex items-start gap-2.5 text-sm text-[#A1A1AA]">
+                        <span className={`${a.checkColor} mt-0.5 flex-shrink-0 font-black text-xs`}>✓</span>
                         {v}
                       </li>
                     ))}
                   </ul>
-                  <Link href={a.cta.href} className={`text-xs font-semibold ${a.checkColor} hover:underline`}>
+                  <Link href={a.cta.href} className={`text-xs font-bold uppercase tracking-widest ${a.checkColor} hover:opacity-80 transition-opacity`}>
                     {a.cta.label} →
                   </Link>
                 </div>
@@ -333,7 +329,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Timeline comparison ── */}
-        <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
+        <section className="py-20 bg-[#0C0D14]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2 text-center">
               The conviction gap
@@ -344,22 +340,20 @@ export default async function HomePage() {
             <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-xl mx-auto text-pretty">
               The analysis is the same. The data is the same. The difference is the infrastructure that assembles it for you.
             </p>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12">
 
               {/* Without */}
-              <div className="border border-[#27272A] rounded-xl overflow-hidden bg-[#18181B]">
-                <div className="px-5 py-3 border-b border-[#27272A] bg-[#18181B]">
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA]">
-                    Without Prime Atlas
-                  </p>
-                </div>
-                <div className="p-5 space-y-3.5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA] mb-5">
+                  Without Prime Atlas
+                </p>
+                <div className="border-l border-[#27272A] pl-6 space-y-4">
                   {TIMELINE_WITHOUT.map((row, i) => (
-                    <div key={i} className="flex gap-3 items-start">
-                      <span className="text-[10px] font-mono text-[#A1A1AA] flex-shrink-0 w-20 mt-0.5">
+                    <div key={i} className="flex gap-4 items-start">
+                      <span className="text-[10px] font-mono text-[#A1A1AA] flex-shrink-0 w-16 mt-0.5 tabular-nums">
                         {row.marker}
                       </span>
-                      <span className={`text-xs leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-red-400 font-medium" : "text-[#A1A1AA]"}`}>
+                      <span className={`text-sm leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-[#FF3B30] font-semibold" : "text-[#A1A1AA]"}`}>
                         {row.action}
                       </span>
                     </div>
@@ -368,19 +362,17 @@ export default async function HomePage() {
               </div>
 
               {/* With */}
-              <div className="border border-[#00C805]/30 rounded-xl overflow-hidden bg-[#00C805]/[0.03]">
-                <div className="px-5 py-3 border-b border-[#00C805]/20 bg-[#00C805]/5">
-                  <p className="text-xs font-bold uppercase tracking-widest text-[#00C805]">
-                    With Prime Atlas
-                  </p>
-                </div>
-                <div className="p-5 space-y-3.5">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#00C805] mb-5">
+                  With Prime Atlas
+                </p>
+                <div className="border-l-2 border-[#00C805]/40 pl-6 space-y-4">
                   {TIMELINE_WITH.map((row, i) => (
-                    <div key={i} className="flex gap-3 items-start">
-                      <span className="text-[10px] font-mono text-[#00C805] flex-shrink-0 w-20 mt-0.5">
+                    <div key={i} className="flex gap-4 items-start">
+                      <span className="text-[10px] font-mono text-[#00C805] flex-shrink-0 w-16 mt-0.5 tabular-nums">
                         {row.marker}
                       </span>
-                      <span className={`text-xs leading-relaxed flex-1 ${"good" in row && row.good ? "text-[#00C805] font-medium" : "text-foreground"}`}>
+                      <span className={`text-sm leading-relaxed flex-1 ${"good" in row && row.good ? "text-[#00C805] font-semibold" : "text-white"}`}>
                         {row.action}
                       </span>
                     </div>
@@ -393,7 +385,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Pain points ── */}
-        <section className="border-b border-[#27272A] py-16">
+        <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2">
               The cost of slow conviction
@@ -401,23 +393,31 @@ export default async function HomePage() {
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               You don&apos;t have a data problem. You have a conviction-and-latency problem.
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Mobile: single column, centered — asymmetric whitespace */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-sm sm:max-w-none mx-auto w-full">
               {PAIN_POINTS.map((p) => (
-                <div key={p.label} className="border border-[#27272A] rounded-xl p-5 bg-[#18181B]">
-                  {/* Label row */}
-                  <div className="flex items-center gap-2 mb-5">
-                    <span className="w-6 h-6 rounded border border-[#27272A] flex items-center justify-center text-xs font-mono text-[#A1A1AA]">
-                      {p.icon}
-                    </span>
-                    <span className="text-xs font-semibold uppercase tracking-widest text-[#A1A1AA]">
-                      {p.label}
-                    </span>
-                  </div>
-                  {/* Robinhood number hierarchy */}
-                  <p className="text-3xl font-black tracking-tight tabular-nums text-white leading-none mb-1">
+                /* ── Liquid Glass card ── */
+                <div
+                  key={p.label}
+                  className="relative overflow-hidden rounded-3xl p-7"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(0,200,5,0.08) 0%, rgba(204,255,0,0.04) 100%)",
+                    boxShadow: "0 0 0 1px rgba(0,200,5,0.12), inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.35)"
+                  }}
+                >
+                  {/* Inner gradient shimmer */}
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00C805]/30 to-transparent" />
+
+                  {/* Label */}
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] mb-5">
+                    {p.label}
+                  </p>
+
+                  {/* Hero number */}
+                  <p className="text-4xl font-black tracking-tight tabular-nums text-white leading-none mb-1">
                     {p.stat}
                   </p>
-                  <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-semibold mb-4">
+                  <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-semibold mb-5">
                     {p.statLabel}
                   </p>
                   <p className="text-sm text-[#A1A1AA] leading-relaxed text-pretty">{p.body}</p>
@@ -428,7 +428,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Workflow ── */}
-        <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
+        <section className="py-20 bg-[#0C0D14]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2">
               How it works
@@ -436,22 +436,19 @@ export default async function HomePage() {
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               From deal board to IC memo — same day, defensible in writing
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-12">
               {WORKFLOW.map((step) => (
-                <div
-                  key={step.step}
-                  className="border border-[#27272A] rounded-xl p-6 bg-[#18181B] flex flex-col sm:flex-row gap-5"
-                >
+                <div key={step.step} className="flex flex-col sm:flex-row gap-6 sm:gap-10">
                   <div className="flex-shrink-0">
-                    <span className="text-xs font-mono text-[#00C805] border border-[#00C805]/30 rounded px-2 py-1">
+                    <span className="text-[11px] font-bold text-[#00C805] uppercase tracking-widest tabular-nums">
                       {step.step}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold tracking-tight text-sm mb-2">{step.title}</p>
-                    <p className="text-sm text-[#A1A1AA] leading-relaxed mb-3 text-pretty">{step.body}</p>
+                    <p className="font-black tracking-tight text-base mb-2 text-balance">{step.title}</p>
+                    <p className="text-sm text-[#A1A1AA] leading-relaxed text-pretty">{step.body}</p>
                     {step.cta && (
-                      <Link href={step.cta.href} className="text-xs text-[#00C805] hover:underline">
+                      <Link href={step.cta.href} className="inline-block mt-3 text-xs font-bold uppercase tracking-widest text-[#CCFF00] hover:opacity-80 transition-opacity">
                         {step.cta.label} →
                       </Link>
                     )}
@@ -459,10 +456,10 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <div className="mt-6 p-4 border border-[#27272A]/50 rounded-xl bg-[#18181B]/50 text-xs text-[#A1A1AA] leading-relaxed">
-              <strong className="text-foreground">Transparency.</strong>{" "}
-              Sub-scores are manually-researched composite indexes compiled from official government data sources listed below.
-              They are not black-box ML outputs. The pro-forma is a standard DCF — all inputs are set by you.
+            <div className="mt-16 text-xs text-[#A1A1AA] leading-relaxed max-w-2xl text-pretty">
+              <strong className="text-white">Transparency.</strong>{" "}
+              Sub-scores are manually-researched composite indexes compiled from official government data sources.
+              Not black-box ML. The pro-forma is a standard DCF — all inputs are set by you.
               Nothing in Prime Atlas constitutes investment advice.
             </div>
           </div>
@@ -470,7 +467,7 @@ export default async function HomePage() {
 
         {/* ── Top-ranked markets ── */}
         {topMunicipalities && topMunicipalities.length > 0 && (
-          <section className="border-b border-[#27272A] py-16">
+          <section className="py-20">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -483,44 +480,33 @@ export default async function HomePage() {
                   Full pipeline →
                 </Link>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-0 max-w-2xl">
                 {topMunicipalities.map((m, i) => (
                   <Link
                     key={m.id}
                     href={`/opportunities/${m.slug}`}
-                    className="border border-[#27272A] rounded-xl p-5 bg-[#18181B] hover:border-[#00C805]/40 transition-colors group"
+                    className="flex items-center justify-between py-5 border-b border-[#27272A]/40 group hover:border-[#00C805]/30 transition-colors"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="text-xs text-[#A1A1AA] font-mono mb-0.5">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <span className="text-[11px] font-mono text-[#A1A1AA] tabular-nums w-5 flex-shrink-0">#{i + 1}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs text-[#A1A1AA] font-semibold mb-0.5 uppercase tracking-widest">
                           {countryFlag[m.country] ?? "🌍"} {m.region}
                         </p>
-                        <p className="font-semibold text-sm group-hover:text-[#00C805] transition-colors">
+                        <p className="font-black tracking-tight group-hover:text-[#00C805] transition-colors">
                           {m.name}
                         </p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
-                          {m.opportunity_score}
-                        </span>
-                        <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">ROI index</p>
+                        <div className="flex gap-4 mt-1 text-xs text-[#A1A1AA]">
+                          <span>Growth <strong className="text-white tabular-nums">{m.growth_score}</strong></span>
+                          <span>Dev <strong className="text-white tabular-nums">{m.development_score}</strong></span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-3 text-xs text-[#A1A1AA]">
-                      <span>Growth <strong className="text-white tabular-nums">{m.growth_score}</strong></span>
-                      <span>Dev <strong className="text-white tabular-nums">{m.development_score}</strong></span>
-                      <span
-                        className={`ml-auto text-[10px] font-medium ${
-                          m.risk_score <= 40
-                            ? "text-[#00C805]"
-                            : m.risk_score <= 55
-                            ? "text-[#F5A623]"
-                            : "text-red-400"
-                        }`}
-                      >
-                        risk {m.risk_score}
+                    <div className="text-right flex-shrink-0 ml-6">
+                      <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
+                        {m.opportunity_score}
                       </span>
-                      <span className="font-mono text-[10px]">#{i + 1}</span>
+                      <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">ROI index</p>
                     </div>
                   </Link>
                 ))}
@@ -531,7 +517,7 @@ export default async function HomePage() {
 
         {/* ── Active opportunities ── */}
         {recentOpps && recentOpps.length > 0 && (
-          <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
+          <section className="py-20 bg-[#0C0D14]">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -544,14 +530,14 @@ export default async function HomePage() {
                   All opportunities →
                 </Link>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-0 max-w-2xl">
                 {recentOpps.map((opp) => {
                   const muni = opp.municipalities as { name: string; country: string; slug: string } | null;
                   return (
                     <Link
                       key={opp.id}
                       href={muni ? `/opportunities/${muni.slug}` : "/opportunities"}
-                      className="flex items-center justify-between border border-[#27272A] rounded-xl px-5 py-3.5 bg-[#18181B] hover:border-[#00C805]/40 transition-colors group"
+                      className="flex items-center justify-between py-5 border-b border-[#27272A]/40 hover:border-[#00C805]/30 transition-colors group"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -595,7 +581,7 @@ export default async function HomePage() {
 
         {/* ── Conviction signals ── */}
         {recentSignals && recentSignals.length > 0 && (
-          <section className="border-b border-[#27272A] py-16">
+          <section className="py-20">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center gap-3 mb-6">
                 <span className="w-2 h-2 rounded-full bg-[#00C805] animate-pulse" />
@@ -608,13 +594,13 @@ export default async function HomePage() {
                   </p>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-0 max-w-2xl">
                 {recentSignals.map((sig) => {
                   const muni = sig.municipalities as { name: string; country: string } | null;
                   return (
                     <div
                       key={sig.id}
-                      className="flex items-center justify-between border border-[#27272A] rounded-xl px-5 py-3.5 bg-[#18181B]"
+                      className="flex items-center justify-between py-5 border-b border-[#27272A]/40"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
@@ -642,23 +628,24 @@ export default async function HomePage() {
         )}
 
         {/* ── Browse by category ── */}
-        <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
+        <section className="py-20 bg-[#0C0D14]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest text-center mb-2">
               Browse by asset class
             </p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-8 text-balance">Pre-screened by property category</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 max-w-2xl">
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.href}
                   href={cat.href}
-                  className="border border-[#27272A] rounded-xl p-4 bg-[#18181B] hover:border-[#00C805]/40 transition-colors group flex items-center gap-3"
+                  className="flex items-center gap-4 py-5 border-b border-[#27272A]/40 hover:border-[#00C805]/30 group transition-colors pr-8"
                 >
-                  <span className="text-2xl">{cat.icon}</span>
-                  <span className="font-semibold text-sm group-hover:text-[#00C805] transition-colors">
+                  <span className="text-xl flex-shrink-0">{cat.icon}</span>
+                  <span className="font-black tracking-tight group-hover:text-[#00C805] transition-colors">
                     {cat.label}
                   </span>
+                  <span className="ml-auto text-[#A1A1AA] text-xs group-hover:text-[#00C805] transition-colors">→</span>
                 </Link>
               ))}
             </div>
@@ -666,7 +653,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Auditable data sources ── */}
-        <section className="border-b border-[#27272A] py-16">
+        <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest text-center mb-2">
               Auditable sources
@@ -692,7 +679,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Free report ── */}
-        <section className="border-b border-[#27272A] py-16 bg-[#0C0D14]">
+        <section className="py-20 bg-[#0C0D14]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-3">
               Free quarterly report
@@ -713,14 +700,24 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── Final CTA ── */}
-        <section className="relative py-28 overflow-hidden">
-          {/* Bottom glow */}
+        {/* ── Final CTA — Liquid Glass ── */}
+        <section className="py-20 px-4 sm:px-6">
+          <div className="max-w-2xl mx-auto">
+          {/* Liquid Glass container */}
           <div
-            className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] opacity-[0.12]"
-            style={{ background: "radial-gradient(ellipse 80% 60% at 50% 100%, #CCFF00 0%, #00C805 50%, transparent 80%)" }}
-          />
-          <div className="relative max-w-2xl mx-auto px-4 sm:px-6 text-center">
+            className="relative overflow-hidden rounded-[36px] px-8 sm:px-14 py-14 text-center"
+            style={{
+              background: "linear-gradient(135deg, rgba(0,200,5,0.10) 0%, rgba(204,255,0,0.06) 50%, rgba(0,200,5,0.08) 100%)",
+              boxShadow: "0 0 0 1px rgba(0,200,5,0.15), inset 0 1px 0 rgba(255,255,255,0.08), 0 40px 100px rgba(0,0,0,0.5)"
+            }}
+          >
+            {/* Top shimmer line */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#CCFF00]/40 to-transparent" />
+            {/* Corner glow */}
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none opacity-20"
+              style={{ background: "radial-gradient(ellipse, #00C805 0%, transparent 70%)" }} />
+
+          <div className="relative text-center">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-5">
               Start compressing your conviction timeline
             </p>
@@ -750,6 +747,8 @@ export default async function HomePage() {
             <p className="text-xs text-[#A1A1AA]">
               No credit card required · Upgrade or cancel at any time
             </p>
+          </div>
+          </div>
           </div>
         </section>
 

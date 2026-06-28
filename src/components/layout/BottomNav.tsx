@@ -36,6 +36,17 @@ function ListingsIcon({ active }: { active: boolean }) {
     </svg>
   );
 }
+function IntegrationsIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-[22px] h-[22px]" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7}>
+      <path strokeLinecap="round" strokeLinejoin="round"
+        d="M4 6h16M4 10h16M4 14h10M4 18h6" />
+      <circle cx="19" cy="16" r="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 13v-1M19 22v-3" />
+    </svg>
+  );
+}
+
 function AccountIcon({ active }: { active: boolean }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="w-[22px] h-[22px]" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7}>
@@ -46,11 +57,11 @@ function AccountIcon({ active }: { active: boolean }) {
 }
 
 const TABS = [
-  { href: "/",            label: "Home",     Icon: HomeIcon     },
-  { href: "/deal-board",  label: "Markets",  Icon: MarketsIcon  },
-  { href: "/market-feed", label: "Feed",     Icon: FeedIcon     },
-  { href: "/listings",    label: "Listings", Icon: ListingsIcon },
-  { href: "/auth/login",  label: "Account",  Icon: AccountIcon  },
+  { href: "/",               label: "Home",   Icon: HomeIcon         },
+  { href: "/deal-board",     label: "Markets", Icon: MarketsIcon     },
+  { href: "/market-feed",    label: "Feed",    Icon: FeedIcon        },
+  { href: "/integrations",   label: "Apps",    Icon: IntegrationsIcon },
+  { href: "/auth/login",     label: "Account", Icon: AccountIcon     },
 ];
 
 export function BottomNav() {
