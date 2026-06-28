@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { PostHogProvider, PostHogPageView } from "@/components/analytics/PostHogProvider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { BottomNav } from "@/components/layout/BottomNav";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -73,11 +74,14 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-screen`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen pb-[env(safe-area-inset-bottom)] md:pb-0`}>
         <PostHogProvider>
           <AuthProvider>
           <Suspense fallback={null}><PostHogPageView /></Suspense>
-          {children}
+          <div className="pb-20 md:pb-0">
+            {children}
+          </div>
+          <BottomNav />
           <script
             dangerouslySetInnerHTML={{
               __html: `

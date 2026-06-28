@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { FilterDrawer } from "@/components/ui/FilterDrawer";
 
 /* ─── types ──────────────────────────────────────────────────────── */
 
@@ -58,8 +59,6 @@ const PROVIDER_LABEL: Record<string, string> = {
   idealista:     "Idealista",
 };
 
-/* ─── state pills ────────────────────────────────────────────────── */
-
 const US_STATES: Record<string, string> = {
   NY: "New York", CA: "California", TX: "Texas", FL: "Florida",
   IL: "Illinois", PA: "Pennsylvania", OH: "Ohio", GA: "Georgia",
@@ -69,12 +68,25 @@ const US_STATES: Record<string, string> = {
   MN: "Minnesota", MA: "Massachusetts", MI: "Michigan", AZ: "Arizona",
 };
 
+/* ─── pill styles ────────────────────────────────────────────────── */
+
+const pillBase = "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors duration-[100ms] cursor-pointer whitespace-nowrap";
+const pillActive = "bg-pa-green text-pa-navy border-pa-green";
+const pillInactive = "text-muted-foreground border-border hover:border-pa-green/50 hover:text-foreground bg-transparent";
+
 /* ─── component ─────────────────────────────────────────────────── */
 
 export function MarketFeedExplorer({ properties }: Props) {
   const [typeFilter, setTypeFilter]   = useState<"all" | "sale" | "rent">("all");
   const [stateFilter, setStateFilter] = useState<string>("ALL");
   const [sortBy, setSortBy]           = useState<"recent" | "price_asc" | "price_desc">("recent");
+
+  // Drawer state
+  const [stateDrawerOpen, setStateDrawerOpen] = useState(false);
+  const [sortDrawerOpen, setSortDrawerOpen]   = useState(false);
+
+  const closeStateDrawer = useCallback(() => setStateDrawerOpen(false), []);
+  const closeSortDrawer  = useCallback(() => setSortDrawerOpen(false),  []);
 
   // Derive available states from actual data
   const availableStates = useMemo(() => {
@@ -94,53 +106,88 @@ export function MarketFeedExplorer({ properties }: Props) {
     });
   }, [properties, typeFilter, stateFilter, sortBy]);
 
-  const pillBase = "px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer";
-  const pillActive = "bg-pa-green text-pa-navy border-pa-green";
-  const pillInactive = "text-muted-foreground border-border hover:border-pa-green/50 hover:text-foreground";
+  const stateLabel = stateFilter === "ALL" ? "All States" : (US_STATES[stateFilter] ?? stateFilter);
+  const sortLabel  = sortBy === "recent" ? "Recent" : sortBy === "price_asc" ? "Price ↑" : "Price ↓";
 
   return (
     <div>
       {/* ── Filter bar ── */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="mb-5">
 
-        {/* Type */}
-        <div className="flex gap-1.5">
+        {/* Horizontal pill scroll row */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap">
+
+          {/* Type pills — always visible */}
           {(["all", "sale", "rent"] as const).map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)}
-              className={`${pillBase} ${typeFilter === t ? pillActive : pillInactive}`}>
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`${pillBase} ${typeFilter === t ? pillActive : pillInactive}`}
+            >
               {t === "all" ? "All" : t === "sale" ? "For Sale" : "For Rent"}
             </button>
           ))}
-        </div>
 
-        <div className="w-px h-5 bg-border" />
+          {/* Divider */}
+          <div className="shrink-0 w-px h-5 bg-border mx-0.5" />
 
-        {/* State */}
-        <div className="flex flex-wrap gap-1.5">
-          <button onClick={() => setStateFilter("ALL")}
-            className={`${pillBase} ${stateFilter === "ALL" ? pillActive : pillInactive}`}>
-            All States
-          </button>
-          {availableStates.map(s => (
-            <button key={s} onClick={() => setStateFilter(s)}
-              className={`${pillBase} ${stateFilter === s ? pillActive : pillInactive}`}>
-              {US_STATES[s] ?? s}
+          {/* State filter pill — opens drawer on mobile, inline on desktop */}
+          <>
+            {/* Mobile: tap to open drawer */}
+            <button
+              onClick={() => setStateDrawerOpen(true)}
+              className={`md:hidden ${pillBase} ${stateFilter !== "ALL" ? pillActive : pillInactive} flex items-center gap-1`}
+            >
+              {stateLabel}
+              <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-          ))}
-        </div>
 
-        {/* Sort — pushed right */}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Sort:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as typeof sortBy)}
-            className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground focus:outline-none"
+            {/* Desktop: inline pills */}
+            <div className="hidden md:flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setStateFilter("ALL")}
+                className={`${pillBase} ${stateFilter === "ALL" ? pillActive : pillInactive}`}
+              >
+                All States
+              </button>
+              {availableStates.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStateFilter(s)}
+                  className={`${pillBase} ${stateFilter === s ? pillActive : pillInactive}`}
+                >
+                  {US_STATES[s] ?? s}
+                </button>
+              ))}
+            </div>
+          </>
+
+          {/* Sort pill — opens drawer on mobile */}
+          <button
+            onClick={() => setSortDrawerOpen(true)}
+            className={`md:hidden ${pillBase} ${pillInactive} flex items-center gap-1 ml-auto shrink-0`}
           >
-            <option value="recent">Most recent</option>
-            <option value="price_asc">Price ↑</option>
-            <option value="price_desc">Price ↓</option>
-          </select>
+            {sortLabel}
+            <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 14.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-6.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+          </button>
+
+          {/* Desktop: select */}
+          <div className="hidden md:flex items-center gap-2 ml-auto shrink-0">
+            <span className="text-xs text-muted-foreground">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as typeof sortBy)}
+              className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground focus:outline-none"
+            >
+              <option value="recent">Most recent</option>
+              <option value="price_asc">Price ↑</option>
+              <option value="price_desc">Price ↓</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -229,6 +276,55 @@ export function MarketFeedExplorer({ properties }: Props) {
           ))}
         </div>
       )}
+
+      {/* ── State filter drawer (mobile) ── */}
+      <FilterDrawer open={stateDrawerOpen} onClose={closeStateDrawer} title="Filter by State">
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => { setStateFilter("ALL"); closeStateDrawer(); }}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+              stateFilter === "ALL"
+                ? "bg-pa-green text-pa-navy"
+                : "text-foreground hover:bg-secondary"
+            }`}
+          >
+            All States
+          </button>
+          {availableStates.map(s => (
+            <button
+              key={s}
+              onClick={() => { setStateFilter(s); closeStateDrawer(); }}
+              className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                stateFilter === s
+                  ? "bg-pa-green text-pa-navy"
+                  : "text-foreground hover:bg-secondary"
+              }`}
+            >
+              {US_STATES[s] ?? s}
+              <span className="ml-2 text-xs opacity-60">{s}</span>
+            </button>
+          ))}
+        </div>
+      </FilterDrawer>
+
+      {/* ── Sort drawer (mobile) ── */}
+      <FilterDrawer open={sortDrawerOpen} onClose={closeSortDrawer} title="Sort by">
+        <div className="flex flex-col gap-1">
+          {(["recent", "price_asc", "price_desc"] as const).map(opt => (
+            <button
+              key={opt}
+              onClick={() => { setSortBy(opt); closeSortDrawer(); }}
+              className={`w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                sortBy === opt
+                  ? "bg-pa-green text-pa-navy"
+                  : "text-foreground hover:bg-secondary"
+              }`}
+            >
+              {opt === "recent" ? "Most Recent" : opt === "price_asc" ? "Price: Low to High" : "Price: High to Low"}
+            </button>
+          ))}
+        </div>
+      </FilterDrawer>
     </div>
   );
 }
