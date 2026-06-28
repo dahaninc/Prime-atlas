@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { scoreColor } from "@/lib/utils";
+import { AtlasGlobe } from "@/components/home/AtlasGlobe";
 
 export const revalidate = 3600;
 
@@ -207,62 +208,78 @@ export default async function HomePage() {
 
       <main>
 
-        {/* ── Hero ── */}
-        <section className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-16 sm:pt-28 pb-10 sm:pb-16 overflow-hidden">
-          {/* Radial glow — signature yellow-green halo */}
+        {/* ══ HERO — Robinhood layout: cream bg, serif headline, atlas globe right ══ */}
+        <section
+          className="relative overflow-hidden"
+          style={{ background: "#F5F5EF", minHeight: "calc(100vh - 64px)" }}
+        >
+          {/* Subtle topographic texture */}
           <div
-            className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[480px] opacity-[0.15]"
-            style={{ background: "radial-gradient(ellipse 60% 60% at 50% 40%, #CCFF00 0%, #00C805 45%, transparent 80%)" }}
-          />
-          {/* Subtle grid */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.02]"
-            style={{ backgroundImage: "linear-gradient(#A1A1AA 1px, transparent 1px), linear-gradient(90deg, #A1A1AA 1px, transparent 1px)", backgroundSize: "60px 60px" }}
+            className="pointer-events-none absolute inset-0 opacity-[0.025]"
+            style={{
+              backgroundImage: "radial-gradient(circle, #5A5A4A 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
           />
 
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 border border-[#00C805]/40 bg-[#00C805]/8 text-[#00C805] text-xs font-mono px-3 py-1.5 rounded-full mb-8">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00C805] animate-pulse" />
-              Live · 80+ markets · UK · US · AU · CA · ES
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-20 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[calc(100vh-64px)]">
+
+            {/* ── Left: copy ── */}
+            <div className="order-2 lg:order-1 z-10">
+              {/* Pre-label — mirrors "Robinhood Presents" */}
+              <div className="flex items-center gap-2 mb-7">
+                <span className="text-sm font-semibold text-black/50 tracking-wide">prime-atlas</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00C805] animate-pulse" />
+                <span className="text-sm text-black/40">Real estate intelligence</span>
+              </div>
+
+              {/* Serif headline — editorial weight */}
+              <h1 className="font-serif text-[clamp(2.6rem,6vw,4.5rem)] font-black leading-[1.03] tracking-[-0.02em] text-black mb-6 max-w-[540px]">
+                The real estate atlas.{" "}
+                <span className="italic">Redrawn.</span>
+              </h1>
+
+              <p className="text-lg text-black/55 max-w-[460px] mb-8 leading-relaxed">
+                80+ markets pre-screened. Live underwrite. IC memo same day.
+                Sourced from government data you can name in committee.
+              </p>
+
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                <Link
+                  href="/deal-board"
+                  className="inline-flex items-center justify-center bg-[#CCFF00] text-black font-bold px-8 py-3.5 rounded-full hover:opacity-90 active:scale-[0.98] transition-all text-sm"
+                >
+                  Open the Deal Board
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="inline-flex items-center justify-center border border-black/20 text-black px-8 py-3.5 rounded-full hover:bg-black/5 transition-colors text-sm"
+                >
+                  Create free account
+                </Link>
+              </div>
+              <p className="text-xs text-black/35">
+                Free tier · No credit card · 5 markets per country
+              </p>
+
+              {/* Country strip */}
+              <div className="flex items-center gap-3 mt-8 flex-wrap">
+                {["🇬🇧 UK", "🇺🇸 US", "🇦🇺 AU", "🇨🇦 CA", "🇪🇸 ES"].map(c => (
+                  <span key={c} className="text-xs text-black/40 font-medium">{c}</span>
+                ))}
+              </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-black tracking-tight leading-[1.05] mb-6 max-w-3xl">
-              Real estate conviction.{" "}
-              <span className="text-[#CCFF00]">For every investor, at every scale.</span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-[#A1A1AA] max-w-2xl mb-4 leading-relaxed">
-              From retail investors spotting emerging markets early, to funds closing deals before their
-              competitors have a model built — Prime Atlas compresses the time between{" "}
-              <strong className="text-white">market interest and defensible commitment</strong>.
-            </p>
-            <p className="text-base text-[#A1A1AA] max-w-2xl mb-10 leading-relaxed">
-              Pre-screened pipeline. Live preliminary underwrite. IC memo in one click.
-              Sourced entirely from government data you can name in a committee room.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 mb-4">
-              <Link
-                href="/deal-board"
-                className="bg-[#CCFF00] text-black font-bold px-8 py-3.5 rounded-full hover:opacity-90 transition-all text-sm text-center shadow-[0_0_32px_rgba(204,255,0,0.2)]"
-              >
-                Open the Deal Board →
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="border border-[#27272A] text-white px-8 py-3.5 rounded-full hover:bg-[#18181B] transition-colors text-sm text-center"
-              >
-                Create free account
-              </Link>
+            {/* ── Right: atlas globe ── */}
+            <div className="order-1 lg:order-2 flex items-center justify-center lg:justify-end">
+              <AtlasGlobe />
             </div>
-            <p className="text-xs text-[#A1A1AA]">
-              Free tier included · No credit card · 5 markets per country
-            </p>
           </div>
         </section>
 
-        {/* ── Stat strip ── */}
-        <section className="border-t border-b border-[#27272A] bg-[#0C0D14] py-7">
+        {/* ── Stat strip — hard cut to dark (dramatic contrast) ── */}
+        <section className="border-b border-[#27272A] bg-black py-8">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#27272A]">
               {STATS.map((s, i) => (

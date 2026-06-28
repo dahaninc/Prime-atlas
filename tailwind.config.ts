@@ -70,7 +70,8 @@ const config: Config = {
         "pa-red":    "#FF3B30",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        serif: ["var(--font-playfair)", "Georgia", "serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       borderRadius: {
