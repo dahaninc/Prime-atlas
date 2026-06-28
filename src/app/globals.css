@@ -4,36 +4,42 @@
 
 @layer base {
   :root {
-    /* prime-atlas — Robinhood design system tokens */
-    --background: 240 10% 6%;        /* #0c0d14 pitch black */
-    --foreground: 0 0% 100%;         /* pure white */
+    /* ── Robinhood exact design system tokens ── */
 
-    --card: 240 8% 8%;               /* #111114 elevated surface */
+    /* Canvas */
+    --background: 0 0% 0%;           /* #000000 pitch black */
+    --foreground: 0 0% 100%;         /* #FFFFFF stark white */
+
+    /* Surfaces */
+    --card: 240 6% 10%;              /* #18181B deep zinc card */
     --card-foreground: 0 0% 100%;
-
-    --popover: 240 8% 8%;
+    --popover: 240 6% 8%;            /* #0C0D14 drawer/popover */
     --popover-foreground: 0 0% 100%;
 
-    --primary: 117 100% 39%;         /* #00c805 Robinhood green */
+    /* Brand accent — Robinhood signature yellow-green */
+    --primary: 75 100% 50%;          /* #CCFF00 */
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 240 5% 11%;         /* #1c1c1e iOS dark surface */
+    /* Surfaces / hover */
+    --secondary: 240 4% 16%;         /* #27272A hover surface */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 5% 9%;
-    --muted-foreground: 240 5% 65%;  /* zinc-400 equivalent */
+    /* Muted */
+    --muted: 240 4% 11%;
+    --muted-foreground: 240 4% 63%;  /* #A1A1AA slate-gray */
 
-    --accent: 38 90% 55%;
+    /* State */
+    --accent: 117 100% 39%;          /* #00C805 active/positive */
     --accent-foreground: 0 0% 0%;
-
-    --destructive: 0 72% 60%;
+    --destructive: 3 100% 59%;       /* #FF3B30 negative */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5% 16%;            /* very subtle — #222228 */
-    --input: 240 5% 16%;
-    --ring: 117 100% 39%;
+    /* Structure */
+    --border: 240 4% 14%;            /* barely-there separator */
+    --input: 240 4% 14%;
+    --ring: 75 100% 50%;             /* #CCFF00 */
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
   }
 }
 

@@ -3,8 +3,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { FilterDrawer } from "@/components/ui/FilterDrawer";
 
-/* ─── types ──────────────────────────────────────────────────────── */
-
 export interface ScrapedProperty {
   id: string;
   provider: string;
@@ -24,56 +22,49 @@ interface Props { properties: ScrapedProperty[] }
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 
-const CURRENCY_SYMBOL: Record<string, string> = {
-  USD: "$", GBP: "£", EUR: "€", AUD: "A$", CAD: "C$",
-};
+const SYM: Record<string, string> = { USD: "$", GBP: "£", EUR: "€", AUD: "A$", CAD: "C$" };
 
-function formatPrice(cents: number, currency: string): string {
-  const sym = CURRENCY_SYMBOL[currency] ?? currency;
+function fmtPrice(cents: number, currency: string): string {
+  const s = SYM[currency] ?? currency;
   const n = cents / 100;
-  if (n >= 1_000_000) return `${sym}${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000)     return `${sym}${Math.round(n / 1_000)}K`;
-  return `${sym}${n.toLocaleString()}`;
+  if (n >= 1_000_000) return `${s}${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000)     return `${s}${Math.round(n / 1_000)}K`;
+  return `${s}${n.toLocaleString()}`;
 }
 
 function getState(address: string | null): string {
   if (!address) return "—";
-  const m = address.match(/,\s*([A-Z]{2})\s+\d{5}/);
-  return m?.[1] ?? "—";
+  return address.match(/,\s*([A-Z]{2})\s+\d{5}/)?.[1] ?? "—";
 }
 
 function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const h = Math.floor(diff / 3_600_000);
-  if (h < 1)  return "< 1h ago";
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`;
 }
 
-const US_STATES: Record<string, string> = {
+const STATES: Record<string, string> = {
   NY: "New York", CA: "California", TX: "Texas", FL: "Florida",
   IL: "Illinois", PA: "Pennsylvania", OH: "Ohio", GA: "Georgia",
-  NC: "N. Carolina", IN: "Indiana", WA: "Washington", CO: "Colorado",
-  TN: "Tennessee", OK: "Oklahoma", MD: "Maryland", KY: "Kentucky",
-  OR: "Oregon", WI: "Wisconsin", NV: "Nevada", NM: "New Mexico",
-  MN: "Minnesota", MA: "Massachusetts", MI: "Michigan", AZ: "Arizona",
+  NC: "N. Carolina", WA: "Washington", CO: "Colorado", TN: "Tennessee",
+  OR: "Oregon", NV: "Nevada", MN: "Minnesota", MA: "Massachusetts",
+  MI: "Michigan", AZ: "Arizona", WI: "Wisconsin", MD: "Maryland",
 };
 
 /* ─── component ─────────────────────────────────────────────────── */
 
 export function MarketFeedExplorer({ properties }: Props) {
   const [typeFilter, setTypeFilter]   = useState<"all" | "sale" | "rent">("all");
-  const [stateFilter, setStateFilter] = useState<string>("ALL");
+  const [stateFilter, setStateFilter] = useState("ALL");
   const [sortBy, setSortBy]           = useState<"recent" | "price_asc" | "price_desc">("recent");
-  const [stateDrawerOpen, setStateDrawerOpen] = useState(false);
-  const [sortDrawerOpen,  setSortDrawerOpen]  = useState(false);
+  const [stateOpen, setStateOpen]     = useState(false);
+  const [sortOpen,  setSortOpen]      = useState(false);
 
-  const closeStateDrawer = useCallback(() => setStateDrawerOpen(false), []);
-  const closeSortDrawer  = useCallback(() => setSortDrawerOpen(false),  []);
+  const closeState = useCallback(() => setStateOpen(false), []);
+  const closeSort  = useCallback(() => setSortOpen(false),  []);
 
-  const availableStates = useMemo(() => {
-    const set = new Set(properties.map(p => getState(p.address)).filter(s => s !== "—"));
-    return Array.from(set).sort();
+  const states = useMemo(() => {
+    const s = new Set(properties.map(p => getState(p.address)).filter(x => x !== "—"));
+    return Array.from(s).sort();
   }, [properties]);
 
   const filtered = useMemo(() => {
@@ -87,75 +78,94 @@ export function MarketFeedExplorer({ properties }: Props) {
     });
   }, [properties, typeFilter, stateFilter, sortBy]);
 
-  const stateLabel = stateFilter === "ALL" ? "Location" : (US_STATES[stateFilter] ?? stateFilter);
-  const sortLabel  = sortBy === "recent" ? "Recent" : sortBy === "price_asc" ? "Price ↑" : "Price ↓";
+  /* ── pill factories ── */
+  const typePill = (val: "all" | "sale" | "rent", label: string) => (
+    <button
+      key={val}
+      onClick={() => setTypeFilter(val)}
+      className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+        typeFilter === val
+          ? "bg-[#00C805] text-black"
+          : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+      }`}
+    >
+      {label}
+    </button>
+  );
 
-  /* pill styles */
-  const pill = (active: boolean) =>
-    `shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
-      active
-        ? "bg-[#00c805] text-black"
-        : "bg-zinc-800 text-zinc-400 hover:text-white"
-    }`;
-
-  const drawerOption = (active: boolean) =>
-    `w-full text-left px-5 py-4 rounded-2xl text-sm font-semibold transition-colors ${
-      active
-        ? "bg-[#00c805]/10 text-[#00c805]"
-        : "text-white hover:bg-zinc-800"
-    }`;
+  const drawerRow = (active: boolean, onClick: () => void, label: string, sub?: string) => (
+    <button
+      onClick={onClick}
+      className={`w-full text-left flex items-center justify-between px-5 py-4 rounded-2xl text-sm font-semibold transition-colors ${
+        active ? "bg-[#00C805]/10 text-[#00C805]" : "text-white hover:bg-[#18181B]"
+      }`}
+    >
+      <span>{label}</span>
+      {sub && <span className="text-xs text-[#A1A1AA] font-mono ml-2">{sub}</span>}
+    </button>
+  );
 
   return (
     <div>
-      {/* ── Filter pills row ── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-6">
+      {/* ── Filter row ── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-6">
 
-        {/* Type */}
-        {(["all", "sale", "rent"] as const).map(t => (
-          <button key={t} onClick={() => setTypeFilter(t)} className={pill(typeFilter === t)}>
-            {t === "all" ? "All" : t === "sale" ? "For Sale" : "For Rent"}
-          </button>
-        ))}
+        {typePill("all",  "All")}
+        {typePill("sale", "For Sale")}
+        {typePill("rent", "For Rent")}
 
-        <div className="shrink-0 w-px h-4 bg-zinc-700 mx-1" />
+        <div className="shrink-0 w-px h-4 bg-[#27272A] mx-1" />
 
-        {/* State — mobile: drawer, desktop: pills */}
+        {/* Mobile state pill → drawer */}
         <button
-          onClick={() => setStateDrawerOpen(true)}
-          className={`md:hidden ${pill(stateFilter !== "ALL")} flex items-center gap-1`}
+          onClick={() => setStateOpen(true)}
+          className={`md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+            stateFilter !== "ALL"
+              ? "bg-[#00C805] text-black"
+              : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+          }`}
         >
-          {stateLabel}
-          <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {stateFilter === "ALL" ? "Location" : (STATES[stateFilter] ?? stateFilter)}
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
+        {/* Desktop state pills */}
         <div className="hidden md:flex flex-wrap gap-1.5">
-          <button onClick={() => setStateFilter("ALL")} className={pill(stateFilter === "ALL")}>All States</button>
-          {availableStates.map(s => (
-            <button key={s} onClick={() => setStateFilter(s)} className={pill(stateFilter === s)}>
-              {US_STATES[s] ?? s}
+          {["ALL", ...states].map(s => (
+            <button
+              key={s}
+              onClick={() => setStateFilter(s)}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+                stateFilter === s
+                  ? "bg-[#00C805] text-black"
+                  : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+              }`}
+            >
+              {s === "ALL" ? "All States" : (STATES[s] ?? s)}
             </button>
           ))}
         </div>
 
-        {/* Sort */}
+        {/* Mobile sort pill → drawer */}
         <button
-          onClick={() => setSortDrawerOpen(true)}
-          className={`md:hidden ${pill(false)} flex items-center gap-1 ml-auto`}
+          onClick={() => setSortOpen(true)}
+          className="md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#18181B] text-[#A1A1AA] hover:text-white whitespace-nowrap ml-auto transition-all"
         >
-          {sortLabel}
-          <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M9 12h6M11 16h2" />
+          {sortBy === "recent" ? "Recent" : sortBy === "price_asc" ? "Price ↑" : "Price ↓"}
+          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M6 8h12M10 12h4" />
           </svg>
         </button>
 
-        <div className="hidden md:flex items-center gap-2 ml-auto shrink-0">
-          <span className="text-xs text-zinc-500">Sort</span>
+        {/* Desktop sort */}
+        <div className="hidden md:flex items-center gap-2 ml-auto">
+          <span className="text-xs text-[#A1A1AA]">Sort</span>
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as typeof sortBy)}
-            className="text-xs bg-zinc-900 rounded-full px-3 py-1.5 text-white focus:outline-none"
+            className="text-xs bg-[#18181B] text-white rounded-full px-3 py-1.5 focus:outline-none"
           >
             <option value="recent">Most recent</option>
             <option value="price_asc">Price ↑</option>
@@ -164,70 +174,70 @@ export function MarketFeedExplorer({ properties }: Props) {
         </div>
       </div>
 
-      {/* ── Count ── */}
-      <p className="text-xs text-zinc-500 mb-5 uppercase tracking-wider font-semibold">
-        {filtered.length.toLocaleString()} properties
-        {stateFilter !== "ALL" && ` · ${US_STATES[stateFilter] ?? stateFilter}`}
+      {/* ── Count line ── */}
+      <p className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-widest mb-5">
+        {filtered.length.toLocaleString()} listings
+        {stateFilter !== "ALL" && ` · ${STATES[stateFilter] ?? stateFilter}`}
       </p>
 
       {/* ── Grid ── */}
       {filtered.length === 0 ? (
-        <div className="text-center py-24 text-zinc-500 text-sm">No listings match these filters.</div>
+        <div className="text-center py-24 text-[#A1A1AA] text-sm">No listings match these filters.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(p => (
-            <div key={p.id} className="bg-zinc-900 rounded-2xl p-5 flex flex-col gap-4 hover:bg-zinc-800/80 transition-colors">
+            <div key={p.id} className="bg-[#18181B] rounded-2xl p-5 flex flex-col gap-4 hover:bg-[#27272A] transition-colors">
 
-              {/* Type + time */}
+              {/* Row 1: badge + time */}
               <div className="flex items-center justify-between">
                 <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
                   p.listing_type === "sale"
-                    ? "text-[#00c805] bg-[#00c805]/10"
+                    ? "text-[#00C805] bg-[#00C805]/10"
                     : "text-blue-400 bg-blue-400/10"
                 }`}>
                   {p.listing_type === "sale" ? "For Sale" : "For Rent"}
                 </span>
-                <span className="text-[9px] text-zinc-600">{timeAgo(p.scraped_at)}</span>
+                <span className="text-[9px] text-[#A1A1AA]">{timeAgo(p.scraped_at)} ago</span>
               </div>
 
-              {/* Price — hero number */}
+              {/* Row 2: Price — hero number */}
               {p.price && (
-                <p className="text-2xl font-black text-[#00c805] leading-none tabular-nums">
-                  {formatPrice(p.price, p.currency_code)}
+                <p className="text-[26px] font-black text-white leading-none tabular-nums tracking-tight">
+                  {fmtPrice(p.price, p.currency_code)}
                 </p>
               )}
 
-              {/* Address */}
+              {/* Row 3: Address */}
               <div>
                 <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
                   {p.address ?? "Address unavailable"}
                 </p>
                 {getState(p.address) !== "—" && (
-                  <p className="text-xs text-zinc-500 mt-0.5 uppercase tracking-wide">
-                    {US_STATES[getState(p.address)] ?? getState(p.address)}, US
+                  <p className="text-[10px] text-[#A1A1AA] mt-0.5 uppercase tracking-widest">
+                    {STATES[getState(p.address)] ?? getState(p.address)}, US
                   </p>
                 )}
               </div>
 
-              {/* Specs */}
-              <div className="flex gap-4 text-xs text-zinc-400">
-                {p.bedrooms   != null && <span><span className="text-white font-bold">{p.bedrooms}</span> bd</span>}
-                {p.bathrooms  != null && <span><span className="text-white font-bold">{p.bathrooms}</span> ba</span>}
-                {p.size_sqm   != null && <span><span className="text-white font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
-                {p.property_type && (
-                  <span className="ml-auto text-zinc-600 capitalize text-[10px] uppercase tracking-wide">{p.property_type}</span>
-                )}
+              {/* Row 4: Specs */}
+              <div className="flex gap-4 text-xs text-[#A1A1AA]">
+                {p.bedrooms  != null && <span><span className="text-white font-bold">{p.bedrooms}</span> bd</span>}
+                {p.bathrooms != null && <span><span className="text-white font-bold">{p.bathrooms}</span> ba</span>}
+                {p.size_sqm  != null && <span><span className="text-white font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
               </div>
 
-              {/* CTA */}
+              {/* Row 5: CTA — Robinhood signature yellow-green */}
               {p.listing_url && (
                 <a
                   href={p.listing_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-auto text-xs font-bold text-[#00c805] hover:underline"
+                  className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-[#CCFF00] hover:opacity-80 transition-opacity"
                 >
-                  View listing →
+                  View listing
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
                 </a>
               )}
             </div>
@@ -236,28 +246,25 @@ export function MarketFeedExplorer({ properties }: Props) {
       )}
 
       {/* ── State drawer ── */}
-      <FilterDrawer open={stateDrawerOpen} onClose={closeStateDrawer} title="Filter by Location">
+      <FilterDrawer open={stateOpen} onClose={closeState} title="Filter by Location">
         <div className="flex flex-col gap-1">
-          <button onClick={() => { setStateFilter("ALL"); closeStateDrawer(); }} className={drawerOption(stateFilter === "ALL")}>
-            All States
-          </button>
-          {availableStates.map(s => (
-            <button key={s} onClick={() => { setStateFilter(s); closeStateDrawer(); }} className={drawerOption(stateFilter === s)}>
-              {US_STATES[s] ?? s}
-              <span className="ml-2 text-xs text-zinc-600 font-mono">{s}</span>
-            </button>
-          ))}
+          {drawerRow(stateFilter === "ALL", () => { setStateFilter("ALL"); closeState(); }, "All States")}
+          {states.map(s =>
+            drawerRow(stateFilter === s, () => { setStateFilter(s); closeState(); }, STATES[s] ?? s, s)
+          )}
         </div>
       </FilterDrawer>
 
       {/* ── Sort drawer ── */}
-      <FilterDrawer open={sortDrawerOpen} onClose={closeSortDrawer} title="Sort by">
+      <FilterDrawer open={sortOpen} onClose={closeSort} title="Sort by">
         <div className="flex flex-col gap-1">
-          {(["recent", "price_asc", "price_desc"] as const).map(opt => (
-            <button key={opt} onClick={() => { setSortBy(opt); closeSortDrawer(); }} className={drawerOption(sortBy === opt)}>
-              {opt === "recent" ? "Most Recent" : opt === "price_asc" ? "Price: Low to High" : "Price: High to Low"}
-            </button>
-          ))}
+          {(["recent", "price_asc", "price_desc"] as const).map(opt =>
+            drawerRow(
+              sortBy === opt,
+              () => { setSortBy(opt); closeSort(); },
+              opt === "recent" ? "Most Recent" : opt === "price_asc" ? "Price: Low to High" : "Price: High to Low"
+            )
+          )}
         </div>
       </FilterDrawer>
     </div>

@@ -45,14 +45,29 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        // Custom prime-atlas tokens — Robinhood design system
-        "pa-navy": "#0c0d14",       // pitch black base
-        "pa-navy-800": "#111114",   // card bg
-        "pa-navy-700": "#1c1c1e",   // elevated surface
-        "pa-navy-600": "#2c2c2e",   // interactive hover
-        "pa-green": "#00c805",      // Robinhood neon green
-        "pa-amber": "#F5A623",      // risk amber
-        "pa-red": "#FF4444",        // high risk
+        // ── Robinhood exact design tokens ──
+        // Canvas
+        "rh-black":  "#000000",   // primary background
+        "rh-white":  "#FFFFFF",   // primary text
+        // Signature accent
+        "rh-yellow": "#CCFF00",   // Robinhood CTA / brand yellow-green
+        // State tokens
+        "rh-green":  "#00C805",   // positive / active
+        "rh-red":    "#FF3B30",   // negative / loss
+        // Surfaces
+        "rh-card":   "#18181B",   // card / drawer bg
+        "rh-sheet":  "#0C0D14",   // bottom sheet / sidebar
+        "rh-hover":  "#27272A",   // hover surface
+        // Text
+        "rh-muted":  "#A1A1AA",   // secondary text / fine print
+        // Legacy aliases (backward compat)
+        "pa-navy":   "#000000",
+        "pa-navy-800":"#18181B",
+        "pa-navy-700":"#27272A",
+        "pa-navy-600":"#3F3F46",
+        "pa-green":  "#00C805",
+        "pa-amber":  "#F5A623",
+        "pa-red":    "#FF3B30",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
