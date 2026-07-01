@@ -1,8 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/scrape-listings?provider=zoopla",      "schedule": "0 2 * * *" },
     { "path": "/api/cron/scrape-listings?provider=zillow",      "schedule": "0 3 * * *" },
-    { "path": "/api/cron/scrape-listings?provider=idealista",   "schedule": "0 6 * * *" },
     { "path": "/api/cron/scrape-listings?provider=rightmove",   "schedule": "0 7 * * *" },
     { "path": "/api/cron/scrape-listings?provider=onthemarket", "schedule": "0 8 * * *" }
   ]
