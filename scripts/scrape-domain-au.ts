@@ -2,14 +2,13 @@
 /**
  * scripts/scrape-domain-au.ts
  *
- * Standalone Domain.com.au scraper — runs from GitHub Actions (Azure IP space)
- * to bypass the Akamai Bot Manager block that affects Vercel's Lambda egress IPs.
+ * Standalone Domain.com.au scraper — runs from GitHub Actions (Azure IP space).
+ * Uses API Key authentication (X-API-Key header) — no OAuth2 token step needed.
  *
  * Required environment variables (set as GitHub repo secrets):
  *   NEXT_PUBLIC_SUPABASE_URL    — Supabase project URL
  *   SUPABASE_SERVICE_ROLE_KEY   — Supabase service role key (server-side only)
- *   DOMAIN_AU_CLIENT_ID         — from https://developer.domain.com.au/
- *   DOMAIN_AU_CLIENT_SECRET     — from https://developer.domain.com.au/
+ *   DOMAIN_AU_API_KEY           — from https://developer.domain.com.au/ (project credentials)
  *
  * Run manually:
  *   npx tsx scripts/scrape-domain-au.ts
@@ -21,8 +20,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? "";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-const CLIENT_ID        = process.env.DOMAIN_AU_CLIENT_ID       ?? "";
-const CLIENT_SECRET    = process.env.DOMAIN_AU_CLIENT_SECRET   ?? "";
+const API_KEY          = process.env.DOMAIN_AU_API_KEY         ?? "";
 const REQUEST_TIMEOUT  = 90_000;
 const SUPABASE_BATCH   = 100;
 const MIN_RECORDS      = 3;
@@ -30,8 +28,7 @@ const MIN_RECORDS      = 3;
 for (const [k, v] of [
   ["NEXT_PUBLIC_SUPABASE_URL",  SUPABASE_URL],
   ["SUPABASE_SERVICE_ROLE_KEY", SERVICE_ROLE_KEY],
-  ["DOMAIN_AU_CLIENT_ID",       CLIENT_ID],
-  ["DOMAIN_AU_CLIENT_SECRET",   CLIENT_SECRET],
+  ["DOMAIN_AU_API_KEY",         API_KEY],
 ] as const) {
   if (!v) { console.error(`❌  Missing ${k}`); process.exit(1); }
 }
@@ -100,42 +97,7 @@ function normalisePropertyType(raw: string | null): string | null {
   return PROPERTY_TYPE_MAP[key] ?? raw.trim();
 }
 
-/* ── OAuth2 token fetch ─────────────────────────────────────────────────────── */
-
-async function getAccessToken(): Promise<string> {
-  const ctrl  = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15_000);
-  // Domain.com.au requires Basic Auth (base64 clientId:secret) for token requests
-  const basicAuth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
-  try {
-    const res = await fetch("https://auth.domain.com.au/v1/connect/token", {
-      method:  "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization:  `Basic ${basicAuth}`,
-      },
-      body:    new URLSearchParams({
-        grant_type: "client_credentials",
-        scope:      "api_listings_read",
-      }).toString(),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`OAuth2 HTTP ${res.status}: ${body.slice(0, 200)}`);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await res.json() as any;
-    const token = String(data.access_token ?? "");
-    if (!token) throw new Error("No access_token in OAuth2 response");
-    console.log("[Domain.com.au] ✓ OAuth2 token obtained");
-    return token;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/* ── Listings search ────────────────────────────────────────────────────────── */
+/* ── Search listings via API Key ────────────────────────────────────────────── */
 
 interface SearchTarget {
   suburb:      string;
@@ -143,10 +105,7 @@ interface SearchTarget {
   listingType: "sale" | "rent";
 }
 
-async function searchListings(
-  token:  string,
-  target: SearchTarget,
-): Promise<Property[]> {
+async function searchListings(target: SearchTarget): Promise<Property[]> {
   const listingType = target.listingType === "sale" ? "Sale" : "Rental";
 
   const searchBody = {
@@ -168,7 +127,7 @@ async function searchListings(
       {
         method:  "POST",
         headers: {
-          Authorization:  `Bearer ${token}`,
+          "X-API-Key":    API_KEY,
           "Content-Type": "application/json",
           Accept:         "application/json",
         },
@@ -209,9 +168,7 @@ async function searchListings(
           : parsePrice(String(pricing.displayPrice ?? ""));
 
         const floorArea = Number(pd.floorArea ?? NaN);
-
-        // "ApartmentUnitFlat" → "apartment unit flat"
-        const typeRaw = String(pd.propertyType ?? "")
+        const typeRaw   = String(pd.propertyType ?? "")
           .replace(/([A-Z])/g, " $1").trim().toLowerCase();
 
         results.push({
@@ -315,22 +272,11 @@ async function main(): Promise<void> {
     { suburb: "Melbourne", state: "VIC", listingType: "rent" },
   ];
 
-  // Fetch OAuth2 token once — reuse across all targets
-  let token: string;
-  try {
-    token = await getAccessToken();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[Domain.com.au] ✗ OAuth2 failed:", msg);
-    await logRun({ startedAt, scraped: 0, upserted: 0, failed: 0, errors: [`OAuth2: ${msg}`], durationMs: Date.now() - t0 });
-    process.exit(1);
-  }
-
   for (const target of targets) {
     const label = `${target.suburb} (${target.listingType})`;
     try {
       console.log(`[Domain.com.au] ↗ API → ${label}`);
-      const results = await searchListings(token, target);
+      const results = await searchListings(target);
       console.log(`[Domain.com.au] ✓ ${results.length} listings from ${label}`);
 
       if (results.length < MIN_RECORDS) {
@@ -346,10 +292,9 @@ async function main(): Promise<void> {
       errors.push(`${label}: ${msg}`);
     }
 
-    await new Promise((r) => setTimeout(r, 1_500));  // brief inter-request pause
+    await new Promise((r) => setTimeout(r, 1_500));
   }
 
-  // Deduplicate by listing ID
   const seen   = new Set<string>();
   const unique = allProps.filter(({ external_property_id: id }) => {
     if (!id || seen.has(id)) return false;
@@ -378,10 +323,7 @@ async function main(): Promise<void> {
     durationMs: Date.now() - t0,
   });
 
-  console.log(
-    `[Domain.com.au] done — ${upserted} upserted, ${errors.length} error(s), ` +
-    `${Date.now() - t0}ms`,
-  );
+  console.log(`[Domain.com.au] done — ${upserted} upserted, ${errors.length} error(s), ${Date.now() - t0}ms`);
   process.exit(errors.length > 0 && upserted === 0 ? 1 : 0);
 }
 

@@ -610,47 +610,15 @@ function extractZillow(
 //   DOMAIN_AU_CLIENT_SECRET  — from https://developer.domain.com.au/
 
 async function scrapeDomainAuViaApi(target: SearchTarget): Promise<ParsedProperty[]> {
-  const clientId     = process.env.DOMAIN_AU_CLIENT_ID;
-  const clientSecret = process.env.DOMAIN_AU_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
+  const apiKey = process.env.DOMAIN_AU_API_KEY;
+  if (!apiKey) {
     throw new Error(
-      "DOMAIN_AU_CLIENT_ID / DOMAIN_AU_CLIENT_SECRET not configured. " +
-      "Register a free developer account at https://developer.domain.com.au/ to get credentials.",
+      "DOMAIN_AU_API_KEY not configured. " +
+      "Get your API key from https://developer.domain.com.au/ (project → credentials).",
     );
   }
 
-  // ── Step 1: OAuth2 client credentials token ───────────────────────────────
-  // Domain.com.au requires Basic Auth (base64 clientId:secret), not body params
-  const basicAuth  = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-  const tokenCtrl  = new AbortController();
-  const tokenTimer = setTimeout(() => tokenCtrl.abort(), 15_000);
-  let accessToken: string;
-  try {
-    const tokenRes = await fetch("https://auth.domain.com.au/v1/connect/token", {
-      method:  "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization:  `Basic ${basicAuth}`,
-      },
-      body:    new URLSearchParams({
-        grant_type: "client_credentials",
-        scope:      "api_listings_read",
-      }).toString(),
-      signal: tokenCtrl.signal,
-    });
-    if (!tokenRes.ok) {
-      const body = await tokenRes.text().catch(() => "");
-      throw new Error(`Domain.com.au OAuth2 HTTP ${tokenRes.status}: ${body.slice(0, 200)}`);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const tokenData = await tokenRes.json() as any;
-    accessToken = String(tokenData.access_token ?? "");
-    if (!accessToken) throw new Error("Domain.com.au OAuth2: no access_token in response");
-  } finally {
-    clearTimeout(tokenTimer);
-  }
-
-  // ── Step 2: Search residential listings ───────────────────────────────────
+  // ── Search residential listings via API Key ────────────────────────────────
   const isMelbourne = target.url.includes("melbourne");
   const suburb      = isMelbourne ? "Melbourne" : "Sydney";
   const state       = isMelbourne ? "VIC"       : "NSW";
@@ -671,7 +639,7 @@ async function scrapeDomainAuViaApi(target: SearchTarget): Promise<ParsedPropert
       {
         method:  "POST",
         headers: {
-          Authorization:  `Bearer ${accessToken}`,
+          "X-API-Key":    apiKey,
           "Content-Type": "application/json",
           Accept:         "application/json",
         },

@@ -1,13 +1,13 @@
 name: Scrape Domain.com.au
 
 # Runs from GitHub Actions (Azure IP space) to bypass the Akamai Bot Manager
-# that blocks Vercel's Lambda egress addresses from auth.domain.com.au.
+# that blocks Vercel's Lambda egress addresses.
+# Uses API Key authentication — no OAuth2 token step needed.
 #
 # Required GitHub repo secrets (Settings → Secrets → Actions):
 #   NEXT_PUBLIC_SUPABASE_URL    — Supabase project URL
 #   SUPABASE_SERVICE_ROLE_KEY   — Supabase service role key
-#   DOMAIN_AU_CLIENT_ID         — from https://developer.domain.com.au/
-#   DOMAIN_AU_CLIENT_SECRET     — from https://developer.domain.com.au/
+#   DOMAIN_AU_API_KEY           — from https://developer.domain.com.au/ (project credentials)
 
 on:
   schedule:
@@ -37,6 +37,5 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL:  ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          DOMAIN_AU_CLIENT_ID:       ${{ secrets.DOMAIN_AU_CLIENT_ID }}
-          DOMAIN_AU_CLIENT_SECRET:   ${{ secrets.DOMAIN_AU_CLIENT_SECRET }}
+          DOMAIN_AU_API_KEY:         ${{ secrets.DOMAIN_AU_API_KEY }}
         run: npx tsx scripts/scrape-domain-au.ts
