@@ -30,7 +30,7 @@ export default async function ListingsPage() {
         size_sqm, planning_status,
         gross_yield_pct, gdv_margin_pct, annual_income,
         description, date_listed, status, featured,
-        postcode,
+        postcode, bedrooms,
         municipalities(
           name, slug, country,
           opportunity_score, growth_score, risk_score
@@ -60,38 +60,18 @@ export default async function ListingsPage() {
         </nav>
 
         {/* Page header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
             <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
-            <span className="text-[10px] font-bold text-pa-green uppercase tracking-widest">Live Deal Flow</span>
+            <span className="text-[10px] font-mono font-bold text-pa-green uppercase tracking-widest">Live Deal Flow</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-3">
-            Investment Opportunities
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-2">
+            Investment Listings Terminal
           </h1>
-          <p className="text-sm text-muted-foreground max-w-2xl mb-6">
-            Every listing is scored against the Prime Atlas conviction framework — market ROI index, growth trajectory
-            and risk profile. Select your investor profile to see deals relevant to your strategy.
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            {total} active listings across {countries} markets · Each scored against the Prime Atlas conviction
+            framework — ROI index, growth trajectory, and risk profile.
           </p>
-
-          {/* Stat strip */}
-          <div className="flex flex-wrap gap-6">
-            <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">{total}</p>
-              <p className="text-xs text-muted-foreground">Active listings</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">{countries}</p>
-              <p className="text-xs text-muted-foreground">Countries</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">{featured}</p>
-              <p className="text-xs text-muted-foreground">Featured deals</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">100%</p>
-              <p className="text-xs text-muted-foreground">Research-scored</p>
-            </div>
-          </div>
         </div>
 
         {/* Explorer */}

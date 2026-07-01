@@ -1,3 +1,4 @@
+import React from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -50,6 +51,256 @@ const COUNTRY_FLAG: Record<string, string> = {
   "Canada":         "🇨🇦",
   "Spain":          "🇪🇸",
 };
+
+/* ─── investment thesis helpers ────────────────────────────────── */
+
+type ListingForThesis = {
+  asking_price: number;
+  currency_code: string;
+  gross_yield_pct?: number | null;
+  annual_income?: number | null;
+  listing_type?: string;
+};
+
+type MuniForThesis = {
+  name: string;
+  country: string;
+  opportunity_score: number;
+  growth_score: number;
+  risk_score: number;
+  population?: number;
+} | null;
+
+function deriveCapRate(l: ListingForThesis): number | null {
+  if (l.gross_yield_pct) return Number(l.gross_yield_pct);
+  if (l.annual_income && l.asking_price)
+    return Math.round(((l.annual_income / (l.asking_price / 100)) * 100) * 10) / 10;
+  return null;
+}
+
+/** Rough IRR estimate: simplified Gordon Growth Model proxy */
+function calcIRR(capRate: number, holdYears: number, annualAppreciation = 0.03): number {
+  // IRR ≈ cap rate + (exit premium from appreciation) / hold years
+  const exitPremium = (Math.pow(1 + annualAppreciation, holdYears) - 1);
+  return Math.round((capRate + (exitPremium * 100) / holdYears) * 10) / 10;
+}
+
+/** Cash-on-cash at 70% LTV, 5% interest rate */
+function calcCashOnCash(capRate: number, ltv = 0.70, interestRate = 0.05): number {
+  const equityFraction = 1 - ltv;
+  const debtServicePct = ltv * interestRate * 100; // as % of total value
+  const netCashFlow = capRate - debtServicePct;
+  return Math.round((netCashFlow / (equityFraction * 100)) * 1000) / 10;
+}
+
+function MetricCell({ label, value, sub, positive }: {
+  label: string; value: string; sub?: string; positive?: boolean | null;
+}) {
+  const colorClass =
+    positive === true ? "text-pa-green" :
+    positive === false ? "text-red-400" :
+    "text-foreground";
+
+  return (
+    <div className="text-center px-3 py-3 border-r border-border/40 last:border-r-0">
+      <p className={`text-base font-bold font-mono leading-none ${colorClass}`}>{value}</p>
+      {sub && <p className="text-[9px] text-muted-foreground mt-0.5">{sub}</p>}
+      <p className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest mt-1">{label}</p>
+    </div>
+  );
+}
+
+function ThesisBlock({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-border rounded-lg p-4 bg-secondary/10">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-sm">{icon}</span>
+        <span className="text-[9px] font-mono font-bold text-muted-foreground/60 uppercase tracking-widest">
+          {title}
+        </span>
+      </div>
+      <div className="text-xs text-muted-foreground leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+function InvestmentThesis({
+  listing,
+  muni,
+}: {
+  listing: ListingForThesis;
+  muni: MuniForThesis;
+}) {
+  const capRate = deriveCapRate(listing);
+  const price   = listing.asking_price / 100;
+  const sym     = { GBP: "£", USD: "$", EUR: "€", AUD: "A$", CAD: "C$" }[listing.currency_code] ?? "$";
+
+  // Exit projections — uses 3% annual appreciation baseline
+  const exits = [3, 5, 10].map(yrs => {
+    const irr = capRate ? calcIRR(capRate, yrs) : null;
+    const coc = capRate ? calcCashOnCash(capRate) : null;
+    const exitVal = price * Math.pow(1.03, yrs);
+    const exitFmt =
+      exitVal >= 1_000_000 ? `${sym}${(exitVal / 1_000_000).toFixed(2)}M` :
+      `${sym}${(exitVal / 1_000).toFixed(0)}K`;
+    return { yrs, irr, coc, exitFmt };
+  });
+
+  // Macro signals from muni scores
+  const macroSentiment =
+    !muni ? "neutral" :
+    muni.opportunity_score >= 70 && muni.growth_score >= 65 ? "bullish" :
+    muni.risk_score >= 65 ? "bearish" :
+    "cautious";
+
+  const macroLabel = { bullish: "BULLISH", bearish: "BEARISH", cautious: "CAUTIOUS", neutral: "NEUTRAL" }[macroSentiment];
+  const macroColor = { bullish: "text-pa-green border-pa-green/30 bg-pa-green/5",
+                        bearish: "text-red-400 border-red-400/30 bg-red-400/5",
+                        cautious: "text-yellow-400 border-yellow-400/30 bg-yellow-400/5",
+                        neutral: "text-muted-foreground border-border bg-secondary/20" }[macroSentiment];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-[10px] font-mono font-bold text-muted-foreground/60 uppercase tracking-widest">
+          Investment Thesis
+        </h2>
+        {muni && (
+          <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${macroColor}`}>
+            {macroLabel}
+          </span>
+        )}
+      </div>
+
+      {/* Macro + Micro outlook */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ThesisBlock icon="🌍" title="Macro Outlook">
+          {muni ? (
+            <>
+              <strong className="text-foreground">{muni.name}, {muni.country}</strong> scores{" "}
+              <span className={muni.opportunity_score >= 70 ? "text-pa-green font-semibold" : "text-yellow-400 font-semibold"}>
+                {muni.opportunity_score}/100
+              </span>{" "}
+              on Prime Atlas ROI index with a growth score of{" "}
+              <span className={muni.growth_score >= 65 ? "text-pa-green font-semibold" : "font-semibold"}>
+                {muni.growth_score}
+              </span>.{" "}
+              {muni.risk_score <= 40
+                ? "Risk profile is low — macro tailwinds support long-term capital preservation."
+                : muni.risk_score <= 60
+                ? "Moderate market risk. Defensible position with selective asset selection."
+                : "Elevated macro risk. Stress-test exit assumptions before commitment."}
+            </>
+          ) : (
+            "Macro data not yet indexed for this market. Full conviction scoring available for UK and US markets."
+          )}
+        </ThesisBlock>
+
+        <ThesisBlock icon="🏘️" title="Micro Outlook">
+          {listing.listing_type === "residential" || !listing.listing_type ? (
+            <>
+              Residential asset{capRate ? ` yielding ${capRate}% gross` : ""}. Rental demand fundamentals
+              and local supply constraints drive micro-level conviction.{" "}
+              {capRate && capRate >= 6
+                ? "Yield above 6% indicates strong cashflow from day one."
+                : capRate && capRate >= 4
+                ? "Mid-tier yield — value-add or rent growth required for IRR targets."
+                : "Below-average yield. Thesis depends primarily on capital appreciation."}
+            </>
+          ) : listing.listing_type === "commercial" ? (
+            <>
+              Commercial asset with institutional-grade income potential.{" "}
+              {capRate ? `Cap rate of ${capRate}% ` : ""}
+              Vacancy risk and lease length are the primary micro variables.
+              Stress-test against a 12-month void period before underwriting.
+            </>
+          ) : listing.listing_type === "development-site" || listing.listing_type === "land" ? (
+            <>
+              Development play — returns are GDV-driven rather than income-based.
+              Key micro variables: planning consent risk, build cost inflation, and absorption rate.
+              {listing.listing_type === "land"
+                ? " Unconsented land requires a planning buffer of 18–36 months in underwriting."
+                : " Site with planning exposure — model three planning scenarios before committing."}
+            </>
+          ) : (
+            <>
+              {listing.listing_type.replace(/-/g, " ")} asset class.{" "}
+              {capRate ? `Current gross yield: ${capRate}%.` : ""}
+              Micro performance driven by location quality, covenant strength, and lease terms.
+            </>
+          )}
+        </ThesisBlock>
+      </div>
+
+      {/* Predictive Exit Architecture */}
+      <div className="border border-border/60 rounded-lg overflow-hidden">
+        <div className="px-4 py-2.5 bg-secondary/30 border-b border-border/60 flex items-center justify-between">
+          <span className="text-[9px] font-mono font-bold text-muted-foreground/60 uppercase tracking-widest">
+            Predictive Exit Architecture
+          </span>
+          <span className="text-[9px] font-mono text-muted-foreground/40">
+            70% LTV · 5% IR · 3% p.a. appreciation
+          </span>
+        </div>
+
+        {capRate ? (
+          <div className="grid grid-cols-3 divide-x divide-border/40">
+            {exits.map(({ yrs, irr, coc, exitFmt }) => (
+              <div key={yrs} className="px-3 py-4 text-center">
+                <p className="text-[9px] font-mono font-bold text-muted-foreground/50 uppercase tracking-widest mb-3">
+                  {yrs}-YEAR EXIT
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <p className={`text-base font-bold font-mono leading-none ${irr && irr >= 12 ? "text-pa-green" : irr && irr >= 8 ? "text-yellow-400" : "text-red-400"}`}>
+                      {irr ? `+${irr}%` : "—"}
+                    </p>
+                    <p className="text-[8px] font-mono text-muted-foreground/40 uppercase tracking-wider mt-0.5">
+                      IRR (EST.)
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-sm font-bold font-mono leading-none ${coc && coc >= 8 ? "text-pa-green" : coc && coc >= 4 ? "text-yellow-400" : "text-red-400"}`}>
+                      {coc != null ? `${coc > 0 ? "+" : ""}${coc}%` : "—"}
+                    </p>
+                    <p className="text-[8px] font-mono text-muted-foreground/40 uppercase tracking-wider mt-0.5">
+                      CASH-ON-CASH
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold font-mono text-foreground/70 leading-none">
+                      {exitFmt}
+                    </p>
+                    <p className="text-[8px] font-mono text-muted-foreground/40 uppercase tracking-wider mt-0.5">
+                      EXIT VALUE
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="px-4 py-8 text-center">
+            <p className="text-[11px] font-mono text-muted-foreground/50">
+              YIELD DATA UNAVAILABLE — EXIT PROJECTIONS REQUIRE CAP RATE INPUT
+            </p>
+            <p className="text-[10px] text-muted-foreground/30 mt-1">
+              Contact agent for rental income details to unlock projections
+            </p>
+          </div>
+        )}
+
+        <div className="px-4 py-2 bg-secondary/10 border-t border-border/40">
+          <p className="text-[8px] font-mono text-muted-foreground/30">
+            DISCLAIMER: Projections are illustrative estimates only. Not financial advice.
+            Actual returns depend on market conditions, financing terms, and exit timing.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── metadata ─────────────────────────────────────────────────── */
 
@@ -294,6 +545,9 @@ export default async function ListingDetailPage(
                 )}
               </p>
             )}
+
+            {/* ── Investment Thesis ── */}
+            <InvestmentThesis listing={listing} muni={muni} />
 
             {/* Comparables panel — live LR for UK, seeded JSONB for non-UK */}
             <ComparablesPanel
