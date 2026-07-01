@@ -69,9 +69,9 @@ export function NewsletterSignup({ source = "footer", className, compact = false
   return (
     <div className={cn("border border-border rounded-xl bg-card p-6", className)}>
       <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2">Weekly intelligence</p>
-      <h3 className="font-bold text-lg mb-1">The Spain Opportunity Digest</h3>
+      <h3 className="font-bold text-lg mb-1">The Prime Atlas Intelligence Digest</h3>
       <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-        Ranked opportunities, live signals, and AI-generated investment theses — delivered every Monday morning.
+        Live deal flow, conviction scores, and investment theses across USA + UK — delivered every Monday morning.
       </p>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input

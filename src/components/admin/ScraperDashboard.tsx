@@ -32,7 +32,7 @@ interface Props {
 
 const ALL_PROVIDERS = [
   "zoopla", "rightmove", "onthemarket",
-  "zillow", "realtor_ca", "realestate_au", "idealista",
+  "zillow",
 ];
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -40,9 +40,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   rightmove:     "Rightmove",
   onthemarket:   "OnTheMarket",
   zillow:        "Zillow",
-  realtor_ca:    "Realtor.ca",
-  realestate_au: "REA Group",
-  idealista:     "Idealista",
 };
 
 const PROVIDER_FLAG: Record<string, string> = {
@@ -50,9 +47,6 @@ const PROVIDER_FLAG: Record<string, string> = {
   rightmove:     "🇬🇧",
   onthemarket:   "🇬🇧",
   zillow:        "🇺🇸",
-  realtor_ca:    "🇨🇦",
-  realestate_au: "🇦🇺",
-  idealista:     "🇪🇸",
 };
 
 const STATUS_COLOR: Record<ExitStatus, string> = {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Market Feed | Prime Atlas",
   description:
-    "Live property listings scraped daily from Zillow across 30 US cities — New York, Los Angeles, Miami, San Francisco, Chicago and more.",
+    "Live property intelligence feed — residential and commercial listings across USA and UK markets, refreshed daily. Powered by Prime Atlas.",
 };
 
 export default async function MarketFeedPage() {
@@ -58,10 +58,10 @@ export default async function MarketFeedPage() {
             <span className="text-[10px] font-bold text-pa-green uppercase tracking-widest">Live Market Data</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-3">
-            US Property Market Feed
+            Market Intelligence Feed
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl mb-6">
-            Real listings scraped daily from Zillow across 30 major US cities. Updated every morning — filter by state, type and price.
+            Live residential and commercial listings across USA and UK markets — refreshed daily. Filter by market, type and price.
           </p>
 
           {/* Stat strip */}
@@ -79,8 +79,8 @@ export default async function MarketFeedPage() {
               <p className="text-xs text-muted-foreground">For rent</p>
             </div>
             <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">30</p>
-              <p className="text-xs text-muted-foreground">Cities</p>
+              <p className="text-2xl font-bold font-mono text-pa-green">2</p>
+              <p className="text-xs text-muted-foreground">Markets</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">{lastSync}</p>
@@ -88,13 +88,11 @@ export default async function MarketFeedPage() {
             </div>
           </div>
 
-          {/* Source badge */}
+          {/* Data freshness badge — no source branding */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground border border-border rounded px-2 py-0.5">
-              Source: Zillow
-            </span>
+            <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
             <span className="text-[9px] text-muted-foreground">
-              · Auto-refreshed daily 3am UTC · {total.toLocaleString()} rows in Supabase
+              Auto-refreshed daily · {total.toLocaleString()} active listings · USA + UK
             </span>
           </div>
         </div>

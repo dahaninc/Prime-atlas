@@ -72,13 +72,13 @@ export async function POST(req: NextRequest) {
   <tr><td style="padding-bottom:20px;">
     <h1 style="margin:0;font-size:22px;font-weight:700;color:#E8EAF0;">You're in.</h1>
     <p style="margin:12px 0 0;font-size:14px;color:#6B7A99;line-height:1.6;">
-      You'll receive our weekly intelligence digest — ranked opportunities, live signals,
-      and AI-generated investment theses for municipalities across Spain.
+      You'll receive our weekly intelligence digest — live deal flow, conviction scores,
+      and AI-generated investment theses across USA and UK property markets.
     </p>
   </td></tr>
   <tr><td style="padding-bottom:28px;">
-    <a href="${appUrl}/rankings" style="display:inline-block;background:#00E5A0;color:#0A0E1A;font-size:14px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
-      Explore the Spain Opportunity Index →
+    <a href="${appUrl}/listings" style="display:inline-block;background:#00E5A0;color:#0A0E1A;font-size:14px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
+      Explore the Listings Terminal →
     </a>
   </td></tr>
   <tr><td style="border-top:1px solid #1E2A45;padding-top:20px;">

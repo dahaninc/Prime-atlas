@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 /* ─── helpers ─────────────────────────────────────────────────── */
 
 const CURRENCY_SYMBOL: Record<string, string> = {
-  GBP: "£", USD: "$", EUR: "€", AUD: "A$", CAD: "C$",
+  GBP: "£", USD: "$",
 };
 
 function formatPrice(pence: number, currency: string): string {
@@ -47,9 +47,6 @@ const PLANNING_STATUS_CONFIG: Record<string, { label: string; classes: string }>
 const COUNTRY_FLAG: Record<string, string> = {
   "United Kingdom": "🇬🇧",
   "United States":  "🇺🇸",
-  "Australia":      "🇦🇺",
-  "Canada":         "🇨🇦",
-  "Spain":          "🇪🇸",
 };
 
 /* ─── investment thesis helpers ────────────────────────────────── */
@@ -133,7 +130,7 @@ function InvestmentThesis({
 }) {
   const capRate = deriveCapRate(listing);
   const price   = listing.asking_price / 100;
-  const sym     = { GBP: "£", USD: "$", EUR: "€", AUD: "A$", CAD: "C$" }[listing.currency_code] ?? "$";
+  const sym     = { GBP: "£", USD: "$" }[listing.currency_code as "GBP" | "USD"] ?? "$";
 
   // Exit projections — uses 3% annual appreciation baseline
   const exits = [3, 5, 10].map(yrs => {
@@ -333,11 +330,10 @@ export default async function ListingDetailPage(
   const { id } = await params;
   const supabase = await createClient();
 
-  const [
-    { data: { user } },
-    { data: listing },
-  ] = await Promise.all([
-    supabase.auth.getUser(),
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Fetch listing and subscription tier in parallel
+  const [{ data: listing }, { data: profile }] = await Promise.all([
     supabase
       .from("listings")
       .select(`
@@ -351,9 +347,16 @@ export default async function ListingDetailPage(
       .eq("id", id)
       .in("status", ["active", "under_offer"])
       .single(),
+    user
+      ? supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
   if (!listing) notFound();
+
+  // Member = any paid subscription tier
+  const subscriptionTier = (profile as { subscription_tier?: string } | null)?.subscription_tier ?? "free";
+  const isMember = ["explorer", "analyst", "institutional"].includes(subscriptionTier);
 
   type ComparableItem = {
     address: string; price: number; date: string; type?: string;
@@ -536,15 +539,7 @@ export default async function ListingDetailPage(
               </div>
             )}
 
-            {/* Agent info (deemphasised — no external link to listing) */}
-            {listing.agent_name && (
-              <p className="text-xs text-muted-foreground">
-                Listed by {listing.agent_name}
-                {listing.date_listed && (
-                  <> · {new Date(listing.date_listed).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</>
-                )}
-              </p>
-            )}
+            {/* Agent info intentionally hidden — contact details are member-only */}
 
             {/* ── Investment Thesis ── */}
             <InvestmentThesis listing={listing} muni={muni} />
@@ -612,11 +607,13 @@ export default async function ListingDetailPage(
               </div>
             )}
 
-            {/* Inquire form */}
+            {/* Contact — gated behind membership */}
             <InquireForm
               listingTitle={listing.title}
               listingId={listing.id}
               contactEmail={listing.contact_email}
+              isMember={isMember}
+              isLoggedIn={!!user}
             />
 
             {/* Back to listings */}

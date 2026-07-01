@@ -161,39 +161,6 @@ const APPS: MarketplaceApp[] = [
     iconBg: "#00DEB6",
   },
   {
-    id: "idealista-connect",
-    slug: "idealista-connect",
-    name: "Idealista Connect",
-    tagline: "Spain · Portugal · Italy · primary market data",
-    category: "Data Sources",
-    markets: ["ES"],
-    description:
-      "Live property data from Idealista covering Spain, Portugal, and Italy. Feeds Spanish market scores with price-per-sqm trend data.",
-    longDescription:
-      "Idealista Connect pulls listing data, average price-per-sqm, and rental yield estimates across Spanish provinces and municipalities. The data feeds directly into Prime Atlas's opportunity scoring engine, improving the quality of the Spain Opportunity Index. Authenticated API access with rotating sessions.",
-    rating: 4.3,
-    ratingCount: 298,
-    installs: 1540,
-    version: "1.0.2",
-    tags: ["Spain", "EU", "Listings", "Yield"],
-    featured: false,
-    price: "Pro",
-    requiredTier: "pro",
-    metrics: { uptime: 96.1, coverage: 78, latency: "< 6s" },
-    steps: [
-      "Upgrade to Pro to enable Idealista Connect.",
-      "Go to Settings → Integrations → Idealista Connect.",
-      "Select provinces (Catalonia, Andalusia, Madrid, Valencia).",
-      "Data syncs nightly — view under Market Feed → Spain.",
-    ],
-    changelog: [
-      { version: "1.0.2", date: "Jun 2026", notes: "Timing stability improvements" },
-      { version: "1.0.0", date: "Feb 2026", notes: "Spain launch" },
-    ],
-    icon: "I",
-    iconBg: "#E02D3C",
-  },
-  {
     id: "ic-memo-ai",
     slug: "ic-memo-ai",
     name: "IC Memo AI",
@@ -436,7 +403,7 @@ const APPS: MarketplaceApp[] = [
     description:
       "Export any filtered Deal Board view, ranking table, or listings set as a clean, structured CSV. No formatting cruft.",
     longDescription:
-      "CSV Export adds a download button to Deal Board, Rankings, and Market Feed pages. Exports honour your current filters — so exporting from 'Spain, score > 70' produces exactly that dataset. Columns match the displayed table with consistent naming. Pro users get enriched exports including all score sub-components.",
+      "CSV Export adds a download button to Deal Board, Listings Terminal, and Market Feed pages. Exports honour your current filters — so exporting from 'UK, score > 70' produces exactly that dataset. Columns match the displayed table with consistent naming. Analyst users get enriched exports including all score sub-components.",
     rating: 4.5,
     ratingCount: 780,
     installs: 4320,

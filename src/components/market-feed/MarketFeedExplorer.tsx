@@ -22,7 +22,23 @@ interface Props { properties: ScrapedProperty[] }
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 
-const SYM: Record<string, string> = { USD: "$", GBP: "£", EUR: "€", AUD: "A$", CAD: "C$" };
+const SYM: Record<string, string> = { USD: "$", GBP: "£" };
+
+/** GBP = UK, everything else = US */
+function getCountry(currency: string): "UK" | "US" {
+  return currency === "GBP" ? "UK" : "US";
+}
+
+/** Extract readable UK region from address */
+function getUKRegion(address: string | null): string {
+  if (!address) return "UK";
+  const parts = address.split(",").map(p => p.trim());
+  if (parts.length >= 2) {
+    const candidate = parts[parts.length - 2];
+    if (!candidate.match(/^[A-Z]{1,2}\d/)) return candidate;
+  }
+  return "UK";
+}
 
 function fmtPrice(cents: number, currency: string): string {
   const s = SYM[currency] ?? currency;
@@ -53,30 +69,40 @@ const STATES: Record<string, string> = {
 /* ─── component ─────────────────────────────────────────────────── */
 
 export function MarketFeedExplorer({ properties }: Props) {
-  const [typeFilter, setTypeFilter]   = useState<"all" | "sale" | "rent">("all");
-  const [stateFilter, setStateFilter] = useState("ALL");
-  const [sortBy, setSortBy]           = useState<"recent" | "price_asc" | "price_desc">("recent");
-  const [stateOpen, setStateOpen]     = useState(false);
-  const [sortOpen,  setSortOpen]      = useState(false);
+  const [typeFilter,   setTypeFilter]   = useState<"all" | "sale" | "rent">("all");
+  const [marketFilter, setMarketFilter] = useState<"ALL" | "USA" | "UK">("ALL");
+  const [stateFilter,  setStateFilter]  = useState("ALL");
+  const [sortBy,       setSortBy]       = useState<"recent" | "price_asc" | "price_desc">("recent");
+  const [stateOpen,    setStateOpen]    = useState(false);
+  const [sortOpen,     setSortOpen]     = useState(false);
 
   const closeState = useCallback(() => setStateOpen(false), []);
   const closeSort  = useCallback(() => setSortOpen(false),  []);
 
   const states = useMemo(() => {
-    const s = new Set(properties.map(p => getState(p.address)).filter(x => x !== "—"));
+    const s = new Set(
+      properties
+        .filter(p => getCountry(p.currency_code) === "US")
+        .map(p => getState(p.address))
+        .filter(x => x !== "—")
+    );
     return Array.from(s).sort();
   }, [properties]);
 
   const filtered = useMemo(() => {
     let list = properties;
+    if (marketFilter === "USA") list = list.filter(p => getCountry(p.currency_code) === "US");
+    if (marketFilter === "UK")  list = list.filter(p => getCountry(p.currency_code) === "UK");
     if (typeFilter !== "all")   list = list.filter(p => p.listing_type === typeFilter);
-    if (stateFilter !== "ALL")  list = list.filter(p => getState(p.address) === stateFilter);
+    if (stateFilter !== "ALL" && marketFilter !== "UK") {
+      list = list.filter(p => getState(p.address) === stateFilter);
+    }
     return [...list].sort((a, b) => {
       if (sortBy === "price_asc")  return (a.price ?? 0) - (b.price ?? 0);
       if (sortBy === "price_desc") return (b.price ?? 0) - (a.price ?? 0);
       return new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime();
     });
-  }, [properties, typeFilter, stateFilter, sortBy]);
+  }, [properties, typeFilter, marketFilter, stateFilter, sortBy]);
 
   /* ── pill factories ── */
   const typePill = (val: "all" | "sale" | "rent", label: string) => (
@@ -86,6 +112,20 @@ export function MarketFeedExplorer({ properties }: Props) {
       className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
         typeFilter === val
           ? "bg-[#00C805] text-black"
+          : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  const marketPill = (val: "ALL" | "USA" | "UK", label: string) => (
+    <button
+      key={val}
+      onClick={() => { setMarketFilter(val); setStateFilter("ALL"); }}
+      className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+        marketFilter === val
+          ? "bg-white text-black"
           : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
       }`}
     >
@@ -107,46 +147,55 @@ export function MarketFeedExplorer({ properties }: Props) {
 
   return (
     <div>
-      {/* ── Filter row ── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-6">
-
+      {/* ── Market + Type filter row ── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-3">
+        {marketPill("ALL", "All Markets")}
+        {marketPill("USA", "🇺🇸 USA")}
+        {marketPill("UK",  "🇬🇧 UK")}
+        <div className="shrink-0 w-px h-4 bg-[#27272A] mx-1" />
         {typePill("all",  "All")}
         {typePill("sale", "For Sale")}
         {typePill("rent", "For Rent")}
+      </div>
 
-        <div className="shrink-0 w-px h-4 bg-[#27272A] mx-1" />
+      {/* ── US State + Sort row ── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-6">
 
-        {/* Mobile state pill → drawer */}
-        <button
-          onClick={() => setStateOpen(true)}
-          className={`md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
-            stateFilter !== "ALL"
-              ? "bg-[#00C805] text-black"
-              : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
-          }`}
-        >
-          {stateFilter === "ALL" ? "Location" : (STATES[stateFilter] ?? stateFilter)}
-          <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        {/* Mobile state pill → drawer (US only) */}
+        {marketFilter !== "UK" && (
+          <button
+            onClick={() => setStateOpen(true)}
+            className={`md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+              stateFilter !== "ALL"
+                ? "bg-[#00C805] text-black"
+                : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+            }`}
+          >
+            {stateFilter === "ALL" ? "All States" : (STATES[stateFilter] ?? stateFilter)}
+            <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
 
-        {/* Desktop state pills */}
-        <div className="hidden md:flex flex-wrap gap-1.5">
-          {["ALL", ...states].map(s => (
-            <button
-              key={s}
-              onClick={() => setStateFilter(s)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
-                stateFilter === s
-                  ? "bg-[#00C805] text-black"
-                  : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
-              }`}
-            >
-              {s === "ALL" ? "All States" : (STATES[s] ?? s)}
-            </button>
-          ))}
-        </div>
+        {/* Desktop state pills (US only) */}
+        {marketFilter !== "UK" && (
+          <div className="hidden md:flex flex-wrap gap-1.5">
+            {["ALL", ...states].map(s => (
+              <button
+                key={s}
+                onClick={() => setStateFilter(s)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+                  stateFilter === s
+                    ? "bg-[#00C805] text-black"
+                    : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+                }`}
+              >
+                {s === "ALL" ? "All States" : (STATES[s] ?? s)}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Mobile sort pill → drawer */}
         <button
@@ -177,6 +226,7 @@ export function MarketFeedExplorer({ properties }: Props) {
       {/* ── Count line ── */}
       <p className="text-[10px] font-semibold text-[#A1A1AA] uppercase tracking-widest mb-5 tabular-nums">
         {filtered.length.toLocaleString()} listings
+        {marketFilter !== "ALL" && ` · ${marketFilter === "USA" ? "United States" : "United Kingdom"}`}
         {stateFilter !== "ALL" && ` · ${STATES[stateFilter] ?? stateFilter}`}
       </p>
 
@@ -187,59 +237,62 @@ export function MarketFeedExplorer({ properties }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map(p => (
             <div key={p.id} className="bg-[#18181B] rounded-2xl p-5 flex flex-col gap-4 hover:bg-[#27272A] transition-colors">
+              {(() => {
+                const country = getCountry(p.currency_code);
+                const stateCode = getState(p.address);
+                const locationLabel = country === "UK"
+                  ? getUKRegion(p.address)
+                  : stateCode !== "—" ? `${STATES[stateCode] ?? stateCode}, USA` : null;
+                return (
+                  <>
+                    {/* Row 1: badges + time */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                          p.listing_type === "sale"
+                            ? "text-[#00C805] bg-[#00C805]/10"
+                            : "text-blue-400 bg-blue-400/10"
+                        }`}>
+                          {p.listing_type === "sale" ? "For Sale" : "For Rent"}
+                        </span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-[#A1A1AA] bg-[#27272A]">
+                          {country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-[#A1A1AA]">{timeAgo(p.scraped_at)} ago</span>
+                    </div>
 
-              {/* Row 1: badge + time */}
-              <div className="flex items-center justify-between">
-                <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                  p.listing_type === "sale"
-                    ? "text-[#00C805] bg-[#00C805]/10"
-                    : "text-blue-400 bg-blue-400/10"
-                }`}>
-                  {p.listing_type === "sale" ? "For Sale" : "For Rent"}
-                </span>
-                <span className="text-[9px] text-[#A1A1AA]">{timeAgo(p.scraped_at)} ago</span>
-              </div>
+                    {/* Row 2: Price */}
+                    {p.price && (
+                      <p className="text-[28px] font-black text-white leading-none tabular-nums tracking-tight">
+                        {fmtPrice(p.price, p.currency_code)}
+                      </p>
+                    )}
 
-              {/* Row 2: Price — hero number */}
-              {p.price && (
-                <p className="text-[28px] font-black text-white leading-none tabular-nums tracking-tight">
-                  {fmtPrice(p.price, p.currency_code)}
-                </p>
-              )}
+                    {/* Row 3: Address */}
+                    <div>
+                      <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+                        {p.address ?? "Address unavailable"}
+                      </p>
+                      {locationLabel && (
+                        <p className="text-[10px] text-[#A1A1AA] mt-0.5 uppercase tracking-widest">
+                          {locationLabel}
+                        </p>
+                      )}
+                    </div>
 
-              {/* Row 3: Address */}
-              <div>
-                <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
-                  {p.address ?? "Address unavailable"}
-                </p>
-                {getState(p.address) !== "—" && (
-                  <p className="text-[10px] text-[#A1A1AA] mt-0.5 uppercase tracking-widest">
-                    {STATES[getState(p.address)] ?? getState(p.address)}, US
-                  </p>
-                )}
-              </div>
-
-              {/* Row 4: Specs */}
-              <div className="flex gap-4 text-xs text-[#A1A1AA]">
-                {p.bedrooms  != null && <span><span className="text-white font-bold">{p.bedrooms}</span> bd</span>}
-                {p.bathrooms != null && <span><span className="text-white font-bold">{p.bathrooms}</span> ba</span>}
-                {p.size_sqm  != null && <span><span className="text-white font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
-              </div>
-
-              {/* Row 5: CTA — Robinhood signature yellow-green */}
-              {p.listing_url && (
-                <a
-                  href={p.listing_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-[#CCFF00] hover:opacity-80 transition-opacity"
-                >
-                  View listing
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-              )}
+                    {/* Row 4: Specs */}
+                    <div className="flex gap-4 text-xs text-[#A1A1AA]">
+                      {p.bedrooms  != null && <span><span className="text-white font-bold">{p.bedrooms}</span> bd</span>}
+                      {p.bathrooms != null && <span><span className="text-white font-bold">{p.bathrooms}</span> ba</span>}
+                      {p.size_sqm  != null && <span><span className="text-white font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
+                      {p.property_type && (
+                        <span className="ml-auto capitalize text-[#52525B]">{p.property_type}</span>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           ))}
         </div>

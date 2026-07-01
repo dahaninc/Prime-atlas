@@ -95,67 +95,16 @@ const MARKET_TAPE: Record<string, MarketTapeData> = {
       { label: "Cap rate (prime)",   value: "4.8%"     },
     ],
   },
-  "Australia": {
-    tape: [
-      { label: "Approvals YoY",  value: "−12.4%", dir: "down" },
-      { label: "Starts (ann)",   value: "162K",   dir: "flat" },
-      { label: "Months supply",  value: "3.1",    dir: "flat" },
-      { label: "Cash rate",      value: "4.35%",  dir: "flat" },
-      { label: "Net migration",  value: "+518K",  dir: "up"   },
-    ],
-    source: "ABS Building Approvals · CoreLogic · Reserve Bank of Australia",
-    kpis: [
-      { label: "Median price",       value: "A$785K"   },
-      { label: "Rent growth YoY",    value: "+4.2%"    },
-      { label: "Undersupply index",  value: "75 / 100" },
-      { label: "Cap rate (resi)",    value: "5.0%"     },
-    ],
-  },
-  "Canada": {
-    tape: [
-      { label: "Starts YoY",     value: "−6.3%",  dir: "down" },
-      { label: "Starts (ann)",   value: "237K",   dir: "flat" },
-      { label: "Months supply",  value: "5.1",    dir: "flat" },
-      { label: "Overnight rate", value: "5.00%",  dir: "flat" },
-      { label: "Net migration",  value: "+485K",  dir: "up"   },
-    ],
-    source: "CMHC Housing Starts · CREA · Bank of Canada · Statistics Canada",
-    kpis: [
-      { label: "Avg price",          value: "C$720K"   },
-      { label: "Rent growth YoY",    value: "+2.8%"    },
-      { label: "Undersupply index",  value: "72 / 100" },
-      { label: "Cap rate (MF)",      value: "4.6%"     },
-    ],
-  },
-  "Spain": {
-    tape: [
-      { label: "Visas YoY",      value: "+4.8%",  dir: "up"   },
-      { label: "Completions",    value: "89K",    dir: "flat" },
-      { label: "Months supply",  value: "6.3",    dir: "flat" },
-      { label: "ECB rate",       value: "4.50%",  dir: "flat" },
-      { label: "Net migration",  value: "+286K",  dir: "up"   },
-    ],
-    source: "Ministerio de Fomento · INE · Banco de España · Notariado",
-    kpis: [
-      { label: "Avg price",          value: "€185K"    },
-      { label: "Rent growth YoY",    value: "+5.1%"    },
-      { label: "Undersupply index",  value: "62 / 100" },
-      { label: "Cap rate (prime)",   value: "4.2%"     },
-    ],
-  },
 };
 
 // Country defaults for pro-forma
 const COUNTRY_DEFAULTS: Record<string, { hardCost: number; avgPrice: number; sym: string }> = {
-  "United Kingdom": { hardCost: 195,  avgPrice: 350_000,  sym: "£"   },
-  "United States":  { hardCost: 185,  avgPrice: 415_000,  sym: "$"   },
-  "Australia":      { hardCost: 280,  avgPrice: 785_000,  sym: "A$"  },
-  "Canada":         { hardCost: 275,  avgPrice: 720_000,  sym: "C$"  },
-  "Spain":          { hardCost: 130,  avgPrice: 185_000,  sym: "€"   },
+  "United Kingdom": { hardCost: 195, avgPrice: 350_000, sym: "£" },
+  "United States":  { hardCost: 185, avgPrice: 415_000, sym: "$" },
 };
 
 function symFor(code: string) {
-  return code === "GBP" ? "£" : code === "USD" ? "$" : code === "AUD" ? "A$" : code === "CAD" ? "C$" : "€";
+  return code === "GBP" ? "£" : "$";
 }
 
 // Conviction checklist items
@@ -221,11 +170,8 @@ function Badge({ score }: { score: number }) {
 
 const FREE_LIMIT = 5;
 const COUNTRY_TABS = [
-  { label: "US",  name: "United States",  sub: "United States"  },
-  { label: "UK",  name: "United Kingdom", sub: "United Kingdom" },
-  { label: "AU",  name: "Australia",      sub: "Australia"      },
-  { label: "CA",  name: "Canada",         sub: "Canada"         },
-  { label: "ES",  name: "Spain",          sub: "Spain"          },
+  { label: "US", name: "United States",  sub: "United States"  },
+  { label: "UK", name: "United Kingdom", sub: "United Kingdom" },
 ];
 
 function gdvEst(row: DealRow): string {

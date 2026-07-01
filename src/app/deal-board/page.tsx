@@ -36,8 +36,7 @@ export default async function DealBoardPage() {
     "free" | "pro" | "investor" | "institutional";
 
   const isoToCountry: Record<string, string> = {
-    ES: "Spain", GB: "United Kingdom", US: "United States",
-    AU: "Australia", CA: "Canada",
+    GB: "United Kingdom", US: "United States",
   };
   const freshnessMap: Record<string, string> = {};
   for (const f of (freshnessRes.data ?? []) as Array<{ market_iso2: string; last_updated: string | null }>) {
@@ -47,7 +46,7 @@ export default async function DealBoardPage() {
 
   const rows = (municipalitiesRes.data ?? []).map((m) => ({
     ...m,
-    currency_code:   m.currency_code   ?? "EUR",
+    currency_code:   m.currency_code   ?? "USD",
     source_name:     m.source_name     ?? "manual",
     data_confidence: m.data_confidence ?? 0.5,
     retrieved_at:    m.retrieved_at    ?? null,

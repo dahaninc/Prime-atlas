@@ -5,9 +5,9 @@ import { Footer } from "@/components/layout/Footer";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "About prime-atlas | Spain Property Intelligence Platform",
+  title: "About Prime Atlas | USA + UK Investment Intelligence Platform",
   description:
-    "prime-atlas is an AI-powered property intelligence platform ranking Spain's highest-conviction investment municipalities. Built for investors, developers, and capital allocators.",
+    "Prime Atlas is an institutional-grade property intelligence platform covering USA and UK markets. Investment theses, conviction scores, and live deal flow — built for investors, developers, and capital allocators.",
 };
 
 export default async function AboutPage() {
@@ -24,9 +24,9 @@ export default async function AboutPage() {
           <span>About</span>
         </nav>
 
-        <h1 className="text-4xl font-bold mb-4">About prime-atlas</h1>
+        <h1 className="text-4xl font-bold mb-4">About Prime Atlas</h1>
         <p className="text-pa-green font-mono text-sm mb-10">
-          The Bloomberg for Future Investment Opportunities in Spain.
+          Institutional investment intelligence for USA + UK property markets.
         </p>
 
         <div className="prose prose-sm prose-invert max-w-none space-y-8 text-muted-foreground leading-relaxed">
@@ -34,40 +34,41 @@ export default async function AboutPage() {
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">What we do</h2>
             <p>
-              prime-atlas is a property intelligence platform that identifies, scores, and ranks Spain&apos;s
-              highest-conviction investment municipalities before the mainstream market recognises them.
-              We aggregate public data — infrastructure approvals, planning applications, population
-              trends, and economic signals — and process it through a proprietary scoring engine to
-              produce weekly-updated Opportunity Scores for every tracked municipality.
+              Prime Atlas is a cross-market property intelligence platform covering the United States and
+              United Kingdom. We aggregate live listing data, public planning records, infrastructure pipelines,
+              and economic indicators — and process them through a proprietary scoring engine to produce
+              conviction scores, macro/micro investment theses, and predictive exit projections for every
+              tracked market and asset.
             </p>
             <p className="mt-3">
-              The result is a ranked, real-time index of where in Spain capital is most likely to
-              appreciate over a 12–36 month investment horizon — before institutional capital
-              deployment drives prices to market rate.
+              The result is an institutional-grade terminal — similar to Mashvisor, CoStar, or Crexi — but
+              spanning both USA and UK markets from a single platform, at a price designed for active investors
+              rather than enterprise procurement budgets.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">The problem we solve</h2>
             <p>
-              Professional investors and property developers operating in Spain spend significant
-              resource identifying opportunities that are already public knowledge. By the time a
-              location appears in mainstream media, property portals, or sell-side research, the
+              Professional investors and developers operating across USA and UK markets spend significant
+              resource sourcing, underwriting, and positioning deals that are already priced into the
+              market. By the time an opportunity appears in mainstream media or on public portals, the
               alpha is gone.
             </p>
             <p className="mt-3">
-              prime-atlas inverts this dynamic. Our signal detection layer monitors planning
-              registers, infrastructure procurement notices, population data, and economic indicators
-              continuously — surfacing investment signals weeks or months before they reach the
-              market.
+              Prime Atlas inverts this dynamic. Our signal layer monitors planning registers, infrastructure
+              procurement notices, rental demand indices, and economic indicators continuously — surfacing
+              investment signals weeks or months before they reach the market. Every listing on Prime Atlas
+              arrives with a conviction score, macro outlook, micro outlook, and 3/5/10-year exit projection
+              already attached.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">How our scoring works</h2>
             <p>
-              Every municipality tracked by prime-atlas receives a weekly composite Opportunity Score
-              (0–100) derived from five weighted sub-scores:
+              Every market and asset tracked by Prime Atlas receives a composite Opportunity Score (0–100)
+              derived from five weighted sub-scores:
             </p>
             <ul className="mt-3 space-y-2 list-none pl-0">
               {[
@@ -75,7 +76,7 @@ export default async function AboutPage() {
                 ["Infrastructure Score (25%)", "Quantum and quality of approved and under-construction public infrastructure — roads, rail, ports, utilities."],
                 ["Development Score (25%)", "Planning application volume, permit approvals, and developer activity."],
                 ["Liquidity Score (15%)", "Transaction volume, price stability, and depth of buyer demand."],
-                ["Risk Score (10%)", "Inverted: lower risk municipalities score higher. Includes debt levels, employment concentration, and planning authority track record."],
+                ["Risk Score (10%)", "Inverted: lower risk markets score higher. Includes debt levels, employment concentration, and planning authority track record."],
               ].map(([label, desc]) => (
                 <li key={label} className="border-l-2 border-pa-green/30 pl-4">
                   <p className="text-foreground text-sm font-medium">{label}</p>
@@ -93,9 +94,9 @@ export default async function AboutPage() {
             <h2 className="text-lg font-semibold text-foreground mb-3">Who we serve</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               {[
-                { tier: "Free", who: "Individual investors, researchers, and property enthusiasts exploring Spain." },
-                { tier: "Pro", who: "Active investors and property professionals running live deal pipelines in Spain." },
-                { tier: "Institutional", who: "Funds, family offices, and developers deploying capital across multiple Spanish regions." },
+                { tier: "Explorer", who: "Individual investors and property enthusiasts exploring USA and UK markets. 10 contact reveals/month." },
+                { tier: "Analyst", who: "Active investors running live deal pipelines across both markets. Unlimited contacts and full analytics." },
+                { tier: "Institutional", who: "Funds, family offices, and developers deploying capital at scale. API access, export, and team seats." },
               ].map(({ tier, who }) => (
                 <div key={tier} className="border border-border rounded-xl p-4 bg-card">
                   <p className="text-pa-green font-mono text-xs font-semibold mb-2">{tier}</p>
@@ -139,8 +140,8 @@ export default async function AboutPage() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-4">
-          <Link href="/rankings" className="text-sm text-pa-green hover:underline">Spain Opportunity Index →</Link>
-          <Link href="/methodology" className="text-sm text-pa-green hover:underline">Methodology →</Link>
+          <Link href="/listings" className="text-sm text-pa-green hover:underline">Listings Terminal →</Link>
+          <Link href="/market-feed" className="text-sm text-pa-green hover:underline">Market Feed →</Link>
           <Link href="/pricing" className="text-sm text-pa-green hover:underline">Pricing →</Link>
           <Link href="/auth/signup" className="text-sm text-pa-green hover:underline">Get started free →</Link>
         </div>

@@ -81,14 +81,13 @@ export default async function ListingsPage() {
         <div className="mt-10 pt-8 border-t border-border">
           <p className="font-semibold text-sm mb-3">Browse by market</p>
           <div className="flex gap-3 flex-wrap">
-            <Link href="/deal-board"               className="text-xs text-pa-green hover:underline">Global Deal Board →</Link>
-            <Link href="/opportunities/london"     className="text-xs text-pa-green hover:underline">London →</Link>
-            <Link href="/opportunities/manchester" className="text-xs text-pa-green hover:underline">Manchester →</Link>
+            <Link href="/deal-board"                className="text-xs text-pa-green hover:underline">Deal Board →</Link>
+            <Link href="/opportunities/london"      className="text-xs text-pa-green hover:underline">London →</Link>
+            <Link href="/opportunities/manchester"  className="text-xs text-pa-green hover:underline">Manchester →</Link>
+            <Link href="/opportunities/birmingham"  className="text-xs text-pa-green hover:underline">Birmingham →</Link>
             <Link href="/opportunities/new-york-ny" className="text-xs text-pa-green hover:underline">New York →</Link>
-            <Link href="/opportunities/sydney-nsw"  className="text-xs text-pa-green hover:underline">Sydney →</Link>
-            <Link href="/opportunities/toronto-on"  className="text-xs text-pa-green hover:underline">Toronto →</Link>
-            <Link href="/opportunities/madrid"      className="text-xs text-pa-green hover:underline">Madrid →</Link>
-            <Link href="/opportunities/barcelona"   className="text-xs text-pa-green hover:underline">Barcelona →</Link>
+            <Link href="/opportunities/los-angeles-ca" className="text-xs text-pa-green hover:underline">Los Angeles →</Link>
+            <Link href="/opportunities/chicago-il"  className="text-xs text-pa-green hover:underline">Chicago →</Link>
           </div>
         </div>
 

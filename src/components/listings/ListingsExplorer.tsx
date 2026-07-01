@@ -34,15 +34,12 @@ export interface FullListing {
 /* ─── helpers ────────────────────────────────────────────────────── */
 
 const CURRENCY_SYMBOL: Record<string, string> = {
-  GBP: "£", USD: "$", EUR: "€", AUD: "A$", CAD: "C$",
+  GBP: "£", USD: "$",
 };
 
 const COUNTRY_FLAG: Record<string, string> = {
   "United Kingdom": "🇬🇧",
-  "United States": "🇺🇸",
-  "Australia": "🇦🇺",
-  "Canada": "🇨🇦",
-  "Spain": "🇪🇸",
+  "United States":  "🇺🇸",
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -434,7 +431,7 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
       {/* ── Footer ── */}
       <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-secondary/20">
         <p className="text-[9px] font-mono text-muted-foreground/30">
-          DATA: ZILLOW · RIGHTMOVE · ONTHEMARKET · REFRESHED DAILY
+          PRIME ATLAS INTELLIGENCE · USA + UK · REFRESHED DAILY
         </p>
         <a
           href="mailto:deals@prime-atlas.com?subject=Submit a listing"

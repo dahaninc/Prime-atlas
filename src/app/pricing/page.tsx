@@ -5,9 +5,9 @@ import { Footer } from "@/components/layout/Footer";
 import { PricingClient } from "./PricingClient";
 
 export const metadata: Metadata = {
-  title: "Pricing | prime-atlas — Spain Property Intelligence",
+  title: "Pricing | Prime Atlas — USA & UK Investment Intelligence",
   description:
-    "Free, Pro €149/mo, Investor €499/mo, Institutional. Find Tomorrow's Winners Before Everyone Else.",
+    "Explorer $29.99/mo · Analyst $69.99/mo · Institutional $89.99/mo. Cross-market real estate investment intelligence for USA and UK.",
 };
 
 export default async function PricingPage({

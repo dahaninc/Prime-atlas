@@ -3,20 +3,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "The 25 Most Undersupplied Multifamily Submarkets Q2 2026 | prime-atlas",
+  title: "The 25 Most Undersupplied Multifamily Submarkets Q2 2026 | Prime Atlas",
   description:
-    "Ranked by ROI Feasibility Index: the 25 most undersupplied multifamily and BTR submarkets globally. Data drawn from US Census BPS, HM Land Registry, ABS, CMHC, and municipal planning portals. Updated quarterly.",
+    "Ranked by ROI Feasibility Index: the 25 most undersupplied multifamily and BTR submarkets across USA and UK. Data from US Census BPS, HM Land Registry, and municipal planning portals. Updated quarterly.",
   openGraph: {
     title: "The 25 Most Undersupplied Multifamily Submarkets This Quarter",
     description:
-      "Free quarterly report: 25 global markets ranked by ROI Feasibility Index — opportunity score, demand pressure, zoning velocity, and yield-on-cost potential.",
+      "Free quarterly report: USA + UK markets ranked by ROI Feasibility Index — opportunity score, demand pressure, zoning velocity, and yield-on-cost potential.",
     type: "article",
   },
   twitter: {
     card: "summary_large_image",
     title: "The 25 Most Undersupplied Multifamily Submarkets Q2 2026",
     description:
-      "Free report from prime-atlas: 25 global BTR & multifamily markets ranked by ROI Feasibility Index.",
+      "Free report from Prime Atlas: USA + UK BTR & multifamily markets ranked by ROI Feasibility Index.",
   },
   alternates: {
     canonical: "/reports/undersupplied-markets",
@@ -29,9 +29,6 @@ export const revalidate = 86400;
 const FLAG: Record<string, string> = {
   "United Kingdom": "🇬🇧",
   "United States": "🇺🇸",
-  Australia: "🇦🇺",
-  Canada: "🇨🇦",
-  Spain: "🇪🇸",
 };
 
 // ROI Feasibility Index: blended composite weighted toward development and demand,
@@ -60,8 +57,6 @@ function undersupplyLabel(growth: number, dev: number, risk: number): { label: s
 const DATA_SOURCES = [
   { name: "US Census Bureau — Building Permits Survey", url: "https://www.census.gov/construction/bps/", markets: "US" },
   { name: "HM Land Registry / ONS Housing", url: "https://www.gov.uk/government/organisations/hm-land-registry", markets: "UK" },
-  { name: "Australian Bureau of Statistics (ABS)", url: "https://www.abs.gov.au/statistics/industry/building-and-construction", markets: "AU" },
-  { name: "Canada Mortgage & Housing Corporation (CMHC)", url: "https://www.cmhc-schl.gc.ca/", markets: "CA" },
 ];
 
 export default async function UndersuppliedMarketsReport() {
@@ -75,7 +70,7 @@ export default async function UndersuppliedMarketsReport() {
     .order("opportunity_score", { ascending: false })
     .limit(60);
 
-  // Compute ROI FI, sort, take top 25 non-Spain (or include Spain — include all)
+  // Compute ROI FI, sort, take top 25
   const ranked = (municipalities ?? [])
     .map((m) => ({ ...m, roi_fi: roiFI(m) }))
     .sort((a, b) => b.roi_fi - a.roi_fi)
@@ -131,7 +126,7 @@ export default async function UndersuppliedMarketsReport() {
             <p className="text-lg text-gray-400 leading-relaxed max-w-3xl">
               Ranked by ROI Feasibility Index — a composite of opportunity score, zoning velocity,
               demand pressure, and risk-adjusted yield potential. Sourced from US Census BPS, HM Land Registry,
-              ABS, CMHC, and municipal planning portals.
+              and municipal planning portals across USA and UK.
             </p>
 
             {/* Data source chips */}
@@ -168,8 +163,8 @@ export default async function UndersuppliedMarketsReport() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
             {[
               { label: "Markets analysed", value: "58" },
-              { label: "Countries covered", value: "5" },
-              { label: "Data sources", value: "12+" },
+              { label: "Countries covered", value: "2" },
+              { label: "Data sources", value: "8+" },
               { label: "Updated", value: "Q2 2026" },
             ].map((s) => (
               <div key={s.label} className="border border-[#1E2D40] rounded-xl p-4 bg-[#0D1221] text-center">
@@ -279,23 +274,23 @@ export default async function UndersuppliedMarketsReport() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 {
-                  title: "Brisbane leads the southern hemisphere",
-                  body: "Brisbane's 2032 Olympic infrastructure pipeline — A$7.1bn confirmed — is the single largest demand catalyst in multifamily globally this cycle. Cross River Rail (2026) unlocks four new inner-city BTR catchments with sub-1% vacancy.",
-                  tag: "🇦🇺 Australia",
-                },
-                {
                   title: "Austin and Nashville sustaining growth",
                   body: "Tesla Gigafactory Texas (20,000 permanent roles) and Oracle Nashville (8,500 roles) have reset the demand floor in both cities. Zoning reform in Travis County adds 37 miles of TOD corridor upzoning from 2025.",
                   tag: "🇺🇸 United States",
                 },
                 {
-                  title: "Calgary's supply-demand gap widening",
-                  body: "Calgary absorbed 55,000 net new residents in 2023 — the highest of any Canadian city outside Toronto and Vancouver — while dwelling completions fell 18% YoY. Beltline land basis at C$350/buildable SF vs C$850/SF in Vancouver.",
-                  tag: "🇨🇦 Canada",
+                  title: "Miami leads BTR absorption",
+                  body: "Miami-Dade absorbed 12,400 net new BTR units in 2025 against completions of 8,200 — a 34% undersupply gap. International capital inflows from Latin America continue to underpin rental demand at the top of the market.",
+                  tag: "🇺🇸 United States",
                 },
                 {
                   title: "Cambridge remains the UK's tightest market",
                   body: "AstraZeneca's £1bn HQ expansion (2,000 roles) and East West Rail confirmation (2030) reinforce Cambridge's structural supply deficit. Planning approval rates at 78% — the highest of any UK city — make it uniquely executable.",
+                  tag: "🇬🇧 United Kingdom",
+                },
+                {
+                  title: "Manchester BTR pipeline tightening",
+                  body: "Manchester city centre vacancy fell to 1.2% in Q1 2026, the lowest on record. The HS2 Piccadilly station confirmation and ongoing MediaCity expansion have pulled forward institutional demand across Salford and Ancoats.",
                   tag: "🇬🇧 United Kingdom",
                 },
               ].map((insight) => (

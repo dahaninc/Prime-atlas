@@ -51,10 +51,10 @@ export default async function TermsPage() {
             <h2 className="text-base font-semibold text-foreground mb-3">2. Service Description</h2>
             <p>
               prime-atlas provides an AI-assisted property intelligence platform that aggregates,
-              analyses, and presents publicly available data about Spanish municipalities, including
+              analyses, and presents data about USA and UK property markets, including live listings,
               infrastructure projects, planning applications, population trends, and economic
-              indicators. The Service produces algorithmic Opportunity Scores and AI-generated
-              investment summaries.
+              indicators. The Service produces algorithmic Opportunity Scores, conviction ratings, and
+              AI-generated investment theses.
             </p>
             <p className="mt-3 font-medium text-foreground">
               The Service is an information platform only. Nothing on the Service constitutes
@@ -102,20 +102,16 @@ export default async function TermsPage() {
             </p>
             <ul className="mt-3 space-y-2 list-disc list-inside">
               <li>
-                <strong className="text-foreground">Free tier:</strong> Access to public indexes
-                and municipality pages. No payment required.
+                <strong className="text-foreground">Explorer ($29.99/month):</strong> Access to the
+                listings terminal and market intelligence, with 10 contact reveals per month.
               </li>
               <li>
-                <strong className="text-foreground">Pro (€149/month):</strong> Includes Opportunity
-                Finder, live signals, AI theses, watchlists, and email alerts.
+                <strong className="text-foreground">Analyst ($69.99/month):</strong> Unlimited contact
+                reveals, full investment thesis analytics, macro/micro outlooks, and exit projections.
               </li>
               <li>
-                <strong className="text-foreground">Investor (€499/month):</strong> Full Pro
-                features plus advanced filtering, portfolio watchlists, and planning tracker.
-              </li>
-              <li>
-                <strong className="text-foreground">Institutional:</strong> Custom pricing.
-                Governed by a separate order form.
+                <strong className="text-foreground">Institutional ($89.99/month):</strong> All Analyst
+                features plus API access, data export, and 3 team seats.
               </li>
             </ul>
             <p className="mt-3">

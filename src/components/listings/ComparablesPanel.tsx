@@ -27,7 +27,7 @@ interface Props {
 /* ─── helpers ────────────────────────────────────────────────────── */
 
 const CURRENCY_SYMBOL: Record<string, string> = {
-  GBP: "£", USD: "$", EUR: "€", AUD: "A$", CAD: "C$",
+  GBP: "£", USD: "$",
 };
 
 function fmt(price: number, currency = "GBP") {

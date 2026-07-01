@@ -2,13 +2,13 @@
 
 /* ── City markers on the atlas globe ────────────────────────────── */
 const CITIES = [
-  { id: "lon", name: "London",   flag: "🇬🇧", score: 87, cx: 252, cy: 153,
+  { id: "lon", name: "London",       flag: "🇬🇧", score: 87, cx: 252, cy: 153,
     card: { side: "right", label: "↑ High conviction", labelColor: "#00C805" } },
-  { id: "nyc", name: "New York", flag: "🇺🇸", score: 83, cx: 138, cy: 182,
+  { id: "nyc", name: "New York",     flag: "🇺🇸", score: 83, cx: 138, cy: 182,
     card: { side: "left",  label: "↑ Growing fast",    labelColor: "#00C805" } },
-  { id: "syd", name: "Sydney",   flag: "🇦🇺", score: 71, cx: 418, cy: 338,
-    card: { side: "right", label: "→ Moderate",        labelColor: "#F5A623" } },
-  { id: "mad", name: "Madrid",   flag: "🇪🇸", score: 79, cx: 240, cy: 171,
+  { id: "man", name: "Manchester",   flag: "🇬🇧", score: 78, cx: 244, cy: 145,
+    card: { side: "left",  label: "↑ BTR pipeline",    labelColor: "#00C805" } },
+  { id: "mia", name: "Miami",        flag: "🇺🇸", score: 74, cx: 148, cy: 205,
     card: null },
 ] as const;
 

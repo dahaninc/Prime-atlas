@@ -3,15 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const FUND_SIZES = ["<€1M", "€1M–€5M", "€5M–€25M", "€25M–€100M", "€100M+"];
+const FUND_SIZES = ["<$1M", "$1M–$5M", "$5M–$25M", "$25M–$100M", "$100M+"];
 const TARGET_RETURNS = ["5–8% IRR", "8–12% IRR", "12–18% IRR", "18%+ IRR", "Income-focused"];
 const GEOGRAPHIES = [
-  "Costa Blanca (Alicante)",
-  "Valencia city",
-  "Costa del Sol (Málaga)",
-  "Barcelona & surrounds",
-  "Madrid & surrounds",
-  "All Spain",
+  "London & South East",
+  "UK Regions (North)",
+  "UK Regions (Midlands)",
+  "New York Metro",
+  "Miami & South Florida",
+  "Austin & Texas",
+  "USA — Open to all markets",
+  "UK — Open to all markets",
 ];
 
 const DEAL_TYPES = [
@@ -60,13 +62,13 @@ export function CapitalClient() {
         <div className="max-w-3xl">
           <p className="text-xs text-pa-green font-mono uppercase tracking-widest mb-4">prime-atlas Capital</p>
           <h1 className="text-5xl font-bold leading-tight mb-6">
-            Off-market Spain.<br />
+            Off-market USA + UK.<br />
             <span className="text-pa-green">Before the crowd arrives.</span>
           </h1>
           <p className="text-lg text-muted-foreground leading-relaxed mb-8">
-            prime-atlas Capital connects institutional and qualified investors with off-market opportunities
-            in Spain's highest-scoring municipalities — identified by our AI-powered intelligence platform
-            before the market catches on.
+            Prime Atlas Capital connects institutional and qualified investors with off-market opportunities
+            across the highest-scoring USA and UK markets — identified by our AI-powered intelligence platform
+            before capital deployment drives prices to market rate.
           </p>
           <div className="flex items-center gap-4">
             <a href="#enquiry"
@@ -85,8 +87,8 @@ export function CapitalClient() {
       <section className="border-y border-border bg-card">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
-            { value: "18+", label: "Municipalities scored" },
-            { value: "€2.4B", label: "Pipeline tracked" },
+            { value: "58+", label: "Markets scored" },
+            { value: "$4.2B", label: "Pipeline tracked" },
             { value: "91/100", label: "Top opportunity score" },
             { value: "24hr", label: "Signal latency" },
           ].map(({ value, label }) => (
@@ -101,7 +103,7 @@ export function CapitalClient() {
       {/* Deal types */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-16">
         <h2 className="text-2xl font-bold mb-2">Deal types we introduce</h2>
-        <p className="text-muted-foreground text-sm mb-8">Sourced from our proprietary signals network across Spain.</p>
+        <p className="text-muted-foreground text-sm mb-8">Sourced from our proprietary signals network across USA and UK markets.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {DEAL_TYPES.map((d) => (
             <div key={d.title} className="border border-border bg-card rounded-xl p-5">

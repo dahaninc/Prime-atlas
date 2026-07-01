@@ -4,9 +4,9 @@ import Link from "next/link";
 import { scoreColor } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Property Investment Opportunities | prime-atlas",
+  title: "Property Investment Opportunities | Prime Atlas",
   description:
-    "Real estate investment opportunities across the UK, US, Australia, and Canada — categorised by BTR, PBSA, Affordable Housing, Commercial, Industrial, and Mixed-use. Scored and sourced from official planning portals.",
+    "Real estate investment opportunities across the UK and USA — categorised by BTR, PBSA, Affordable Housing, Commercial, Industrial, and Mixed-use. Scored and sourced from official planning portals.",
 };
 
 export const dynamic = "force-dynamic";
@@ -25,9 +25,6 @@ const CATEGORIES = [
 const COUNTRY_FLAG: Record<string, string> = {
   "United Kingdom": "🇬🇧",
   "United States":  "🇺🇸",
-  "Australia":      "🇦🇺",
-  "Canada":         "🇨🇦",
-  "Spain":          "🇪🇸",
 };
 
 type PageProps = {
@@ -76,8 +73,8 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
           {category && category !== "All" ? `${category} Opportunities` : "All Investment Opportunities"}
         </h1>
         <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
-          Real estate investment opportunities across five countries, scored on a composite opportunity index.
-          Each opportunity links to the relevant government planning portal or official data source.
+          Real estate investment opportunities across the UK and USA, scored on the Prime Atlas conviction framework.
+          Each opportunity is enriched with macro/micro outlook and exit projections.
         </p>
       </div>
 
@@ -139,18 +136,10 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
                     ) : (
                       <p className="font-semibold text-sm">{opp.title}</p>
                     )}
-                    {/* Source */}
+                    {/* Source name only — no external URL */}
                     {opp.source_name && (
-                      <p className="mt-1.5 text-[10px] text-muted-foreground flex items-center gap-1">
-                        Source:{" "}
-                        {opp.source_url ? (
-                          <a href={opp.source_url} target="_blank" rel="noopener noreferrer"
-                            className="hover:text-pa-green underline decoration-dotted transition-colors">
-                            {opp.source_name} ↗
-                          </a>
-                        ) : (
-                          opp.source_name
-                        )}
+                      <p className="mt-1.5 text-[10px] text-muted-foreground">
+                        Data: {opp.source_name}
                       </p>
                     )}
                   </div>

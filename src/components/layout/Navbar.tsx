@@ -34,31 +34,6 @@ const MARKETS = [
       { name: "San Francisco", slug: "san-francisco-ca" },
     ],
   },
-  {
-    flag: "🇦🇺", label: "Australia", code: "AU",
-    cities: [
-      { name: "Sydney",    slug: "sydney-nsw"    },
-      { name: "Melbourne", slug: "melbourne-vic" },
-      { name: "Brisbane",  slug: "brisbane-qld"  },
-      { name: "Perth",     slug: "perth-wa"      },
-    ],
-  },
-  {
-    flag: "🇨🇦", label: "Canada", code: "CA",
-    cities: [
-      { name: "Toronto",   slug: "toronto-on"   },
-      { name: "Vancouver", slug: "vancouver-bc" },
-      { name: "Montreal",  slug: "montreal-qc"  },
-    ],
-  },
-  {
-    flag: "🇪🇸", label: "Spain", code: "ES",
-    cities: [
-      { name: "Madrid",    slug: "madrid"    },
-      { name: "Barcelona", slug: "barcelona" },
-      { name: "Valencia",  slug: "valencia"  },
-    ],
-  },
 ];
 
 const CATEGORIES = [

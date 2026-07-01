@@ -26,7 +26,7 @@ export default async function SignupPage() {
 
         {/* Value prop chips */}
         <div className="flex flex-wrap gap-2 justify-center mb-6">
-          {["Free forever", "No card required", "Spain Opportunity Index"].map((t) => (
+          {["Free forever", "No card required", "USA + UK Intelligence"].map((t) => (
             <span key={t} className="text-xs border border-border rounded-full px-3 py-1 text-muted-foreground">
               {t}
             </span>

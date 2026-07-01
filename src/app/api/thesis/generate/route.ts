@@ -70,9 +70,9 @@ export async function POST(request: Request) {
   }, weights);
 
   // Build the prompt
-  const systemPrompt = `You are prime-atlas's AI investment analyst — the engine behind "The Bloomberg for Future Investment Opportunities."
+  const systemPrompt = `You are Prime Atlas's AI investment analyst — institutional-grade property intelligence across USA and UK markets.
 
-Your role is to generate a concise, evidence-based investment thesis for a specific municipality in Spain. You write like a senior analyst at a capital-allocation firm: direct, data-led, no waffle.
+Your role is to generate a concise, evidence-based investment thesis for a specific market or municipality. You write like a senior analyst at a capital-allocation firm: direct, data-led, no waffle.
 
 Rules:
 - Never hedge with "it might" or "could potentially" — state convictions directly
@@ -82,7 +82,7 @@ Rules:
 - Never invent data. Only use what is in the context.
 - End with a one-line "Entry thesis:" in bold`;
 
-  const userPrompt = `Generate an investment thesis for ${municipality.name}, ${municipality.region}, Spain.
+  const userPrompt = `Generate an investment thesis for ${municipality.name}, ${municipality.region}, ${municipality.country ?? "United Kingdom"}.
 
 SCORES (0–100):
 - Opportunity Score (personalised): ${personalisedScore}/100
@@ -112,7 +112,7 @@ Risk: ${opportunity.risk_level}` : ""}
 
 INVESTOR CONTEXT:
 - Objective: ${context.objective ?? "mixed"}
-- Budget: ${context.budget_min ? `€${context.budget_min.toLocaleString()}` : "unspecified"}${context.budget_max ? ` – €${context.budget_max.toLocaleString()}` : ""}
+- Budget: ${context.budget_min ? `$${context.budget_min.toLocaleString()}` : "unspecified"}${context.budget_max ? ` – $${context.budget_max.toLocaleString()}` : ""}
 - Risk tolerance: ${context.risk_tolerance ?? "medium"}
 
 Write the investment thesis now:`;

@@ -1,15 +1,14 @@
 import Link from "next/link";
 
 const INDEXES = [
-  { href: "/rankings", label: "Spain Opportunity Index" },
-  { href: "/rankings/coastal", label: "Coastal Growth Index" },
-  { href: "/rankings/development", label: "Development Momentum Index" },
-  { href: "/rankings/infrastructure", label: "Infrastructure Impact Index" },
+  { href: "/listings", label: "Listings Terminal" },
+  { href: "/market-feed", label: "Market Feed" },
+  { href: "/deal-board", label: "Deal Board" },
+  { href: "/reports/undersupplied-markets", label: "Undersupplied Markets Report" },
 ];
 
 const PRODUCT = [
   { href: "/opportunities", label: "Opportunities" },
-  { href: "/signals", label: "Live Signals" },
   { href: "/pricing", label: "Pricing" },
 ];
 
@@ -27,14 +26,14 @@ export function Footer() {
         <div className="col-span-2 md:col-span-1">
           <span className="text-pa-green font-mono font-bold text-base tracking-tight">prime-atlas</span>
           <p className="text-muted-foreground text-xs mt-3 leading-relaxed max-w-xs">
-            The Bloomberg for Future Investment Opportunities. Ranked municipalities, AI-generated
-            investment theses, and real-time signals.
+            Institutional investment intelligence for USA + UK property markets. Live deal flow,
+            conviction scores, and exit projections — under one platform.
           </p>
         </div>
 
         {/* Indexes */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Indexes</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Platform</p>
           <ul className="space-y-2">
             {INDEXES.map(({ href, label }) => (
               <li key={href}>

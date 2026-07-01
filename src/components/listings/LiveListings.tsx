@@ -59,7 +59,7 @@ interface LiveListingsProps {
 /* ─────────────────────────── helpers ───────────────────────── */
 
 const CURRENCY_SYMBOL: Record<string, string> = {
-  GBP: "£", USD: "$", EUR: "€", AUD: "A$", CAD: "C$",
+  GBP: "£", USD: "$",
 };
 
 function formatPrice(pence: number, currency: string): string {
@@ -91,9 +91,6 @@ const PLANNING_STATUS_CONFIG: Record<string, { label: string; classes: string }>
 const COUNTRY_FLAG: Record<string, string> = {
   "United Kingdom": "🇬🇧",
   "United States":  "🇺🇸",
-  "Australia":      "🇦🇺",
-  "Canada":         "🇨🇦",
-  "Spain":          "🇪🇸",
 };
 
 /* ─────────────────────────── card ──────────────────────────── */
@@ -198,14 +195,10 @@ function ListingCard({ listing, market }: {
           </Link>
         </div>
 
-        {/* Agent */}
-        {listing.agent_name && (
+        {/* Date listed only — no agent name or external link */}
+        {listing.date_listed && (
           <p className="text-[10px] text-muted-foreground mb-3">
-            Listed by{" "}
-            {listing.agent_url
-              ? <a href={listing.agent_url} target="_blank" rel="noopener noreferrer" className="hover:text-pa-green transition-colors">{listing.agent_name}</a>
-              : listing.agent_name}
-            {listing.date_listed && ` · ${new Date(listing.date_listed).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+            Listed {new Date(listing.date_listed).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
           </p>
         )}
 

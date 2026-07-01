@@ -142,11 +142,8 @@ const WORKFLOW = [
 ];
 
 const DATA_SOURCES = [
-  { flag: "🇬🇧", label: "United Kingdom", sources: "HM Land Registry · ONS · NHBC · Homes England · GLA" },
-  { flag: "🇺🇸", label: "United States",  sources: "US Census BPS · NAR · HUD · NYC DoB · LA Planning" },
-  { flag: "🇦🇺", label: "Australia",       sources: "ABS Building Approvals · NSW Planning · Housing Australia" },
-  { flag: "🇨🇦", label: "Canada",          sources: "CMHC Housing Starts · CREA · BC Housing · Toronto Housing" },
-  { flag: "🇪🇸", label: "Spain",           sources: "Ministerio de Fomento · INE · Catastro · Comunidad de Madrid" },
+  { flag: "🇬🇧", label: "United Kingdom", sources: "HM Land Registry · ONS · NHBC · Homes England · GLA · Rightmove" },
+  { flag: "🇺🇸", label: "United States",  sources: "US Census BPS · NAR · HUD · NYC DoB · LA Planning · Zillow" },
 ];
 
 const CATEGORIES = [
@@ -186,9 +183,6 @@ export default async function HomePage() {
   const countryFlag: Record<string, string> = {
     "United Kingdom": "🇬🇧",
     "United States":  "🇺🇸",
-    "Australia":      "🇦🇺",
-    "Canada":         "🇨🇦",
-    "Spain":          "🇪🇸",
   };
 
   const signalTypeLabel: Record<string, string> = {
@@ -265,7 +259,7 @@ export default async function HomePage() {
 
               {/* Country strip */}
               <div className="flex items-center gap-3 mt-8 flex-wrap">
-                {["🇬🇧 UK", "🇺🇸 US", "🇦🇺 AU", "🇨🇦 CA", "🇪🇸 ES"].map(c => (
+                {["🇬🇧 UK", "🇺🇸 US"].map(c => (
                   <span key={c} className="text-xs text-black/40 font-medium">{c}</span>
                 ))}
               </div>
@@ -688,7 +682,7 @@ export default async function HomePage() {
               The 25 Most Undersupplied Multifamily Submarkets — Q2 2026
             </h2>
             <p className="text-sm text-[#A1A1AA] mb-6 leading-relaxed max-w-xl mx-auto">
-              Ranked by ROI Feasibility Index. Covers UK, US, Australia, and Canada.
+              Ranked by ROI Feasibility Index. Covers UK and US markets.
               Free, ungated, sourced from official data.
             </p>
             <Link
