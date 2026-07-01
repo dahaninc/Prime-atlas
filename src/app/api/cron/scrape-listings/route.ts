@@ -253,17 +253,10 @@ interface ProviderConfig {
   europeanPrice: boolean;
   renderJs:      boolean;
   /**
-   * When true, passes premium_proxy=true to ScrapeOps for this provider.
-   * Only enable for sites where standard residential proxies are insufficient
-   * (e.g. Rightmove, OnTheMarket). Leave false for SSR sites — premium proxies
-   * can be slower and cause 500s on some hosts.
-   */
-  premiumProxy?: boolean;
-  /**
-   * CSS selector passed as wait_for to ScrapeOps. ScrapeOps returns as soon as
-   * this element appears in the DOM (instead of waiting a fixed timeout).
-   * Use for CSR/SPA sites where we know exactly which element signals that
-   * listing data is ready. Dramatically cuts response time vs. fixed timeouts.
+   * CSS selector passed as wait_for_selector to ScrapeOps (render_js=true only).
+   * ScrapeOps returns as soon as this element appears in the DOM.
+   * NOTE: removed from all active configs — causes premature returns on some sites.
+   * Kept in the interface for future per-provider experimentation.
    */
   waitFor?: string;
   baseUrl:       string;
@@ -369,7 +362,6 @@ async function fetchViaScrapeOps(
   proxyCountry: string,
   renderJs     = true,
   retries      = 0,
-  premiumProxy = false,
   waitFor?:     string,
 ): Promise<string> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
@@ -382,8 +374,7 @@ async function fetchViaScrapeOps(
     residential: "true",
     country:     proxyCountry,
   };
-  if (premiumProxy) params.premium_proxy      = "true";
-  if (waitFor)      params.wait_for_selector  = waitFor;
+  if (waitFor) params.wait_for_selector = waitFor;
 
   const qs = new URLSearchParams(params);
 
@@ -480,6 +471,53 @@ function extractZoopla(
       console.error("[Zoopla] card parse error:", e);
     }
   });
+
+  // ── Link-based fallback ────────────────────────────────────────────────────
+  // Zoopla individual listing URLs contain /details/{numeric-id}/.
+  // If the primary selectors above found nothing (bot-detection page, A/B variant,
+  // or changed testids), harvest links as a minimum-viable fallback.
+  if (results.length === 0) {
+    const seen = new Set<string>();
+
+    $('a[href*="/details/"]').each((_, el) => {
+      try {
+        const href    = $(el).attr("href") ?? "";
+        const idMatch = href.match(/\/details\/(\d{6,})/);
+        const id      = idMatch?.[1];
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+
+        const fullUrl   = href.startsWith("http") ? href : `https://www.zoopla.co.uk${href}`;
+        const container = $(el).closest("li, article, [class*='listing'], [class*='card']");
+        const priceText = (
+          container.find('[data-testid*="price"], [class*="price"], [class*="Price"]').first().text() ||
+          container.text().match(/£[\d,]+/)?.[0] || ""
+        ).trim();
+        const address   = (
+          $(el).attr("aria-label") ||
+          container.find('address, [class*="address"], [class*="Address"]').first().text()
+        ).replace(/\s+/g, " ").trim();
+
+        results.push({
+          provider:             "zoopla",
+          external_property_id: id,
+          title:                address || null,
+          address:              address || null,
+          price:                parsePrice(priceText),
+          currency_code:        "GBP",
+          bedrooms:             null,
+          bathrooms:            null,
+          size_sqm:             null,
+          property_type:        null,
+          listing_type:         listingType,
+          listing_url:          fullUrl,
+          scraped_at:           now,
+        });
+      } catch (e) {
+        console.error("[Zoopla] link fallback parse error:", e);
+      }
+    });
+  }
 
   return results;
 }
@@ -1196,119 +1234,64 @@ async function scrapeRealtorCaViaApi(target: SearchTarget): Promise<ParsedProper
     Version:                "7.0",
   });
 
+  // ── Step 0: prefetch main page to get session cookies ─────────────────────
+  // api2.realtor.ca may require a valid Realtor.ca session cookie to allow
+  // API POST requests. We fetch the homepage first (accessible from Vercel)
+  // and forward the resulting Set-Cookie values with the API call.
+  let sessionCookies = "";
+  try {
+    const cookieCtrl  = new AbortController();
+    const cookieTimer = setTimeout(() => cookieCtrl.abort(), 10_000);
+    try {
+      const cookieRes = await fetch("https://www.realtor.ca/", {
+        headers: {
+          "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-CA,en;q=0.9",
+        },
+        signal: cookieCtrl.signal,
+      });
+      const setCookie = cookieRes.headers.get("set-cookie");
+      if (setCookie) {
+        sessionCookies = setCookie
+          .split(/,(?=\s*\w+=)/)          // split on cookie boundaries
+          .map((c) => c.split(";")[0].trim())
+          .filter(Boolean)
+          .join("; ");
+        console.log(`[Realtor.ca] prefetched ${sessionCookies.split(";").length} cookie(s)`);
+      }
+    } finally {
+      clearTimeout(cookieTimer);
+    }
+  } catch (e) {
+    console.warn("[Realtor.ca] cookie prefetch failed:", (e as Error).message);
+  }
+
   const controller = new AbortController();
   const timer      = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  const apiHeaders: Record<string, string> = {
+    "Content-Type":    "application/x-www-form-urlencoded; charset=UTF-8",
+    "Accept":          "application/json, text/javascript, */*; q=0.01",
+    "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Origin":          "https://www.realtor.ca",
+    "Referer":         "https://www.realtor.ca/map",
+    "X-Requested-With": "XMLHttpRequest",
+  };
+  if (sessionCookies) apiHeaders["Cookie"] = sessionCookies;
 
   try {
     const res = await fetch(
       "https://api2.realtor.ca/Listing.svc/PropertySearch_Post",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":    "application/x-www-form-urlencoded; charset=UTF-8",
-          "Accept":          "application/json, text/javascript, */*; q=0.01",
-          "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-          "Origin":          "https://www.realtor.ca",
-          "Referer":         "https://www.realtor.ca/map",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body:   body.toString(),
-        signal: controller.signal,
-      },
+      { method: "POST", headers: apiHeaders, body: body.toString(), signal: controller.signal },
     );
 
     if (!res.ok) {
       if (res.status === 403 || res.status === 401 || res.status === 429) {
-        // api2.realtor.ca blocks Vercel egress IPs. Strategy A: re-send the
-        // same POST through ScrapeOps' HTTP rotating proxy (undici ProxyAgent).
-        // This routes the request from a Canadian residential IP so the API
-        // believes it's a real browser. Strategy B (HTML scrape) is kept as a
-        // last resort but rarely yields data from Realtor.ca's map SPA.
-        console.warn(`[Realtor.ca] API HTTP ${res.status} — retrying via ScrapeOps HTTP proxy`);
-        const scraperApiKey = process.env.SCRAPEOPS_API_KEY ?? "";
-        try {
-          // Dynamic import keeps the undici dep tree-shaken in other code paths.
-          // Node 18+ ships undici natively; Next.js 14 inherits it.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { ProxyAgent, fetch: proxyFetch } = await import("undici") as any;
-          const proxyUri = `http://proxy.scrapeops.io:5353`;
-          const token    = Buffer
-            .from(`${scraperApiKey}:residential=true&country=ca`)
-            .toString("base64");
-          const dispatcher = new ProxyAgent({ uri: proxyUri, token: `Basic ${token}` });
-
-          const proxyRes = await proxyFetch(
-            "https://api2.realtor.ca/Listing.svc/PropertySearch_Post",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":    "application/x-www-form-urlencoded; charset=UTF-8",
-                "Accept":          "application/json, text/javascript, */*; q=0.01",
-                "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                "Origin":          "https://www.realtor.ca",
-                "Referer":         "https://www.realtor.ca/map",
-                "X-Requested-With": "XMLHttpRequest",
-              },
-              body:       body.toString(),
-              dispatcher,
-            },
-          );
-
-          if (proxyRes.ok) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const proxyData = (await proxyRes.json()) as any;
-            const proxyListings: unknown[] = proxyData?.Results ?? [];
-            if (proxyListings.length > 0) {
-              console.log(`[Realtor.ca] proxy POST succeeded — ${proxyListings.length} results`);
-              // Parse exactly the same way as the direct API success path below
-              const proxyResults: ParsedProperty[] = [];
-              for (const item of proxyListings) {
-                try {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const r          = item as any;
-                  const mlsNumber  = String(r.MlsNumber ?? "").trim();
-                  if (!mlsNumber) continue;
-                  const rawPrice   = Number(r.Price?.Value ?? 0);
-                  const price      = rawPrice > 0 ? Math.round(rawPrice * 100) : null;
-                  const address    = String(r.Property?.Address?.AddressText ?? "").trim() || null;
-                  const bedsStr    = String(r.Building?.Bedrooms ?? "");
-                  const bedrooms   = bedsStr ? safeInt(parseInt(bedsStr.replace(/\+.*$/, ""), 10)) : null;
-                  const bathrooms  = r.Building?.BathroomTotal != null
-                    ? safeInt(parseInt(String(r.Building.BathroomTotal), 10))
-                    : null;
-                  const sizeRaw    = String(r.Building?.SizeInterior ?? "");
-                  const sizeMatch  = sizeRaw.match(/[\d,]+/);
-                  let   sqm: number | null = null;
-                  if (sizeMatch) {
-                    const sizeNum = parseInt(sizeMatch[0].replace(/,/g, ""), 10);
-                    if (isFinite(sizeNum) && sizeNum > 0) sqm = Math.round(sizeNum * 0.0929);
-                  }
-                  const typeRaw   = String(r.Building?.Type ?? r.Property?.Type ?? "").toLowerCase().trim() || null;
-                  const detailUrl = r.RelativeDetailsURL ?? `/real-estate/${mlsNumber}/listing`;
-                  const listingUrl = detailUrl.startsWith("http") ? detailUrl : `https://www.realtor.ca${detailUrl}`;
-                  proxyResults.push({
-                    provider: "realtor_ca", external_property_id: mlsNumber,
-                    title: address, address, price, currency_code: "CAD",
-                    country_iso2: "CA", bedrooms, bathrooms, size_sqm: sqm,
-                    property_type_raw: typeRaw,
-                    property_type: normalisePropertyType(typeRaw),
-                    listing_type: target.listingType, listing_url: listingUrl,
-                    scraped_at: now,
-                  });
-                } catch { /* skip item */ }
-              }
-              return proxyResults;
-            }
-          } else {
-            console.warn(`[Realtor.ca] proxy POST HTTP ${proxyRes.status}`);
-          }
-        } catch (proxyErr) {
-          console.warn("[Realtor.ca] undici proxy failed:", (proxyErr as Error).message);
-        }
-
-        // Strategy B: HTML scrape via ScrapeOps (last resort — map SPA rarely exposes listing links)
-        console.warn("[Realtor.ca] falling back to ScrapeOps HTML scrape");
-        const html      = await fetchViaScrapeOps(target.url, "ca", true, 0, true);
+        // Cookie approach didn't help — IP is blocked regardless.
+        // Fall back to HTML scrape as last resort (map SPA, rarely yields data).
+        console.warn(`[Realtor.ca] API HTTP ${res.status} after cookie prefetch — falling back to ScrapeOps HTML`);
+        const html      = await fetchViaScrapeOps(target.url, "ca", true, 0);
         const extracted = extractRealtorCaHtml(html, "https://www.realtor.ca", target.listingType);
         return extracted.map((p) => ({
           ...p,
@@ -1403,12 +1386,11 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     proxyCountry:  "gb",
     europeanPrice: false,
     renderJs:      true,          // Zoopla is CSR — listings loaded by client-side JS
-    premiumProxy:  true,          // UK anti-bot bypass (same config as Rightmove/OTM)
     baseUrl:       "https://www.zoopla.co.uk",
     countryIso2:   "GB",
     searchTargets: [
-      { url: "https://www.zoopla.co.uk/for-sale/property/london/?page_size=25", listingType: "sale" },
-      { url: "https://www.zoopla.co.uk/to-rent/property/london/?page_size=25",  listingType: "rent" },
+      { url: "https://www.zoopla.co.uk/for-sale/property/london/", listingType: "sale" },
+      { url: "https://www.zoopla.co.uk/to-rent/property/london/",  listingType: "rent" },
     ],
     extract: extractZoopla,
   },
@@ -1489,8 +1471,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "AUD",
     proxyCountry:  "au",
     europeanPrice: false,
-    renderJs:      true,          // Akamai requires full browser fingerprint to serve listings
-    premiumProxy:  true,          // Premium residential proxy needed to bypass Akamai bot manager
+    renderJs:      false,         // REA Group (Akamai) blocks ScrapeOps at network level — renderJs=true wastes 80s
     baseUrl:       "https://www.realestate.com.au",
     countryIso2:   "AU",
     searchTargets: [
@@ -1505,8 +1486,7 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "EUR",
     proxyCountry:  "es",
     europeanPrice: true,
-    renderJs:      true,          // Idealista rejects non-browser requests with 404 (requires JS)
-    premiumProxy:  true,          // Spanish anti-bot bypass
+    renderJs:      false,         // Idealista blocks ScrapeOps at network level — renderJs=true wastes 75s+ per URL
     baseUrl:       "https://www.idealista.com",
     countryIso2:   "ES",
     searchTargets: [
@@ -1522,7 +1502,6 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     proxyCountry:  "gb",
     europeanPrice: false,
     renderJs:      true,
-    premiumProxy:  true,   // premium proxy confirmed working — 50 records at 22s
     baseUrl:       "https://www.rightmove.co.uk",
     countryIso2:   "GB",
     searchTargets: [
@@ -1545,7 +1524,6 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     proxyCountry:  "gb",
     europeanPrice: false,
     renderJs:      true,
-    premiumProxy:  true,   // UK sites need premium proxy to bypass anti-bot
     baseUrl:       "https://www.onthemarket.com",
     countryIso2:   "GB",
     searchTargets: [
@@ -1668,7 +1646,7 @@ async function scrapeProvider(
         raw = await config.directScraper(target);
       } else {
         // Default: ScrapeOps proxy → HTML → extractor
-        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, 0, config.premiumProxy ?? false, config.waitFor);
+        const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, 0, config.waitFor);
         const extracted = config.extract(html, config.baseUrl, target.listingType);
 
         // ── ETL enrichment ────────────────────────────────────────────────────
