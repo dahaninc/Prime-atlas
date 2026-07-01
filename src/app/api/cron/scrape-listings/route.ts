@@ -620,18 +620,21 @@ async function scrapeDomainAuViaApi(target: SearchTarget): Promise<ParsedPropert
   }
 
   // ── Step 1: OAuth2 client credentials token ───────────────────────────────
+  // Domain.com.au requires Basic Auth (base64 clientId:secret), not body params
+  const basicAuth  = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
   const tokenCtrl  = new AbortController();
   const tokenTimer = setTimeout(() => tokenCtrl.abort(), 15_000);
   let accessToken: string;
   try {
     const tokenRes = await fetch("https://auth.domain.com.au/v1/connect/token", {
       method:  "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization:  `Basic ${basicAuth}`,
+      },
       body:    new URLSearchParams({
-        grant_type:    "client_credentials",
-        client_id:     clientId,
-        client_secret: clientSecret,
-        scope:         "api_listings_read",
+        grant_type: "client_credentials",
+        scope:      "api_listings_read",
       }).toString(),
       signal: tokenCtrl.signal,
     });

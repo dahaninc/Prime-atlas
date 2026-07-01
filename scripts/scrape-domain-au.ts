@@ -105,15 +105,18 @@ function normalisePropertyType(raw: string | null): string | null {
 async function getAccessToken(): Promise<string> {
   const ctrl  = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
+  // Domain.com.au requires Basic Auth (base64 clientId:secret) for token requests
+  const basicAuth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
   try {
     const res = await fetch("https://auth.domain.com.au/v1/connect/token", {
       method:  "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization:  `Basic ${basicAuth}`,
+      },
       body:    new URLSearchParams({
-        grant_type:    "client_credentials",
-        client_id:     CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        scope:         "api_listings_read",
+        grant_type: "client_credentials",
+        scope:      "api_listings_read",
       }).toString(),
       signal: ctrl.signal,
     });
