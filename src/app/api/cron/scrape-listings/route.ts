@@ -18,6 +18,8 @@
  *       CRON_SECRET=<random 32-char secret>
  *       SUPABASE_SERVICE_ROLE_KEY=<service role key>
  *       NEXT_PUBLIC_SUPABASE_URL=<already set>
+ *       DOMAIN_AU_CLIENT_ID=<from https://developer.domain.com.au/>
+ *       DOMAIN_AU_CLIENT_SECRET=<from https://developer.domain.com.au/>
  *       SLACK_WEBHOOK_URL=<optional — Incoming Webhook URL for alerts>
  *
  *  3. Run the Supabase migration (already applied via MCP):
@@ -33,7 +35,7 @@
  *           { "path": "/api/cron/scrape-listings?provider=zoopla",        "schedule": "0 2 * * *" },
  *           { "path": "/api/cron/scrape-listings?provider=zillow",        "schedule": "0 3 * * *" },
  *           { "path": "/api/cron/scrape-listings?provider=realtor_ca",    "schedule": "0 4 * * *" },
- *           { "path": "/api/cron/scrape-listings?provider=realestate_au", "schedule": "0 5 * * *" },
+ *           { "path": "/api/cron/scrape-listings?provider=domain_au",     "schedule": "0 5 * * *" },
  *           { "path": "/api/cron/scrape-listings?provider=idealista",     "schedule": "0 6 * * *" }
  *         ]
  *       }
@@ -206,7 +208,7 @@ const PROPERTY_TYPE_MAP: Record<string, string> = {
    TYPES
 ───────────────────────────────────────────────────────────────────────────── */
 
-type Provider    = "zoopla" | "zillow" | "realtor_ca" | "realestate_au" | "idealista" | "rightmove" | "onthemarket";
+type Provider    = "zoopla" | "zillow" | "realtor_ca" | "domain_au" | "idealista" | "rightmove" | "onthemarket";
 type ListingType = "sale" | "rent";
 
 /**
@@ -597,83 +599,148 @@ function extractZillow(
   return results;
 }
 
-// ─── 3. REALESTATE.COM.AU (Australia) ────────────────────────────────────────
+// ─── 3. DOMAIN.COM.AU (Australia) ────────────────────────────────────────────
 //
-// renderJs is now false — REA Group pages are server-side rendered (Kotlin/React
-// SSR). Removing headless Chromium cuts ~30s timeout risk per URL.
+// Uses the Domain.com.au public REST API (OAuth2 client credentials).
+// Replaces the former realestate_au ScrapeOps scraper which was blocked by
+// REA Group's Akamai Bot Manager at the network level.
+//
+// Required env vars (add to .env.local and Vercel project settings):
+//   DOMAIN_AU_CLIENT_ID      — from https://developer.domain.com.au/
+//   DOMAIN_AU_CLIENT_SECRET  — from https://developer.domain.com.au/
 
-function extractRealestateAu(
-  html: string,
-  _baseUrl: string,
-  listingType: ListingType,
-): ExtractedProperty[] {
-  const $       = load(html);
-  const results: ExtractedProperty[] = [];
-  const now     = new Date().toISOString();
+async function scrapeDomainAuViaApi(target: SearchTarget): Promise<ParsedProperty[]> {
+  const clientId     = process.env.DOMAIN_AU_CLIENT_ID;
+  const clientSecret = process.env.DOMAIN_AU_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      "DOMAIN_AU_CLIENT_ID / DOMAIN_AU_CLIENT_SECRET not configured. " +
+      "Register a free developer account at https://developer.domain.com.au/ to get credentials.",
+    );
+  }
 
-  $('[data-testid*="listing-card-wrapper"], article[class*="residential-card"]').each((_, el) => {
-    try {
-      const card   = $(el);
-      const linkEl = card.find('a[data-testid*="listing-card-tag-link"], a[href*="/property-"]').first();
-      const href   = linkEl.attr("href") ?? "";
-      if (!href) return;
-
-      const fullUrl = href.startsWith("http") ? href : `https://www.realestate.com.au${href}`;
-      const idMatch = href.match(/-(\d{7,})(?:\/|$)/);
-      const extId   = idMatch?.[1] || idFromUrl(href);
-      if (!extId) return;
-
-      const priceText = (
-        card.find('[data-testid="listing-card-price"]').first().text() ||
-        card.find('[class*="price"]').first().text()
-      ).trim();
-
-      const address = (
-        card.find('[data-testid="residential-card__address-heading"]').first().text() ||
-        card.find('h2[class*="address"]').first().text()
-      ).replace(/\s+/g, " ").trim();
-
-      const title = card.find("h2, h3").first().text().replace(/\s+/g, " ").trim() || address;
-
-      let beds: number | null  = null;
-      let baths: number | null = null;
-      let sqm: number | null   = null;
-
-      card.find('[data-testid*="features"] span, [class*="propertyFeature"] span').each((_, span) => {
-        const value = $(span).text().trim();
-        const label = $(span).next("span").text().toLowerCase().trim();
-        const n     = parseInt(value, 10);
-
-        if (label.startsWith("bed") || label === "br")            beds  = safeInt(n);
-        else if (label.startsWith("bath"))                        baths = safeInt(n);
-        else if (label.includes("m²") || label.includes("sqm"))  sqm   = isFinite(n) ? n : null;
-      });
-
-      const typeRaw = card
-        .find('[data-testid*="property-type"], [class*="propertyType"]')
-        .first().text().trim().toLowerCase();
-
-      results.push({
-        provider:             "realestate_au",
-        external_property_id: extId,
-        title:                title   || null,
-        address:              address || null,
-        price:                parsePrice(priceText),
-        currency_code:        "AUD",
-        bedrooms:             beds,
-        bathrooms:            baths,
-        size_sqm:             sqm,
-        property_type:        typeRaw || null,
-        listing_type:         listingType,
-        listing_url:          fullUrl,
-        scraped_at:           now,
-      });
-    } catch (e) {
-      console.error("[RealEstate.com.au] card parse error:", e);
+  // ── Step 1: OAuth2 client credentials token ───────────────────────────────
+  const tokenCtrl  = new AbortController();
+  const tokenTimer = setTimeout(() => tokenCtrl.abort(), 15_000);
+  let accessToken: string;
+  try {
+    const tokenRes = await fetch("https://auth.domain.com.au/v1/connect/token", {
+      method:  "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body:    new URLSearchParams({
+        grant_type:    "client_credentials",
+        client_id:     clientId,
+        client_secret: clientSecret,
+        scope:         "api_listings_read",
+      }).toString(),
+      signal: tokenCtrl.signal,
+    });
+    if (!tokenRes.ok) {
+      const body = await tokenRes.text().catch(() => "");
+      throw new Error(`Domain.com.au OAuth2 HTTP ${tokenRes.status}: ${body.slice(0, 200)}`);
     }
-  });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tokenData = await tokenRes.json() as any;
+    accessToken = String(tokenData.access_token ?? "");
+    if (!accessToken) throw new Error("Domain.com.au OAuth2: no access_token in response");
+  } finally {
+    clearTimeout(tokenTimer);
+  }
 
-  return results;
+  // ── Step 2: Search residential listings ───────────────────────────────────
+  const isMelbourne = target.url.includes("melbourne");
+  const suburb      = isMelbourne ? "Melbourne" : "Sydney";
+  const state       = isMelbourne ? "VIC"       : "NSW";
+  const listingType = target.listingType === "sale" ? "Sale" : "Rental";
+
+  const searchBody = {
+    listingType,
+    locations: [{ state, suburb, includeSurroundingSuburbs: true }],
+    pageSize:   100,
+    pageNumber: 1,
+  };
+
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const searchRes = await fetch(
+      "https://api.domain.com.au/v1/listings/residential/_search",
+      {
+        method:  "POST",
+        headers: {
+          Authorization:  `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Accept:         "application/json",
+        },
+        body:   JSON.stringify(searchBody),
+        signal: ctrl.signal,
+      },
+    );
+    if (!searchRes.ok) {
+      const body = await searchRes.text().catch(() => "");
+      throw new Error(`Domain.com.au search HTTP ${searchRes.status}: ${body.slice(0, 200)}`);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items = await searchRes.json() as any[];
+    const now   = new Date().toISOString();
+    const results: ParsedProperty[] = [];
+
+    for (const item of items) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const listing = (item as any)?.listing as any;
+        if (!listing) continue;
+
+        const id = String(listing.id ?? "").trim();
+        if (!id) continue;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pd      = (listing.propertyDetails ?? {}) as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pricing = (listing.priceDetails    ?? {}) as any;
+        const slug    = String(listing.listingSlug ?? "");
+        const fullUrl = slug
+          ? `https://www.domain.com.au/${slug}`
+          : `https://www.domain.com.au/property-detail/${id}`;
+
+        const rawPrice = typeof pricing.price === "number" && pricing.price > 0
+          ? Math.round(pricing.price * 100)
+          : parsePrice(String(pricing.displayPrice ?? ""));
+
+        const floorArea = Number(pd.floorArea ?? NaN);
+
+        // "ApartmentUnitFlat" → "apartment unit flat" for normalisation
+        const typeRaw = String(pd.propertyType ?? "")
+          .replace(/([A-Z])/g, " $1").trim().toLowerCase();
+
+        results.push({
+          provider:             "domain_au",
+          external_property_id: id,
+          title:                pd.displayableAddress ?? null,
+          address:              pd.displayableAddress ?? null,
+          price:                rawPrice,
+          currency_code:        "AUD",
+          country_iso2:         "AU",
+          bedrooms:             safeInt(Number(pd.bedrooms  ?? NaN)),
+          bathrooms:            safeInt(Number(pd.bathrooms ?? NaN)),
+          size_sqm:             isFinite(floorArea) && floorArea > 0 ? floorArea : null,
+          property_type_raw:    typeRaw || null,
+          property_type:        normalisePropertyType(typeRaw),
+          listing_type:         target.listingType,
+          listing_url:          fullUrl,
+          scraped_at:           now,
+        });
+      } catch (e) {
+        console.error("[Domain.com.au] item parse error:", e);
+      }
+    }
+
+    console.log(`[Domain.com.au] ✓ parsed ${results.length} listings (${listingType}, ${suburb})`);
+    return results;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ─── 4. IDEALISTA (Spain / Italy / Portugal) ─────────────────────────────────
@@ -1466,19 +1533,23 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     directScraper: scrapeRealtorCaViaApi,
   },
 
-  realestate_au: {
-    name:          "realestate_au",
+  domain_au: {
+    name:          "domain_au",
     currency:      "AUD",
     proxyCountry:  "au",
     europeanPrice: false,
-    renderJs:      false,         // REA Group (Akamai) blocks ScrapeOps at network level — renderJs=true wastes 80s
-    baseUrl:       "https://www.realestate.com.au",
+    renderJs:      false,          // uses directScraper (REST API) — not fetched via ScrapeOps
+    baseUrl:       "https://api.domain.com.au",
     countryIso2:   "AU",
     searchTargets: [
-      { url: "https://www.realestate.com.au/buy/in-sydney,+nsw/list-1",  listingType: "sale" },
-      { url: "https://www.realestate.com.au/rent/in-sydney,+nsw/list-1", listingType: "rent" },
+      // target.url is used as a key by scrapeDomainAuViaApi to pick suburb/state
+      { url: "api:sydney:sale",     listingType: "sale" },
+      { url: "api:sydney:rent",     listingType: "rent" },
+      { url: "api:melbourne:sale",  listingType: "sale" },
+      { url: "api:melbourne:rent",  listingType: "rent" },
     ],
-    extract: extractRealestateAu,
+    extract:       () => [],       // unused — directScraper takes precedence
+    directScraper: scrapeDomainAuViaApi,
   },
 
   idealista: {
