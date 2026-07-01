@@ -1,0 +1,42 @@
+name: Scrape Domain.com.au
+
+# Runs from GitHub Actions (Azure IP space) to bypass the Akamai Bot Manager
+# that blocks Vercel's Lambda egress addresses from auth.domain.com.au.
+#
+# Required GitHub repo secrets (Settings → Secrets → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL    — Supabase project URL
+#   SUPABASE_SERVICE_ROLE_KEY   — Supabase service role key
+#   DOMAIN_AU_CLIENT_ID         — from https://developer.domain.com.au/
+#   DOMAIN_AU_CLIENT_SECRET     — from https://developer.domain.com.au/
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # daily at 05:00 UTC (same slot as former Vercel cron)
+  workflow_dispatch:        # allow manual runs from the Actions tab
+
+jobs:
+  scrape:
+    name: Domain.com.au → Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Domain.com.au scraper
+        env:
+          NEXT_PUBLIC_SUPABASE_URL:  ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DOMAIN_AU_CLIENT_ID:       ${{ secrets.DOMAIN_AU_CLIENT_ID }}
+          DOMAIN_AU_CLIENT_SECRET:   ${{ secrets.DOMAIN_AU_CLIENT_SECRET }}
+        run: npx tsx scripts/scrape-domain-au.ts
