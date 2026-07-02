@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import Link from "next/link";
 import { FilterDrawer } from "@/components/ui/FilterDrawer";
 
 export interface ScrapedProperty {
@@ -215,7 +216,7 @@ export function MarketFeedExplorer({ properties }: Props) {
               ? getUKRegion(p.address)
               : stateCode !== "—" ? `${STATES[stateCode] ?? stateCode}, USA` : null;
             return (
-              <div key={p.id} className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4">
+              <Link key={p.id} href={`/market-feed/${p.id}`} className="group bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 hover:border-[#1B4FE4]/30 hover:shadow-md transition-all cursor-pointer">
                 {/* Row 1: badges + time */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -252,16 +253,19 @@ export function MarketFeedExplorer({ properties }: Props) {
                   )}
                 </div>
 
-                {/* Row 4: Specs */}
-                <div className="flex gap-4 text-xs text-gray-400">
+                {/* Row 4: Specs + CTA */}
+                <div className="flex gap-4 text-xs text-gray-400 items-center">
                   {p.bedrooms  != null && <span><span className="text-gray-900 font-bold">{p.bedrooms}</span> bd</span>}
                   {p.bathrooms != null && <span><span className="text-gray-900 font-bold">{p.bathrooms}</span> ba</span>}
                   {p.size_sqm  != null && <span><span className="text-gray-900 font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
                   {p.property_type && (
                     <span className="capitalize text-gray-300">{p.property_type}</span>
                   )}
+                  <span className="ml-auto text-[#1B4FE4] font-semibold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                    View analysis →
+                  </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
