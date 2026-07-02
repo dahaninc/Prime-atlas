@@ -405,6 +405,29 @@ export default async function MarketFeedPropertyPage(
                     <p className="text-[9px] text-gray-400 uppercase tracking-widest">sqm</p>
                   </div>
                 )}
+                {property.size_sqm != null && property.price != null && isSale && (() => {
+                  const sym = SYM[property.currency_code] ?? "";
+                  const priceRaw = property.price / 100;
+                  const sqm = Number(property.size_sqm);
+                  const perSqm  = Math.round(priceRaw / sqm);
+                  const perSqft = Math.round(priceRaw / (sqm * 10.764));
+                  return (
+                    <>
+                      <div className="text-center">
+                        <p className="text-2xl font-black font-mono text-[#1B4FE4]">
+                          {sym}{perSqm.toLocaleString()}
+                        </p>
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest">per sqm</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-black font-mono text-[#1B4FE4]">
+                          {sym}{perSqft.toLocaleString()}
+                        </p>
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest">per sq ft</p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -424,7 +447,7 @@ export default async function MarketFeedPropertyPage(
 
               {/* Key metrics */}
               {isSale ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   <MetricBox
                     label="Est. Gross Yield"
                     value={`${e.grossYield}%`}
@@ -449,6 +472,16 @@ export default async function MarketFeedPropertyPage(
                     sub="market rate"
                     accent="blue"
                   />
+                  {property.size_sqm != null && property.price != null ? (
+                    <MetricBox
+                      label="Price / sqm"
+                      value={`${SYM[property.currency_code] ?? ""}${Math.round((property.price / 100) / Number(property.size_sqm)).toLocaleString()}`}
+                      sub={`${SYM[property.currency_code] ?? ""}${Math.round((property.price / 100) / (Number(property.size_sqm) * 10.764)).toLocaleString()} /sqft`}
+                      accent="blue"
+                    />
+                  ) : (
+                    <MetricBox label="Price / sqm" value="—" sub="size unavailable" />
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
