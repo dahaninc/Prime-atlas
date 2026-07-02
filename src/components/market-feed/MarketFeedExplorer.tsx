@@ -38,6 +38,29 @@ function getUKRegion(address: string | null): string {
   return "UK";
 }
 
+/** Returns city/state or region only — never exposes street-level address */
+function getLocationSummary(address: string | null, country: "UK" | "US"): string {
+  if (!address) return country === "UK" ? "United Kingdom" : "United States";
+  if (country === "US") {
+    const parts = address.split(",").map(p => p.trim());
+    if (parts.length >= 3) {
+      const stateZip = parts[parts.length - 1];
+      const stateCode = stateZip.match(/^([A-Z]{2})/)?.[1];
+      const city = parts[parts.length - 2];
+      if (stateCode && city) return `${city}, ${stateCode}`;
+    }
+    const state = getState(address);
+    return state !== "—" ? state : "United States";
+  } else {
+    const parts = address.split(",").map(p => p.trim());
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      if (!p.match(/^[A-Z]{1,2}\d/) && p.length > 2) return p;
+    }
+    return "United Kingdom";
+  }
+}
+
 function fmtPrice(cents: number, currency: string): string {
   const s = SYM[currency] ?? currency;
   const n = cents / 100;
@@ -545,14 +568,18 @@ export function MarketFeedExplorer({ properties }: Props) {
                       )}
                     </div>
 
-                    {/* Address */}
+                    {/* Location — city/state only, no street address */}
                     <div>
-                      <p className={`text-sm font-semibold ${C.textPrimary} leading-snug line-clamp-2`}>
-                        {p.address ?? "Address unavailable"}
+                      <p className={`text-sm font-semibold ${C.textPrimary} leading-snug`}>
+                        {getLocationSummary(p.address, p.country)}
                       </p>
-                      {locationLabel && (
-                        <p className={`text-[10px] ${C.textMuted} mt-0.5 uppercase tracking-widest`}>{locationLabel}</p>
-                      )}
+                      <p className={`text-[9px] ${C.textMuted} mt-0.5 uppercase tracking-widest flex items-center gap-1`}>
+                        <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                            d="M12 11c0 3-5 8-5 8s-5-5-5-8a5 5 0 0110 0z M12 11a2 2 0 100-4 2 2 0 000 4z" />
+                        </svg>
+                        Full address · members only
+                      </p>
                     </div>
 
                     {/* Specs */}

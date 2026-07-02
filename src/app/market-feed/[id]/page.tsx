@@ -43,7 +43,30 @@ function getState(address: string | null): string {
 function getUKRegion(address: string | null): string {
   if (!address) return "UK";
   const parts = address.split(",").map((p) => p.trim());
-  return parts.length >= 2 ? parts[parts.length - 2] : "UK";
+  // Skip postcode-like tokens to find the real city/county
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    if (!p.match(/^[A-Z]{1,2}\d/) && p.length > 2) return p;
+  }
+  return "UK";
+}
+
+/** City/state or region only — never exposes street-level data */
+function getLocationSummary(address: string | null, country: "UK" | "US"): string {
+  if (!address) return country === "UK" ? "United Kingdom" : "United States";
+  if (country === "US") {
+    const parts = address.split(",").map(p => p.trim());
+    if (parts.length >= 3) {
+      const stateZip = parts[parts.length - 1];
+      const stateCode = stateZip.match(/^([A-Z]{2})/)?.[1];
+      const city = parts[parts.length - 2];
+      if (stateCode && city) return `${city}, ${stateCode}`;
+    }
+    const s = getState(address);
+    return s !== "—" ? s : "United States";
+  } else {
+    return getUKRegion(address);
+  }
 }
 
 function timeAgo(iso: string): string {
@@ -274,9 +297,12 @@ export async function generateMetadata(
   if (!data) return { title: "Property Not Found | Prime Atlas" };
 
   const meta = data as unknown as Property;
+  const country: "UK" | "US" = meta.currency_code === "GBP" ? "UK" : "US";
+  // Use location summary in title — never expose full street address in metadata
+  const locationTitle = country === "UK" ? getUKRegion(meta.address) : getState(meta.address);
   return {
-    title: `${meta.address ?? "Property"} | Prime Atlas`,
-    description: `${fmtPrice(meta.price ?? 0, meta.currency_code)} — Prime Atlas investment analysis with yield, IRR, and conviction scoring.`,
+    title: `${fmtPrice(meta.price ?? 0, meta.currency_code)} · ${locationTitle} | Prime Atlas`,
+    description: `Investment analysis for ${locationTitle} — yield, IRR, and conviction scoring powered by Prime Atlas.`,
   };
 }
 
@@ -346,7 +372,7 @@ export default async function MarketFeedPropertyPage(
           <span>/</span>
           <Link href="/market-feed" className="hover:text-gray-700 transition-colors">Market Feed</Link>
           <span>/</span>
-          <span className="text-gray-700 line-clamp-1">{property.address ?? "Property"}</span>
+          <span className="text-gray-700 line-clamp-1">{getLocationSummary(property.address, e.country)}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -378,9 +404,25 @@ export default async function MarketFeedPropertyPage(
                 {!isSale && <span className="text-base font-semibold text-gray-400 ml-2">/mo</span>}
               </p>
 
-              <p className="text-base font-semibold text-gray-800 mb-1">
-                {property.address ?? "Address unavailable"}
-              </p>
+              {/* Address — full street address gated behind membership */}
+              {isMember ? (
+                <p className="text-base font-semibold text-gray-800 mb-1">
+                  {property.address ?? "Address unavailable"}
+                </p>
+              ) : (
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-base font-semibold text-gray-800 blur-sm select-none">
+                    {property.address ?? "123 Example Street"}
+                  </p>
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[9px] font-bold text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/20 px-2 py-0.5 rounded-full">
+                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Members only
+                  </span>
+                </div>
+              )}
               <p className="text-xs text-gray-400 uppercase tracking-widest">{locationLabel}</p>
 
               {/* Specs */}
@@ -557,15 +599,28 @@ export default async function MarketFeedPropertyPage(
 
                   <div className="grid grid-cols-3 divide-x divide-gray-100">
                     {([
-                      { yrs: 3,  irr: e.irr3yr,  coc: e.cashOnCash, exit: e.exit3yr  },
-                      { yrs: 5,  irr: e.irr5yr,  coc: e.cashOnCash, exit: e.exit5yr  },
-                      { yrs: 10, irr: e.irr10yr, coc: e.cashOnCash, exit: e.exit10yr },
-                    ] as const).map(({ yrs, irr, coc, exit }) => (
-                      <div key={yrs} className="px-4 py-5 text-center">
+                      { yrs: 3,  irr: e.irr3yr,  coc: e.cashOnCash, exit: e.exit3yr,  gated: false },
+                      { yrs: 5,  irr: e.irr5yr,  coc: e.cashOnCash, exit: e.exit5yr,  gated: !isMember },
+                      { yrs: 10, irr: e.irr10yr, coc: e.cashOnCash, exit: e.exit10yr, gated: !isMember },
+                    ] as const).map(({ yrs, irr, coc, exit, gated }) => (
+                      <div key={yrs} className="px-4 py-5 text-center relative">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">
                           {yrs}-YR EXIT
                         </p>
-                        <div className="space-y-4">
+
+                        {/* Overlay for gated columns */}
+                        {gated && (
+                          <div className="absolute inset-x-0 bottom-0 top-8 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[3px] z-10 rounded-b-xl gap-1.5">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <p className="text-[9px] font-bold text-gray-500">Members only</p>
+                            <Link href="/pricing" className="text-[9px] font-bold text-[#1B4FE4] hover:underline">Unlock →</Link>
+                          </div>
+                        )}
+
+                        <div className={`space-y-4 ${gated ? "blur-sm select-none pointer-events-none" : ""}`}>
                           <div>
                             <p className={`text-xl font-black font-mono leading-none ${
                               irr >= 12 ? "text-green-600" : irr >= 8 ? "text-[#1B4FE4]" : "text-amber-600"
@@ -622,7 +677,9 @@ export default async function MarketFeedPropertyPage(
                         </p>
                         <span className="text-[9px] text-gray-400">{timeAgo(c.scraped_at)}</span>
                       </div>
-                      <p className="text-xs text-gray-700 line-clamp-1 mb-1">{c.address}</p>
+                      <p className="text-xs text-gray-700 line-clamp-1 mb-1">
+                        {getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
+                      </p>
                       <div className="flex gap-3 text-[10px] text-gray-400">
                         {c.bedrooms  != null && <span><span className="text-gray-700 font-bold">{c.bedrooms}</span> bd</span>}
                         {c.bathrooms != null && <span><span className="text-gray-700 font-bold">{c.bathrooms}</span> ba</span>}
@@ -669,9 +726,19 @@ export default async function MarketFeedPropertyPage(
                     </div>
                     <div className="flex items-center justify-between py-2 border-b border-gray-100">
                       <span className="text-xs text-gray-500">5-Yr IRR (Est.)</span>
-                      <span className={`text-xs font-bold ${
-                        e.irr5yr >= 12 ? "text-green-600" : e.irr5yr >= 8 ? "text-[#1B4FE4]" : "text-amber-600"
-                      }`}>{e.irr5yr > 0 ? "+" : ""}{e.irr5yr}%</span>
+                      {isMember ? (
+                        <span className={`text-xs font-bold ${
+                          e.irr5yr >= 12 ? "text-green-600" : e.irr5yr >= 8 ? "text-[#1B4FE4]" : "text-amber-600"
+                        }`}>{e.irr5yr > 0 ? "+" : ""}{e.irr5yr}%</span>
+                      ) : (
+                        <Link href="/pricing" className="flex items-center gap-1 text-[10px] font-bold text-[#1B4FE4] hover:underline">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                          Unlock
+                        </Link>
+                      )}
                     </div>
                   </>
                 )}
