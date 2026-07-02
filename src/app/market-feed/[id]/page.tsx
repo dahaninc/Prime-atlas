@@ -661,36 +661,132 @@ export default async function MarketFeedPropertyPage(
             {/* ── Comparable Properties ── */}
             {(comps ?? []).length > 0 && (
               <div>
-                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-                  Comparable Properties · {locationLabel}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {comps.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/market-feed/${c.id}`}
-                      className="border border-gray-200 rounded-xl p-4 hover:border-[#1B4FE4]/30 hover:shadow-sm transition-all group"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <p className="text-base font-black font-mono text-gray-900">
-                          {fmtPrice(c.price ?? 0, c.currency_code)}
-                        </p>
-                        <span className="text-[9px] text-gray-400">{timeAgo(c.scraped_at)}</span>
-                      </div>
-                      <p className="text-xs text-gray-700 line-clamp-1 mb-1">
-                        {getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
-                      </p>
-                      <div className="flex gap-3 text-[10px] text-gray-400">
-                        {c.bedrooms  != null && <span><span className="text-gray-700 font-bold">{c.bedrooms}</span> bd</span>}
-                        {c.bathrooms != null && <span><span className="text-gray-700 font-bold">{c.bathrooms}</span> ba</span>}
-                        {c.size_sqm  != null && <span><span className="text-gray-700 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
-                        <span className="ml-auto text-[#1B4FE4] opacity-0 group-hover:opacity-100 transition-opacity font-semibold">
-                          Analyse →
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                      Comparable Properties · {locationLabel}
+                    </p>
+                    <p className="text-[9px] text-gray-300 mt-0.5">
+                      {comps.length} properties within ±40% price band
+                    </p>
+                  </div>
+                  {!isMember && (
+                    <span className="text-[9px] font-bold text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/20 px-2 py-1 rounded-full flex items-center gap-1">
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Members only
+                    </span>
+                  )}
                 </div>
+
+                {isMember ? (
+                  /* ── Full comparables for members ── */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {comps.map((c) => {
+                      const compEnriched = enrichProperty(c);
+                      return (
+                        <Link
+                          key={c.id}
+                          href={`/market-feed/${c.id}`}
+                          className="border border-gray-200 rounded-xl p-4 hover:border-[#1B4FE4]/30 hover:shadow-sm transition-all group bg-white"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-base font-black font-mono text-gray-900">
+                              {fmtPrice(c.price ?? 0, c.currency_code)}
+                            </p>
+                            {compEnriched.grossYield > 0 && (
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
+                                compEnriched.grossYield >= 8 ? "text-green-700 bg-green-50 border-green-200" :
+                                compEnriched.grossYield >= 6 ? "text-[#1B4FE4] bg-[#EEF3FD] border-[#1B4FE4]/20" :
+                                "text-amber-700 bg-amber-50 border-amber-200"
+                              }`}>
+                                ~{compEnriched.grossYield}%
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-semibold text-gray-800 line-clamp-1 mb-0.5">
+                            {c.address ?? getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
+                          </p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest mb-2">
+                            {getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
+                          </p>
+                          <div className="flex gap-3 text-[10px] text-gray-400 pt-2 border-t border-gray-100">
+                            {c.bedrooms  != null && <span><span className="text-gray-700 font-bold">{c.bedrooms}</span> bd</span>}
+                            {c.bathrooms != null && <span><span className="text-gray-700 font-bold">{c.bathrooms}</span> ba</span>}
+                            {c.size_sqm  != null && <span><span className="text-gray-700 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
+                            <span className="text-[9px] text-gray-300 ml-auto">{timeAgo(c.scraped_at)}</span>
+                            <span className="text-[#1B4FE4] opacity-0 group-hover:opacity-100 transition-opacity font-semibold text-[10px]">
+                              Analyse →
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* ── Gate for non-members: show 2 teaser cards + unlock wall ── */
+                  <div className="relative">
+                    {/* Teaser: first 2 cards blurred */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 select-none pointer-events-none">
+                      {comps.slice(0, 4).map((c, i) => (
+                        <div
+                          key={c.id}
+                          className={`border border-gray-200 rounded-xl p-4 bg-white ${i >= 2 ? "hidden sm:block" : ""}`}
+                          style={{ filter: `blur(${i === 0 ? 2 : 4}px)`, opacity: i === 0 ? 0.85 : 0.6 }}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <p className="text-base font-black font-mono text-gray-900">
+                              {fmtPrice(c.price ?? 0, c.currency_code)}
+                            </p>
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded border text-[#1B4FE4] bg-[#EEF3FD] border-[#1B4FE4]/20">
+                              ~{enrichProperty(c).grossYield}%
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-gray-800 mb-0.5">
+                            {getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
+                          </p>
+                          <div className="flex gap-3 text-[10px] text-gray-400 pt-2 border-t border-gray-100">
+                            {c.bedrooms  != null && <span><span className="text-gray-700 font-bold">{c.bedrooms}</span> bd</span>}
+                            {c.bathrooms != null && <span><span className="text-gray-700 font-bold">{c.bathrooms}</span> ba</span>}
+                            {c.size_sqm  != null && <span><span className="text-gray-700 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Unlock overlay */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-white via-white/90 to-transparent rounded-2xl z-10 px-6 pt-16 pb-8">
+                      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg px-8 py-7 flex flex-col items-center text-center max-w-xs w-full">
+                        <div className="w-10 h-10 rounded-full bg-[#EEF3FD] flex items-center justify-center mb-3">
+                          <svg className="w-5 h-5 text-[#1B4FE4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900 mb-1">
+                          {comps.length} Comparable{comps.length !== 1 ? "s" : ""} Found
+                        </p>
+                        <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                          See full comparable analysis — prices, yields, specs, and direct links — available to Prime Atlas members.
+                        </p>
+                        <Link
+                          href="/pricing"
+                          className="w-full bg-[#1B4FE4] text-white text-sm font-bold py-2.5 rounded-xl hover:bg-[#1641C0] transition-colors text-center"
+                        >
+                          Become a Member
+                        </Link>
+                        <Link
+                          href="/sign-up"
+                          className="mt-2 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                        >
+                          Create free account →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
