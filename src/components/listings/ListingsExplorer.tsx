@@ -52,13 +52,13 @@ const DEAL_LABEL: Record<string, string> = {
 };
 
 const DEAL_COLOR: Record<string, string> = {
-  "buy-to-rent":       "bg-blue-500/15 text-blue-400 border-blue-500/25",
-  "development":       "bg-[#00C805]/10 text-[#00C805] border-[#00C805]/25",
-  "commercial-income": "bg-purple-500/15 text-purple-400 border-purple-500/25",
-  "pbsa":              "bg-orange-500/15 text-orange-400 border-orange-500/25",
-  "industrial":        "bg-yellow-500/15 text-yellow-400 border-yellow-500/25",
-  "buy-to-sell":       "bg-pink-500/15 text-pink-400 border-pink-500/25",
-  "land-banking":      "bg-teal-500/15 text-teal-400 border-teal-500/25",
+  "buy-to-rent":       "bg-blue-50 text-blue-600 border-blue-200",
+  "development":       "bg-[#EEF3FD] text-[#1B4FE4] border-[#1B4FE4]/20",
+  "commercial-income": "bg-purple-50 text-purple-600 border-purple-200",
+  "pbsa":              "bg-orange-50 text-orange-600 border-orange-200",
+  "industrial":        "bg-amber-50 text-amber-700 border-amber-200",
+  "buy-to-sell":       "bg-pink-50 text-pink-600 border-pink-200",
+  "land-banking":      "bg-teal-50 text-teal-600 border-teal-200",
 };
 
 const PLANNING_LABEL: Record<string, string> = {
@@ -70,11 +70,11 @@ const PLANNING_LABEL: Record<string, string> = {
 };
 
 const PLANNING_COLOR: Record<string, string> = {
-  "with-permission":     "text-[#00C805]",
-  "outline":             "text-yellow-400",
-  "unconsented":         "text-[#A1A1AA]",
-  "freehold":            "text-blue-400",
-  "permitted-development":"text-[#00C805]",
+  "with-permission":     "text-green-600",
+  "outline":             "text-amber-600",
+  "unconsented":         "text-gray-400",
+  "freehold":            "text-blue-600",
+  "permitted-development":"text-green-600",
 };
 
 const FALLBACK_IMAGES = [
@@ -102,8 +102,8 @@ function capRate(l: FullListing): number | null {
 
 function roiColor(score: number): string {
   if (score >= 70) return "text-[#00C805]";
-  if (score >= 50) return "text-yellow-400";
-  return "text-red-400";
+  if (score >= 50) return "text-amber-600";
+  return "text-red-500";
 }
 
 /* ─── filter pill ────────────────────────────────────────────────── */
@@ -116,8 +116,8 @@ function Pill({
       onClick={onClick}
       className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border whitespace-nowrap ${
         active
-          ? "bg-[#00C805] text-[#0A0B10] border-[#00C805]"
-          : "bg-transparent border-[#27272A] text-[#A1A1AA] hover:border-[#00C805]/50 hover:text-white"
+          ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
+          : "bg-white border-gray-200 text-gray-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]"
       }`}
     >
       {label}
@@ -137,35 +137,35 @@ function ListingCard({ listing, index }: { listing: FullListing; index: number }
     : null;
 
   const img = listing.images?.[0] ?? FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
-  const dealColor = DEAL_COLOR[listing.deal_type ?? ""] ?? "bg-[#27272A] text-[#A1A1AA] border-[#27272A]";
+  const dealColor = DEAL_COLOR[listing.deal_type ?? ""] ?? "bg-gray-100 text-gray-600 border-gray-200";
   const dealLabel = DEAL_LABEL[listing.deal_type ?? ""] ?? listing.deal_type ?? "Other";
   const planLabel = PLANNING_LABEL[listing.planning_status ?? ""] ?? listing.planning_status ?? "";
-  const planColor = PLANNING_COLOR[listing.planning_status ?? ""] ?? "text-[#A1A1AA]";
+  const planColor = PLANNING_COLOR[listing.planning_status ?? ""] ?? "text-gray-400";
   const flag = COUNTRY_FLAG[muni?.country ?? ""] ?? "🌍";
 
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="group flex flex-col bg-[#0C0D14] border border-[#1E1E2E] hover:border-[#00C805]/40 rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_24px_rgba(0,200,5,0.08)]"
+      className="group flex flex-col bg-white border border-gray-200 hover:border-[#1B4FE4]/40 rounded-2xl overflow-hidden transition-all shadow-sm hover:shadow-md"
     >
       {/* Image */}
-      <div className="relative h-44 overflow-hidden bg-[#0C0D14]">
+      <div className="relative h-44 overflow-hidden bg-gray-100">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={img}
           alt={listing.title}
-          className="w-full h-full object-cover opacity-70 group-hover:opacity-85 group-hover:scale-105 transition-all duration-500"
+          className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
         />
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0C0D14] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
         {/* Top badges */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-          <span className="text-xs font-semibold">
+          <span className="text-xs font-semibold text-white drop-shadow">
             {flag} {muni?.name ?? "Unknown"}
           </span>
           {listing.featured && (
-            <span className="text-[9px] font-bold uppercase tracking-wider bg-[#00C805] text-[#0A0B10] px-2 py-0.5 rounded-full">
+            <span className="text-[9px] font-bold uppercase tracking-wider bg-[#1B4FE4] text-white px-2 py-0.5 rounded-full">
               Featured
             </span>
           )}
@@ -177,11 +177,11 @@ function ListingCard({ listing, index }: { listing: FullListing; index: number }
             {dealLabel}
           </span>
           {listing.status === "under_offer" ? (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-700">
               Under Offer
             </span>
           ) : (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-[#00C805]/70">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-white">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00C805] animate-pulse" />
               Live
             </span>
@@ -193,51 +193,49 @@ function ListingCard({ listing, index }: { listing: FullListing; index: number }
       <div className="flex flex-col flex-1 p-4 gap-3">
         {/* Title */}
         <div>
-          <p className="font-bold text-sm leading-snug line-clamp-2 group-hover:text-[#00C805] transition-colors">
+          <p className="font-bold text-sm leading-snug line-clamp-2 text-gray-900 group-hover:text-[#1B4FE4] transition-colors">
             {listing.title}
           </p>
-          <p className="text-[11px] text-[#A1A1AA] mt-1 line-clamp-1">{listing.address}</p>
+          <p className="text-[11px] text-gray-400 mt-1 line-clamp-1">{listing.address}</p>
         </div>
 
         {/* Key metrics */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-[#13141F] rounded-lg p-2 text-center">
-            <p className="text-xs font-bold font-mono text-white">{fmtPrice(listing.asking_price, listing.currency_code)}</p>
-            <p className="text-[9px] text-[#A1A1AA] mt-0.5 uppercase tracking-wide">Price</p>
+          <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
+            <p className="text-xs font-bold font-mono text-gray-900">{fmtPrice(listing.asking_price, listing.currency_code)}</p>
+            <p className="text-[9px] text-gray-400 mt-0.5 uppercase tracking-wide">Price</p>
           </div>
-          <div className="bg-[#13141F] rounded-lg p-2 text-center">
-            <p className={`text-xs font-bold font-mono ${returnFigure ? (returnFigure.green ? "text-[#00C805]" : "text-yellow-400") : "text-[#A1A1AA]"}`}>
+          <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
+            <p className={`text-xs font-bold font-mono ${returnFigure ? (returnFigure.green ? "text-[#00C805]" : "text-amber-600") : "text-gray-400"}`}>
               {returnFigure ? returnFigure.value : "—"}
             </p>
-            <p className="text-[9px] text-[#A1A1AA] mt-0.5 uppercase tracking-wide">
+            <p className="text-[9px] text-gray-400 mt-0.5 uppercase tracking-wide">
               {returnFigure ? returnFigure.label : "Return"}
             </p>
           </div>
-          <div className="bg-[#13141F] rounded-lg p-2 text-center">
-            <p className="text-xs font-bold font-mono text-white">
+          <div className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
+            <p className="text-xs font-bold font-mono text-gray-900">
               {listing.size_sqm ? `${Number(listing.size_sqm).toLocaleString()}` : "—"}
             </p>
-            <p className="text-[9px] text-[#A1A1AA] mt-0.5 uppercase tracking-wide">sqm</p>
+            <p className="text-[9px] text-gray-400 mt-0.5 uppercase tracking-wide">sqm</p>
           </div>
         </div>
 
         {/* Planning + ROI footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#1E1E2E] mt-auto">
-          <div className="flex items-center gap-1.5">
-            <span className={`text-[10px] font-semibold ${planColor}`}>
-              {planLabel || "—"}
-            </span>
-          </div>
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+          <span className={`text-[10px] font-semibold ${planColor}`}>
+            {planLabel || "—"}
+          </span>
           <div className="flex items-center gap-2">
             {muni && (
               <div className="text-right">
                 <span className={`text-xs font-bold tabular-nums ${roiColor(muni.opportunity_score)}`}>
                   {muni.opportunity_score}
                 </span>
-                <span className="text-[9px] text-[#A1A1AA] ml-1">ROI</span>
+                <span className="text-[9px] text-gray-400 ml-1">ROI</span>
               </div>
             )}
-            <span className="text-[11px] text-[#00C805] font-semibold group-hover:underline">
+            <span className="text-[11px] text-[#1B4FE4] font-semibold group-hover:underline">
               Analyse →
             </span>
           </div>
@@ -290,7 +288,6 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
       }
     });
 
-    // Featured float
     out.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     return out;
   }, [listings, market, dealType, sortKey, search]);
@@ -303,13 +300,13 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
   return (
     <div>
       {/* ── Search bar hero ── */}
-      <div className="relative mb-8 rounded-2xl overflow-hidden bg-gradient-to-br from-[#0C0D14] via-[#0F1020] to-[#0A0B10] border border-[#1E1E2E] p-8">
+      <div className="relative mb-8 rounded-2xl overflow-hidden bg-[#F8FAFF] border border-gray-200 p-8">
         <div className="max-w-3xl mx-auto text-center mb-6">
-          <p className="text-[10px] font-mono font-bold text-[#00C805] uppercase tracking-widest mb-2">
+          <p className="text-[10px] font-mono font-bold text-[#1B4FE4] uppercase tracking-widest mb-2">
             🇺🇸 USA · 🇬🇧 UK · Live Deal Flow
           </p>
-          <h2 className="text-2xl font-black tracking-tight mb-1">Find Your Next Investment</h2>
-          <p className="text-sm text-[#A1A1AA]">
+          <h2 className="text-2xl font-black tracking-tight mb-1 text-gray-900">Find Your Next Investment</h2>
+          <p className="text-sm text-gray-500">
             Search and analyse off-market opportunities — each scored against the Prime Atlas conviction framework
           </p>
         </div>
@@ -317,7 +314,7 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
         {/* Search input */}
         <div className="max-w-2xl mx-auto flex gap-3">
           <div className="relative flex-1">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -325,21 +322,21 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by city, postcode, or deal type..."
-              className="w-full pl-11 pr-4 py-3.5 bg-[#13141F] border border-[#27272A] focus:border-[#00C805]/60 rounded-xl text-sm text-white placeholder:text-[#A1A1AA]/60 outline-none transition-colors"
+              className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 focus:border-[#1B4FE4]/60 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors shadow-sm"
             />
           </div>
-          <button className="px-6 py-3.5 bg-[#00C805] hover:bg-[#00C805]/90 text-[#0A0B10] font-bold rounded-xl transition-colors whitespace-nowrap text-sm">
-            Analyse
+          <button className="px-6 py-3.5 bg-[#1B4FE4] hover:bg-[#1641C0] text-white font-bold rounded-xl transition-colors whitespace-nowrap text-sm">
+            Search
           </button>
         </div>
 
         {/* Stats inline */}
-        <div className="max-w-2xl mx-auto mt-4 flex items-center justify-center gap-6 text-[11px] font-mono text-[#A1A1AA]">
+        <div className="max-w-2xl mx-auto mt-4 flex items-center justify-center gap-6 text-[11px] font-mono text-gray-500">
           <span>
-            <span className="text-white font-bold">{filtered.length}</span> deals found
+            <span className="text-gray-900 font-bold">{filtered.length}</span> deals found
           </span>
-          <span>🇺🇸 <span className="text-white font-bold">{listings.filter(l => l.municipalities?.country === "United States").length}</span> USA</span>
-          <span>🇬🇧 <span className="text-white font-bold">{listings.filter(l => l.municipalities?.country === "United Kingdom").length}</span> UK</span>
+          <span>🇺🇸 <span className="text-gray-900 font-bold">{listings.filter(l => l.municipalities?.country === "United States").length}</span> USA</span>
+          <span>🇬🇧 <span className="text-gray-900 font-bold">{listings.filter(l => l.municipalities?.country === "United Kingdom").length}</span> UK</span>
           {avgYield && (
             <span>avg yield <span className="text-[#00C805] font-bold">{avgYield}%</span></span>
           )}
@@ -348,7 +345,6 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
 
       {/* ── Filter + sort bar ── */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Market */}
         <div className="flex gap-2">
           {(["all", "US", "UK"] as Market[]).map(m => (
             <Pill
@@ -360,9 +356,8 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
           ))}
         </div>
 
-        <div className="w-px h-6 bg-[#27272A] hidden sm:block" />
+        <div className="w-px h-6 bg-gray-200 hidden sm:block" />
 
-        {/* Deal type */}
         <div className="flex gap-2 flex-wrap">
           {([
             ["all", "All Types"],
@@ -376,13 +371,12 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
           ))}
         </div>
 
-        {/* Sort — pushed right */}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-[11px] text-[#A1A1AA] hidden sm:block">Sort:</span>
+          <span className="text-[11px] text-gray-400 hidden sm:block">Sort:</span>
           <select
             value={sortKey}
             onChange={e => setSortKey(e.target.value as SortKey)}
-            className="text-xs bg-[#0C0D14] border border-[#27272A] rounded-lg px-3 py-2 text-white outline-none focus:border-[#00C805]/50 cursor-pointer"
+            className="text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none focus:border-[#1B4FE4]/50 cursor-pointer"
           >
             <option value="date_desc">Newest first</option>
             <option value="roi_desc">Highest ROI</option>
@@ -394,19 +388,19 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
       </div>
 
       {/* ── Results count ── */}
-      <p className="text-[11px] text-[#A1A1AA] mb-4 font-mono">
-        Showing <span className="text-white font-bold">{filtered.length}</span> of {listings.length} opportunities
+      <p className="text-[11px] text-gray-400 mb-4 font-mono">
+        Showing <span className="text-gray-900 font-bold">{filtered.length}</span> of {listings.length} opportunities
       </p>
 
       {/* ── Card grid ── */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 border border-[#1E1E2E] rounded-2xl bg-[#0C0D14]">
+        <div className="flex flex-col items-center justify-center py-24 gap-4 border border-gray-200 rounded-2xl bg-gray-50">
           <p className="text-4xl">🔍</p>
-          <p className="font-bold text-lg">No deals match your filters</p>
-          <p className="text-sm text-[#A1A1AA]">Try adjusting the market or deal type above</p>
+          <p className="font-bold text-lg text-gray-900">No deals match your filters</p>
+          <p className="text-sm text-gray-500">Try adjusting the market or deal type above</p>
           <button
             onClick={() => { setMarket("all"); setDealType("all"); setSearch(""); }}
-            className="mt-2 px-4 py-2 rounded-lg border border-[#00C805]/40 text-[#00C805] text-sm font-semibold hover:bg-[#00C805]/10 transition-colors"
+            className="mt-2 px-4 py-2 rounded-lg border border-[#1B4FE4]/40 text-[#1B4FE4] text-sm font-semibold hover:bg-[#1B4FE4]/10 transition-colors"
           >
             Clear all filters
           </button>
@@ -420,13 +414,13 @@ export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
       )}
 
       {/* ── Footer ── */}
-      <div className="mt-10 pt-6 border-t border-[#1E1E2E] flex items-center justify-between">
-        <p className="text-[10px] font-mono text-[#A1A1AA]/40">
+      <div className="mt-10 pt-6 border-t border-gray-200 flex items-center justify-between">
+        <p className="text-[10px] font-mono text-gray-400">
           PRIME ATLAS INTELLIGENCE · USA + UK · REFRESHED DAILY
         </p>
         <a
           href="mailto:deals@prime-atlas.com?subject=Submit a listing"
-          className="text-[11px] font-mono text-[#00C805]/60 hover:text-[#00C805] transition-colors"
+          className="text-[11px] font-mono text-[#1B4FE4]/60 hover:text-[#1B4FE4] transition-colors"
         >
           + Submit a listing
         </a>

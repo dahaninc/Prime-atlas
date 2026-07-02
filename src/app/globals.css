@@ -4,40 +4,41 @@
 
 @layer base {
   :root {
-    /* ── Robinhood exact design system tokens ── */
+    /* ── Prime Atlas light design system ── */
 
     /* Canvas */
-    --background: 0 0% 0%;           /* #000000 pitch black */
-    --foreground: 0 0% 100%;         /* #FFFFFF stark white */
+    --background: 0 0% 100%;           /* white */
+    --foreground: 222 47% 11%;         /* #0F172A near-black */
 
     /* Surfaces */
-    --card: 240 6% 10%;              /* #18181B deep zinc card */
-    --card-foreground: 0 0% 100%;
-    --popover: 240 6% 8%;            /* #0C0D14 drawer/popover */
-    --popover-foreground: 0 0% 100%;
+    --card: 0 0% 98%;                  /* #FAFAFA */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Brand accent — Robinhood signature yellow-green */
-    --primary: 75 100% 50%;          /* #CCFF00 */
-    --primary-foreground: 0 0% 0%;
+    /* Primary — navy blue */
+    --primary: 220 84% 51%;            /* #1B4FE4 */
+    --primary-foreground: 0 0% 100%;
 
     /* Surfaces / hover */
-    --secondary: 240 4% 16%;         /* #27272A hover surface */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;          /* #F1F4F9 */
+    --secondary-foreground: 222 47% 11%;
 
     /* Muted */
-    --muted: 240 4% 11%;
-    --muted-foreground: 240 4% 63%;  /* #A1A1AA slate-gray */
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;   /* #64748B */
 
-    /* State */
-    --accent: 117 100% 39%;          /* #00C805 active/positive */
+    /* Accent — keep green only for positive metrics */
+    --accent: 117 100% 39%;            /* #00C805 */
     --accent-foreground: 0 0% 0%;
-    --destructive: 3 100% 59%;       /* #FF3B30 negative */
+
+    --destructive: 3 100% 59%;
     --destructive-foreground: 0 0% 100%;
 
     /* Structure */
-    --border: 240 4% 14%;            /* barely-there separator */
-    --input: 240 4% 14%;
-    --ring: 75 100% 50%;             /* #CCFF00 */
+    --border: 220 13% 91%;             /* #E2E8F0 */
+    --input: 220 13% 91%;
+    --ring: 220 84% 51%;               /* #1B4FE4 */
 
     --radius: 0.875rem;
   }
@@ -52,37 +53,16 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Scrollbar styling for dark theme */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-muted;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-muted; }
+  ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground; }
 }
 
 @layer utilities {
-  /* Score badge colors */
   .score-high   { @apply text-pa-green; }
   .score-medium { @apply text-pa-amber; }
   .score-low    { @apply text-pa-red; }
 
-  /* Terminal-style monospace for data values */
-  .data-value {
-    @apply font-mono text-sm tabular-nums;
-  }
-
-  /* Gradient border for premium cards */
-  .premium-border {
-    background: linear-gradient(var(--card), var(--card)) padding-box,
-                linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent))) border-box;
-    border: 1px solid transparent;
-  }
+  .data-value { @apply font-mono text-sm tabular-nums; }
 }

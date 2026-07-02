@@ -61,10 +61,12 @@ const config: Config = {
         // Text
         "rh-muted":  "#A1A1AA",   // secondary text / fine print
         // Legacy aliases (backward compat)
-        "pa-navy":   "#000000",
-        "pa-navy-800":"#18181B",
-        "pa-navy-700":"#27272A",
-        "pa-navy-600":"#3F3F46",
+        "pa-blue":   "#1B4FE4",
+        "pa-blue-50":"#EEF3FD",
+        "pa-navy":   "#0F172A",
+        "pa-navy-800":"#1E293B",
+        "pa-navy-700":"#334155",
+        "pa-navy-600":"#475569",
         "pa-green":  "#00C805",
         "pa-amber":  "#F5A623",
         "pa-red":    "#FF3B30",

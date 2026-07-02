@@ -26,7 +26,6 @@ const STATS = [
 const AUDIENCES = [
   {
     tag: "Individual & retail investors",
-    icon: "◎",
     headline: "The analysis funds commission — at your price point.",
     pain:
       "You see a market moving but can't quantify the thesis fast enough before prices reflect it. By the time a research note publishes, the entry window has closed.",
@@ -37,14 +36,11 @@ const AUDIENCES = [
       "Free tier: 5 markets per country, no credit card",
     ],
     cta: { label: "Start free", href: "/auth/signup" },
-    border: "border-[#00C805]/30",
-    bg: "bg-[#00C805]/[0.03]",
     tagColor: "text-[#00C805]",
     checkColor: "text-[#00C805]",
   },
   {
     tag: "Developers & operators",
-    icon: "⬡",
     headline: "Know before you spend £50K on surveys.",
     pain:
       "You're committing to diligence costs before you have high-confidence conviction. Most aborted deals absorb 6–10 weeks of analyst and consultant time before hitting a wall that was visible from day one.",
@@ -55,14 +51,11 @@ const AUDIENCES = [
       "Go/no-go conviction before the £50K diligence commitment",
     ],
     cta: { label: "Open Deal Board", href: "/deal-board" },
-    border: "border-blue-500/30",
-    bg: "bg-blue-500/[0.03]",
-    tagColor: "text-blue-400",
-    checkColor: "text-blue-400",
+    tagColor: "text-blue-600",
+    checkColor: "text-blue-600",
   },
   {
     tag: "Funds & institutions",
-    icon: "▣",
     headline: "IC memo. Same day. Auditable.",
     pain:
       "Your analysts spend 2–3 weeks per site stitching data from eight different sources in formats that don't match. Off-market windows are 72 hours. You are structurally late.",
@@ -73,10 +66,8 @@ const AUDIENCES = [
       "Multi-market pipeline ranked by ROI index for allocation decisions",
     ],
     cta: { label: "Book institutional access", href: "/auth/signup?tier=institutional" },
-    border: "border-purple-500/30",
-    bg: "bg-purple-500/[0.03]",
-    tagColor: "text-purple-400",
-    checkColor: "text-purple-400",
+    tagColor: "text-purple-600",
+    checkColor: "text-purple-600",
   },
 ] as const;
 
@@ -99,21 +90,18 @@ const TIMELINE_WITH = [
 const PAIN_POINTS = [
   {
     label: "Speed",
-    icon: "⏱",
     stat: "72 hrs",
     statLabel: "avg. off-market window",
     body: "Off-market sites move in 72 hours. Every hour you spend manually pulling from fragmented sources is an hour a competitor's offer sits on the vendor's desk.",
   },
   {
     label: "Cost",
-    icon: "$",
     stat: "£50K+",
     statLabel: "avg. aborted deal cost",
     body: "Late-stage diligence kills deals after £30–60K in fees — surveys, legal, planning consultants. The cost isn't the diligence: it's committing before you had conviction.",
   },
   {
     label: "Committee",
-    icon: "◉",
     stat: "3 wks",
     statLabel: "avg. time to IC memo",
     body: "An IC won't approve a deal you can't defend in writing. Manual memo builds take days. By then the site is under offer, or the committee has moved on.",
@@ -154,6 +142,43 @@ const CATEGORIES = [
   { label: "Industrial",         href: "/opportunities?category=Industrial",          icon: "🏭" },
   { label: "Mixed-use",          href: "/opportunities?category=Mixed-use",           icon: "⬛" },
 ];
+
+/* ─────────────────────────── audience SVG icons ─────────────────────────── */
+
+const IconHouse = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+    <path d="M4 14L16 4l12 10v14H20v-8h-8v8H4V14z" />
+  </svg>
+);
+
+const IconChart = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+    <rect x="4" y="18" width="6" height="10" rx="1" />
+    <rect x="13" y="10" width="6" height="18" rx="1" />
+    <rect x="22" y="4" width="6" height="24" rx="1" />
+  </svg>
+);
+
+const IconBuilding = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+    <rect x="6" y="8" width="20" height="20" rx="1" />
+    <path d="M6 12h20" />
+    <path d="M12 28V20h8v8" />
+    <path d="M10 16h2M20 16h2M10 20h2M20 20h2" />
+    <path d="M14 8V5l4-2 4 2v3" />
+  </svg>
+);
+
+const IconBank = () => (
+  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+    <path d="M4 28h24M4 14h24" />
+    <path d="M16 4L4 10h24L16 4z" />
+    <line x1="8"  y1="14" x2="8"  y2="28" />
+    <line x1="14" y1="14" x2="14" y2="28" />
+    <line x1="20" y1="14" x2="20" y2="28" />
+    <line x1="26" y1="14" x2="26" y2="28" />
+  </svg>
+);
 
 /* ─────────────────────────── page ─────────────────────────── */
 
@@ -203,12 +228,11 @@ export default async function HomePage() {
 
       <main>
 
-        {/* ══ HERO — Robinhood layout: cream bg, serif headline, atlas globe right ══ */}
+        {/* ══ HERO ══ */}
         <section
           className="relative overflow-hidden"
           style={{ background: "#F5F5EF", minHeight: "calc(100vh - 64px)" }}
         >
-          {/* Subtle topographic texture */}
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.025]"
             style={{
@@ -216,34 +240,25 @@ export default async function HomePage() {
               backgroundSize: "32px 32px",
             }}
           />
-
           <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-20 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[calc(100vh-64px)]">
-
-            {/* ── Left: copy ── */}
             <div className="order-2 lg:order-1 z-10">
-              {/* Pre-label — mirrors "Robinhood Presents" */}
               <div className="flex items-center gap-2 mb-7">
                 <span className="text-sm font-semibold text-black/50 tracking-wide">prime-atlas</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00C805] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1B4FE4] animate-pulse" />
                 <span className="text-sm text-black/40">Real estate intelligence</span>
               </div>
-
-              {/* Serif headline — editorial weight, Newsreader */}
               <h1 className="font-serif text-[clamp(2.6rem,6vw,4.5rem)] font-bold leading-[1.03] tracking-[-0.02em] text-black mb-6 max-w-[540px] text-balance">
                 The real estate atlas.{" "}
                 <span className="italic font-semibold">Redrawn.</span>
               </h1>
-
               <p className="text-lg text-black/55 max-w-[460px] mb-8 leading-relaxed text-pretty">
                 80+ markets pre-screened. Live underwrite. IC memo same day.
                 Sourced from government data you can name in committee.
               </p>
-
-              {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-3 mb-5">
                 <Link
                   href="/deal-board"
-                  className="inline-flex items-center justify-center bg-[#CCFF00] text-black font-bold px-8 py-3.5 rounded-full hover:opacity-90 active:scale-[0.98] transition-all text-sm"
+                  className="inline-flex items-center justify-center bg-[#1B4FE4] text-white font-bold px-8 py-3.5 rounded-full hover:bg-[#1641C0] active:scale-[0.98] transition-all text-sm"
                 >
                   Open the Deal Board
                 </Link>
@@ -254,90 +269,84 @@ export default async function HomePage() {
                   Create free account
                 </Link>
               </div>
-              <p className="text-xs text-black/35">
-                Free tier · No credit card · 5 markets per country
-              </p>
-
-              {/* Country strip */}
+              <p className="text-xs text-black/35">Free tier · No credit card · 5 markets per country</p>
               <div className="flex items-center gap-3 mt-8 flex-wrap">
                 {["🇬🇧 UK", "🇺🇸 US"].map(c => (
                   <span key={c} className="text-xs text-black/40 font-medium">{c}</span>
                 ))}
               </div>
             </div>
-
-            {/* ── Right: atlas globe ── */}
             <div className="order-1 lg:order-2 flex items-center justify-center lg:justify-end">
               <AtlasGlobe />
             </div>
           </div>
         </section>
 
-        {/* ── Stat strip — monoblock: no dividers, generous spacing ── */}
-        <section className="py-20 bg-black">
+        {/* ── Stat strip ── */}
+        <section className="py-20 bg-[#EEF3FD]">
           <div className="max-w-4xl mx-auto px-8 sm:px-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 sm:gap-8">
               {STATS.map((s) => (
                 <div key={s.value} className="text-center">
-                  <p className="text-5xl font-black tabular-nums text-[#CCFF00] leading-none tracking-tight">{s.value}</p>
-                  <p className="text-xs text-[#A1A1AA] mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[180px] mx-auto">{s.label}</p>
+                  <p className="text-5xl font-black tabular-nums text-[#1B4FE4] leading-none tracking-tight">{s.value}</p>
+                  <p className="text-xs text-gray-500 mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[180px] mx-auto">{s.label}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── Who is Prime Atlas for? (Mashvisor-style) ── */}
+        {/* ── Who is Prime Atlas for? ── */}
         <section className="py-20 bg-[#F5F5EF]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-            <h2 className="text-3xl font-black text-black tracking-tight mb-2">Who Uses Prime Atlas?</h2>
-            <p className="text-base text-black/50 mb-12 max-w-xl mx-auto">
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Who Uses Prime Atlas?</h2>
+            <p className="text-base text-gray-500 mb-12 max-w-xl mx-auto">
               From first investment to institutional capital deployment — one platform, every scale.
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
               {[
                 {
-                  icon: "🏠",
-                  bg: "bg-[#00C805]",
+                  Icon: IconHouse,
+                  bg: "bg-[#1B4FE4]",
                   label: "First-Time Investors",
                   desc: "Find your first BTR or development site with conviction, not guesswork.",
                   href: "/auth/signup",
                 },
                 {
-                  icon: "📊",
+                  Icon: IconChart,
                   bg: "bg-blue-500",
                   label: "Experienced Investors",
                   desc: "Deploy faster across USA and UK markets with pre-scored pipeline and live underwrite.",
                   href: "/deal-board",
                 },
                 {
-                  icon: "🏗️",
-                  bg: "bg-purple-500",
+                  Icon: IconBuilding,
+                  bg: "bg-indigo-600",
                   label: "Property Developers",
                   desc: "DCF, planning velocity, and undersupply signals before you spend on surveys.",
                   href: "/listings",
                 },
                 {
-                  icon: "🏦",
-                  bg: "bg-amber-500",
+                  Icon: IconBank,
+                  bg: "bg-[#0F172A]",
                   label: "Institutional Funds",
                   desc: "IC-ready memos, sourced from government data, on the day the deal arrives.",
                   href: "/capital",
                 },
               ].map((p) => (
                 <Link key={p.label} href={p.href} className="group flex flex-col items-center gap-4 hover:opacity-90 transition-opacity">
-                  <div className={`w-24 h-24 rounded-full ${p.bg} flex items-center justify-center text-4xl shadow-lg group-hover:scale-105 transition-transform`}>
-                    {p.icon}
+                  <div className={`w-24 h-24 rounded-full ${p.bg} text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform`}>
+                    <p.Icon />
                   </div>
-                  <p className="font-bold text-black text-sm leading-snug">{p.label}</p>
-                  <p className="text-xs text-black/50 leading-relaxed max-w-[180px]">{p.desc}</p>
+                  <p className="font-bold text-gray-900 text-sm leading-snug">{p.label}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed max-w-[180px]">{p.desc}</p>
                 </Link>
               ))}
             </div>
             <div className="mt-12 flex flex-col items-center gap-2">
-              <p className="text-lg font-black text-black">Your search for investment property — begins and ends here.</p>
-              <p className="text-sm text-black/50">No more spreadsheets. No more stitching data across eight tabs.</p>
-              <Link href="/auth/signup" className="mt-4 inline-flex items-center gap-2 bg-black text-white font-bold px-8 py-3 rounded-full hover:bg-black/85 transition-colors text-sm">
+              <p className="text-lg font-black text-gray-900">Your search for investment property — begins and ends here.</p>
+              <p className="text-sm text-gray-500">No more spreadsheets. No more stitching data across eight tabs.</p>
+              <Link href="/auth/signup" className="mt-4 inline-flex items-center gap-2 bg-[#1B4FE4] text-white font-bold px-8 py-3 rounded-full hover:bg-[#1641C0] transition-colors text-sm">
                 Start analysing →
               </Link>
             </div>
@@ -347,7 +356,7 @@ export default async function HomePage() {
         {/* ── Audience cards ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2 text-center">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2 text-center">
               Built for every real estate investor
             </p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-10 text-balance">
@@ -362,10 +371,10 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <p className="font-black text-lg tracking-tight mb-3 leading-snug text-balance">{a.headline}</p>
-                  <p className="text-sm text-[#A1A1AA] leading-relaxed mb-6 flex-1 text-pretty">{a.pain}</p>
+                  <p className="text-sm text-gray-500 leading-relaxed mb-6 flex-1 text-pretty">{a.pain}</p>
                   <ul className="space-y-3 mb-6">
                     {a.value.map((v) => (
-                      <li key={v} className="flex items-start gap-2.5 text-sm text-[#A1A1AA]">
+                      <li key={v} className="flex items-start gap-2.5 text-sm text-gray-500">
                         <span className={`${a.checkColor} mt-0.5 flex-shrink-0 font-black text-xs`}>✓</span>
                         {v}
                       </li>
@@ -381,57 +390,44 @@ export default async function HomePage() {
         </section>
 
         {/* ── Timeline comparison ── */}
-        <section className="py-20 bg-[#0C0D14]">
+        <section className="py-20 bg-[#F8FAFF]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2 text-center">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2 text-center">
               The conviction gap
             </p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-2 text-balance">
               Three weeks compressed to twenty minutes
             </h2>
-            <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-xl mx-auto text-pretty">
+            <p className="text-sm text-gray-500 text-center mb-10 max-w-xl mx-auto text-pretty">
               The analysis is the same. The data is the same. The difference is the infrastructure that assembles it for you.
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12">
-
-              {/* Without */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA] mb-5">
-                  Without Prime Atlas
-                </p>
-                <div className="border-l border-[#27272A] pl-6 space-y-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Without Prime Atlas</p>
+                <div className="border-l border-gray-200 pl-6 space-y-4">
                   {TIMELINE_WITHOUT.map((row, i) => (
                     <div key={i} className="flex gap-4 items-start">
-                      <span className="text-[10px] font-mono text-[#A1A1AA] flex-shrink-0 w-16 mt-0.5 tabular-nums">
-                        {row.marker}
-                      </span>
-                      <span className={`text-sm leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-[#FF3B30] font-semibold" : "text-[#A1A1AA]"}`}>
+                      <span className="text-[10px] font-mono text-gray-400 flex-shrink-0 w-16 mt-0.5 tabular-nums">{row.marker}</span>
+                      <span className={`text-sm leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-red-500 font-semibold" : "text-gray-500"}`}>
                         {row.action}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
-
-              {/* With */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#00C805] mb-5">
-                  With Prime Atlas
-                </p>
-                <div className="border-l-2 border-[#00C805]/40 pl-6 space-y-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-[#1B4FE4] mb-5">With Prime Atlas</p>
+                <div className="border-l-2 border-[#1B4FE4]/40 pl-6 space-y-4">
                   {TIMELINE_WITH.map((row, i) => (
                     <div key={i} className="flex gap-4 items-start">
-                      <span className="text-[10px] font-mono text-[#00C805] flex-shrink-0 w-16 mt-0.5 tabular-nums">
-                        {row.marker}
-                      </span>
-                      <span className={`text-sm leading-relaxed flex-1 ${"good" in row && row.good ? "text-[#00C805] font-semibold" : "text-white"}`}>
+                      <span className="text-[10px] font-mono text-[#1B4FE4] flex-shrink-0 w-16 mt-0.5 tabular-nums">{row.marker}</span>
+                      <span className={`text-sm leading-relaxed flex-1 ${"good" in row && row.good ? "text-[#1B4FE4] font-semibold" : "text-gray-800"}`}>
                         {row.action}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
-
             </div>
           </div>
         </section>
@@ -439,40 +435,22 @@ export default async function HomePage() {
         {/* ── Pain points ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">
               The cost of slow conviction
             </p>
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               You don&apos;t have a data problem. You have a conviction-and-latency problem.
             </h2>
-            {/* Mobile: single column, centered — asymmetric whitespace */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-sm sm:max-w-none mx-auto w-full">
               {PAIN_POINTS.map((p) => (
-                /* ── Liquid Glass card ── */
                 <div
                   key={p.label}
-                  className="relative overflow-hidden rounded-3xl p-7"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(0,200,5,0.08) 0%, rgba(204,255,0,0.04) 100%)",
-                    boxShadow: "0 0 0 1px rgba(0,200,5,0.12), inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.35)"
-                  }}
+                  className="rounded-3xl p-7 bg-[#F8FAFF] border border-[#1B4FE4]/10"
                 >
-                  {/* Inner gradient shimmer */}
-                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00C805]/30 to-transparent" />
-
-                  {/* Label */}
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[#A1A1AA] mb-5">
-                    {p.label}
-                  </p>
-
-                  {/* Hero number */}
-                  <p className="text-4xl font-black tracking-tight tabular-nums text-white leading-none mb-1">
-                    {p.stat}
-                  </p>
-                  <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-semibold mb-5">
-                    {p.statLabel}
-                  </p>
-                  <p className="text-sm text-[#A1A1AA] leading-relaxed text-pretty">{p.body}</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-5">{p.label}</p>
+                  <p className="text-4xl font-black tracking-tight tabular-nums text-gray-900 leading-none mb-1">{p.stat}</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-5">{p.statLabel}</p>
+                  <p className="text-sm text-gray-500 leading-relaxed text-pretty">{p.body}</p>
                 </div>
               ))}
             </div>
@@ -480,11 +458,9 @@ export default async function HomePage() {
         </section>
 
         {/* ── Workflow ── */}
-        <section className="py-20 bg-[#0C0D14]">
+        <section className="py-20 bg-[#F8FAFF]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-2">
-              How it works
-            </p>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">How it works</p>
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               From deal board to IC memo — same day, defensible in writing
             </h2>
@@ -492,15 +468,13 @@ export default async function HomePage() {
               {WORKFLOW.map((step) => (
                 <div key={step.step} className="flex flex-col sm:flex-row gap-6 sm:gap-10">
                   <div className="flex-shrink-0">
-                    <span className="text-[11px] font-bold text-[#00C805] uppercase tracking-widest tabular-nums">
-                      {step.step}
-                    </span>
+                    <span className="text-[11px] font-bold text-[#1B4FE4] uppercase tracking-widest tabular-nums">{step.step}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-black tracking-tight text-base mb-2 text-balance">{step.title}</p>
-                    <p className="text-sm text-[#A1A1AA] leading-relaxed text-pretty">{step.body}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed text-pretty">{step.body}</p>
                     {step.cta && (
-                      <Link href={step.cta.href} className="inline-block mt-3 text-xs font-bold uppercase tracking-widest text-[#CCFF00] hover:opacity-80 transition-opacity">
+                      <Link href={step.cta.href} className="inline-block mt-3 text-xs font-bold uppercase tracking-widest text-[#1B4FE4] hover:opacity-80 transition-opacity">
                         {step.cta.label} →
                       </Link>
                     )}
@@ -508,8 +482,8 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <div className="mt-16 text-xs text-[#A1A1AA] leading-relaxed max-w-2xl text-pretty">
-              <strong className="text-white">Transparency.</strong>{" "}
+            <div className="mt-16 text-xs text-gray-500 leading-relaxed max-w-2xl text-pretty">
+              <strong className="text-gray-900">Transparency.</strong>{" "}
               Sub-scores are manually-researched composite indexes compiled from official government data sources.
               Not black-box ML. The pro-forma is a standard DCF — all inputs are set by you.
               Nothing in Prime Atlas constitutes investment advice.
@@ -523,23 +497,20 @@ export default async function HomePage() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-1">
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-1">
                     Prime Atlas · Pre-screened pipeline · USA + UK
                   </p>
                   <h2 className="text-2xl font-black tracking-tight">Highest-conviction markets right now</h2>
                 </div>
-                <Link href="/listings" className="text-sm text-[#00C805] hover:underline whitespace-nowrap">
+                <Link href="/listings" className="text-sm text-[#1B4FE4] hover:underline whitespace-nowrap">
                   Full listings terminal →
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {topMunicipalities.map((m, i) => {
-                  // Derive macro outlook from scores
                   const macro = m.opportunity_score >= 70 ? "BULLISH" : m.opportunity_score >= 55 ? "CAUTIOUS" : "NEUTRAL";
-                  const macroColor = macro === "BULLISH" ? "text-[#00C805] bg-[#00C805]/10" : macro === "CAUTIOUS" ? "text-amber-400 bg-amber-400/10" : "text-[#A1A1AA] bg-[#27272A]";
-                  // Estimate cap rate: base 4% + growth premium
+                  const macroColor = macro === "BULLISH" ? "text-[#00C805] bg-[#00C805]/10" : macro === "CAUTIOUS" ? "text-amber-600 bg-amber-50" : "text-gray-500 bg-gray-100";
                   const capRate = (4 + (m.growth_score - 50) * 0.04).toFixed(1);
-                  // Estimate IRR range: cap rate + appreciation premium
                   const irrLow  = (parseFloat(capRate) + (m.development_score - 50) * 0.05).toFixed(1);
                   const irrHigh = (parseFloat(irrLow) + 3).toFixed(1);
                   const flag = countryFlag[m.country] ?? "🌍";
@@ -547,15 +518,14 @@ export default async function HomePage() {
                     <Link
                       key={m.id}
                       href={`/opportunities/${m.slug}`}
-                      className="group border border-[#27272A] hover:border-[#00C805]/40 rounded-2xl p-5 bg-[#0C0D14] hover:bg-[#0C0D14]/80 transition-all"
+                      className="group border border-gray-200 hover:border-[#1B4FE4]/40 rounded-2xl p-5 bg-white hover:bg-[#F8FAFF] transition-all shadow-sm"
                     >
-                      {/* Header */}
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <p className="text-[10px] font-mono font-bold text-[#A1A1AA] uppercase tracking-widest mb-1">
+                          <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest mb-1">
                             {flag} {m.country === "United Kingdom" ? "UK" : "USA"} · {m.region}
                           </p>
-                          <p className="font-black text-lg tracking-tight group-hover:text-[#00C805] transition-colors">
+                          <p className="font-black text-lg tracking-tight group-hover:text-[#1B4FE4] transition-colors">
                             {m.name}
                           </p>
                         </div>
@@ -563,19 +533,15 @@ export default async function HomePage() {
                           <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
                             {m.opportunity_score}
                           </span>
-                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">ROI index</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">ROI index</p>
                         </div>
                       </div>
-
-                      {/* Macro outlook badge */}
                       <div className="flex items-center gap-2 mb-4">
                         <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${macroColor}`}>
                           {macro === "BULLISH" ? "↑ BULLISH" : macro === "CAUTIOUS" ? "→ CAUTIOUS" : "— NEUTRAL"} MACRO
                         </span>
-                        <span className="text-[9px] text-[#A1A1AA] font-mono">#{i + 1} in pipeline</span>
+                        <span className="text-[9px] text-gray-400 font-mono">#{i + 1} in pipeline</span>
                       </div>
-
-                      {/* Metrics grid */}
                       <div className="grid grid-cols-4 gap-2 mb-3">
                         {[
                           { label: "GROWTH", val: m.growth_score },
@@ -583,26 +549,24 @@ export default async function HomePage() {
                           { label: "INFRA",  val: m.infrastructure_score ?? "—" },
                           { label: "RISK",   val: m.risk_score },
                         ].map(({ label, val }) => (
-                          <div key={label} className="text-center border border-[#27272A] rounded-lg py-2">
-                            <p className="text-xs font-bold tabular-nums text-white">{val}</p>
-                            <p className="text-[8px] text-[#A1A1AA] uppercase tracking-widest mt-0.5">{label}</p>
+                          <div key={label} className="text-center border border-gray-200 rounded-lg py-2">
+                            <p className="text-xs font-bold tabular-nums text-gray-900">{val}</p>
+                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-0.5">{label}</p>
                           </div>
                         ))}
                       </div>
-
-                      {/* IRR + Cap Rate row */}
-                      <div className="flex items-center justify-between pt-3 border-t border-[#27272A]">
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                         <div>
-                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mb-0.5">Est. Cap Rate</p>
-                          <p className="text-sm font-bold font-mono text-white">{capRate}%</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-0.5">Est. Cap Rate</p>
+                          <p className="text-sm font-bold font-mono text-gray-900">{capRate}%</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mb-0.5">IRR Range (5yr)</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-0.5">IRR Range (5yr)</p>
                           <p className="text-sm font-bold font-mono text-[#00C805]">{irrLow}–{irrHigh}%</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mb-0.5">Micro view</p>
-                          <p className="text-xs text-[#00C805] font-semibold group-hover:underline">Full analysis →</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-0.5">Micro view</p>
+                          <p className="text-xs text-[#1B4FE4] font-semibold group-hover:underline">Full analysis →</p>
                         </div>
                       </div>
                     </Link>
@@ -615,18 +579,14 @@ export default async function HomePage() {
 
         {/* ── Active opportunities ── */}
         {recentOpps && recentOpps.length > 0 && (
-          <section className="py-20 bg-[#0C0D14]">
+          <section className="py-20 bg-[#F8FAFF]">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-1">
-                    Underwrite-ready
-                  </p>
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-1">Underwrite-ready</p>
                   <h2 className="text-xl font-black tracking-tight">Active opportunities — sourced &amp; scored</h2>
                 </div>
-                <Link href="/opportunities" className="text-sm text-[#00C805] hover:underline">
-                  All opportunities →
-                </Link>
+                <Link href="/opportunities" className="text-sm text-[#1B4FE4] hover:underline">All opportunities →</Link>
               </div>
               <div className="space-y-0 max-w-2xl">
                 {recentOpps.map((opp) => {
@@ -635,39 +595,21 @@ export default async function HomePage() {
                     <Link
                       key={opp.id}
                       href={muni ? `/opportunities/${muni.slug}` : "/opportunities"}
-                      className="flex items-center justify-between py-5 border-b border-[#27272A]/40 hover:border-[#00C805]/30 transition-colors group"
+                      className="flex items-center justify-between py-5 border-b border-gray-200 hover:border-[#1B4FE4]/30 transition-colors group"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <span className="text-[10px] border border-[#27272A] rounded px-1.5 py-0.5 text-[#A1A1AA] font-mono">
-                            {opp.category}
-                          </span>
-                          <span
-                            className={`text-[10px] rounded px-1.5 py-0.5 font-medium ${
-                              opp.risk_level === "low"
-                                ? "text-[#00C805]"
-                                : opp.risk_level === "medium"
-                                ? "text-[#F5A623]"
-                                : "text-red-400"
-                            }`}
-                          >
-                            {opp.risk_level} risk
-                          </span>
-                          {muni && (
-                            <span className="text-[10px] text-[#A1A1AA]">
-                              {countryFlag[muni.country] ?? ""} {muni.name}
-                            </span>
-                          )}
+                          <span className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 text-gray-500 font-mono">{opp.category}</span>
+                          <span className={`text-[10px] rounded px-1.5 py-0.5 font-medium ${
+                            opp.risk_level === "low" ? "text-[#00C805]" : opp.risk_level === "medium" ? "text-amber-600" : "text-red-500"
+                          }`}>{opp.risk_level} risk</span>
+                          {muni && <span className="text-[10px] text-gray-400">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
                         </div>
-                        <p className="text-sm font-medium leading-snug group-hover:text-[#00C805] transition-colors truncate">
-                          {opp.title}
-                        </p>
+                        <p className="text-sm font-medium leading-snug group-hover:text-[#1B4FE4] transition-colors truncate">{opp.title}</p>
                       </div>
                       <div className="flex-shrink-0 ml-4 text-right">
-                        <p className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(opp.opportunity_score)}`}>
-                          {opp.opportunity_score}
-                        </p>
-                        <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">score</p>
+                        <p className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(opp.opportunity_score)}`}>{opp.opportunity_score}</p>
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">score</p>
                       </div>
                     </Link>
                   );
@@ -682,12 +624,10 @@ export default async function HomePage() {
           <section className="py-20">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center gap-3 mb-6">
-                <span className="w-2 h-2 rounded-full bg-[#00C805] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#1B4FE4] animate-pulse" />
                 <div>
-                  <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest">
-                    Conviction signals
-                  </p>
-                  <p className="text-xs text-[#A1A1AA]">
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest">Conviction signals</p>
+                  <p className="text-xs text-gray-400">
                     Employer moves, infrastructure approvals, and planning decisions that materially change a market&apos;s conviction score
                   </p>
                 </div>
@@ -696,26 +636,19 @@ export default async function HomePage() {
                 {recentSignals.map((sig) => {
                   const muni = sig.municipalities as { name: string; country: string } | null;
                   return (
-                    <div
-                      key={sig.id}
-                      className="flex items-center justify-between py-5 border-b border-[#27272A]/40"
-                    >
+                    <div key={sig.id} className="flex items-center justify-between py-5 border-b border-gray-200">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] font-mono text-[#A1A1AA] border border-[#27272A] rounded px-1.5 py-0.5">
+                          <span className="text-[10px] font-mono text-gray-500 border border-gray-200 rounded px-1.5 py-0.5">
                             {signalTypeLabel[sig.signal_type] ?? sig.signal_type}
                           </span>
-                          {muni && (
-                            <span className="text-[10px] text-[#A1A1AA]">
-                              {countryFlag[muni.country] ?? ""} {muni.name}
-                            </span>
-                          )}
+                          {muni && <span className="text-[10px] text-gray-400">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
                         </div>
                         <p className="text-sm font-medium leading-snug truncate">{sig.title}</p>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
                         <p className="text-[#00C805] font-black text-lg tabular-nums tracking-tight leading-none">+{sig.opportunity_impact}</p>
-                        <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mt-0.5">pts</p>
+                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mt-0.5">pts</p>
                       </div>
                     </div>
                   );
@@ -726,24 +659,20 @@ export default async function HomePage() {
         )}
 
         {/* ── Browse by category ── */}
-        <section className="py-20 bg-[#0C0D14]">
+        <section className="py-20 bg-[#F8FAFF]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest text-center mb-2">
-              Browse by asset class
-            </p>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-2">Browse by asset class</p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-8 text-balance">Pre-screened by property category</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 max-w-2xl">
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.href}
                   href={cat.href}
-                  className="flex items-center gap-4 py-5 border-b border-[#27272A]/40 hover:border-[#00C805]/30 group transition-colors pr-8"
+                  className="flex items-center gap-4 py-5 border-b border-gray-200 hover:border-[#1B4FE4]/30 group transition-colors pr-8"
                 >
                   <span className="text-xl flex-shrink-0">{cat.icon}</span>
-                  <span className="font-black tracking-tight group-hover:text-[#00C805] transition-colors">
-                    {cat.label}
-                  </span>
-                  <span className="ml-auto text-[#A1A1AA] text-xs group-hover:text-[#00C805] transition-colors">→</span>
+                  <span className="font-black tracking-tight group-hover:text-[#1B4FE4] transition-colors">{cat.label}</span>
+                  <span className="ml-auto text-gray-400 text-xs group-hover:text-[#1B4FE4] transition-colors">→</span>
                 </Link>
               ))}
             </div>
@@ -753,13 +682,11 @@ export default async function HomePage() {
         {/* ── Auditable data sources ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest text-center mb-2">
-              Auditable sources
-            </p>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-2">Auditable sources</p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-3 text-balance">
               Every score is traceable to a named government source
             </h2>
-            <p className="text-sm text-[#A1A1AA] text-center mb-10 max-w-2xl mx-auto text-pretty">
+            <p className="text-sm text-gray-500 text-center mb-10 max-w-2xl mx-auto text-pretty">
               An IC will ask where your numbers come from. Every score, signal, and opportunity in Prime Atlas
               links back to the original planning portal, official housing authority, or statistical body —
               not a model you can&apos;t explain.
@@ -769,7 +696,7 @@ export default async function HomePage() {
                 <div key={ds.label} className="text-center">
                   <p className="text-3xl mb-2">{ds.flag}</p>
                   <p className="text-xs font-semibold mb-1">{ds.label}</p>
-                  <p className="text-[10px] text-[#A1A1AA] leading-relaxed">{ds.sources}</p>
+                  <p className="text-[10px] text-gray-500 leading-relaxed">{ds.sources}</p>
                 </div>
               ))}
             </div>
@@ -777,76 +704,64 @@ export default async function HomePage() {
         </section>
 
         {/* ── Free report ── */}
-        <section className="py-20 bg-[#0C0D14]">
+        <section className="py-20 bg-[#EEF3FD]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-3">
-              Free quarterly report
-            </p>
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest mb-3">Free quarterly report</p>
             <h2 className="text-2xl font-bold mb-4">
               The 25 Most Undersupplied Multifamily Submarkets — Q2 2026
             </h2>
-            <p className="text-sm text-[#A1A1AA] mb-6 leading-relaxed max-w-xl mx-auto">
-              Ranked by ROI Feasibility Index. Covers UK and US markets.
-              Free, ungated, sourced from official data.
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed max-w-xl mx-auto">
+              Ranked by ROI Feasibility Index. Covers UK and US markets. Free, ungated, sourced from official data.
             </p>
             <Link
               href="/reports/undersupplied-markets"
-              className="inline-block border border-[#00C805]/40 text-[#00C805] px-8 py-3 rounded-full hover:bg-[#00C805]/10 transition-colors text-sm font-semibold"
+              className="inline-block border border-[#1B4FE4]/40 text-[#1B4FE4] px-8 py-3 rounded-full hover:bg-[#1B4FE4]/10 transition-colors text-sm font-semibold"
             >
               Read the report →
             </Link>
           </div>
         </section>
 
-        {/* ── Final CTA — Liquid Glass ── */}
+        {/* ── Final CTA ── */}
         <section className="py-20 px-4 sm:px-6">
           <div className="max-w-2xl mx-auto">
-          {/* Liquid Glass container */}
-          <div
-            className="relative overflow-hidden rounded-[36px] px-8 sm:px-14 py-14 text-center"
-            style={{
-              background: "linear-gradient(135deg, rgba(0,200,5,0.10) 0%, rgba(204,255,0,0.06) 50%, rgba(0,200,5,0.08) 100%)",
-              boxShadow: "0 0 0 1px rgba(0,200,5,0.15), inset 0 1px 0 rgba(255,255,255,0.08), 0 40px 100px rgba(0,0,0,0.5)"
-            }}
-          >
-            {/* Top shimmer line */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#CCFF00]/40 to-transparent" />
-            {/* Corner glow */}
-            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none opacity-20"
-              style={{ background: "radial-gradient(ellipse, #00C805 0%, transparent 70%)" }} />
-
-          <div className="relative text-center">
-            <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-5">
-              Start compressing your conviction timeline
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4 leading-tight text-balance">
-              The deal you miss because you were slow.<br />
-              The deal that dies because you committed too early.{" "}
-              <span className="text-[#CCFF00]">Prime Atlas ends both.</span>
-            </h2>
-            <p className="text-[#A1A1AA] text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
-              Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
-              Analyst: all 58+ markets, full evidence layers, unlimited contact reveals, IC memo export.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-              <Link
-                href="/auth/signup"
-                className="inline-block bg-[#CCFF00] text-black font-bold px-8 py-3.5 rounded-full hover:opacity-90 transition-all text-sm shadow-[0_0_32px_rgba(204,255,0,0.2)]"
-              >
-                Get access — free
-              </Link>
-              <Link
-                href="/deal-board"
-                className="inline-block border border-[#27272A] text-white px-8 py-3.5 rounded-full hover:bg-[#18181B] transition-colors text-sm"
-              >
-                Open Deal Board →
-              </Link>
+            <div
+              className="relative overflow-hidden rounded-[36px] px-8 sm:px-14 py-14 text-center bg-[#1B4FE4]"
+              style={{ boxShadow: "0 20px 60px rgba(27,79,228,0.25)" }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-px bg-white/20" />
+              <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none opacity-20"
+                style={{ background: "radial-gradient(ellipse, #ffffff 0%, transparent 70%)" }} />
+              <div className="relative text-center">
+                <p className="text-xs text-white/60 font-semibold uppercase tracking-widest mb-5">
+                  Start compressing your conviction timeline
+                </p>
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4 leading-tight text-balance text-white">
+                  The deal you miss because you were slow.<br />
+                  The deal that dies because you committed too early.{" "}
+                  <span className="text-[#A3C4FF]">Prime Atlas ends both.</span>
+                </h2>
+                <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
+                  Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
+                  Analyst: all 58+ markets, full evidence layers, unlimited contact reveals, IC memo export.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+                  <Link
+                    href="/auth/signup"
+                    className="inline-block bg-white text-[#1B4FE4] font-bold px-8 py-3.5 rounded-full hover:bg-white/90 transition-all text-sm"
+                  >
+                    Get access — free
+                  </Link>
+                  <Link
+                    href="/deal-board"
+                    className="inline-block border border-white/30 text-white px-8 py-3.5 rounded-full hover:bg-white/10 transition-colors text-sm"
+                  >
+                    Open Deal Board →
+                  </Link>
+                </div>
+                <p className="text-xs text-white/50">No credit card required · Upgrade or cancel at any time</p>
+              </div>
             </div>
-            <p className="text-xs text-[#A1A1AA]">
-              No credit card required · Upgrade or cancel at any time
-            </p>
-          </div>
-          </div>
           </div>
         </section>
 
