@@ -14,7 +14,6 @@ export interface ScrapedProperty {
   size_sqm: number | null;
   property_type: string | null;
   listing_type: string;
-  listing_url: string | null;
   scraped_at: string;
 }
 
@@ -216,7 +215,7 @@ export function MarketFeedExplorer({ properties }: Props) {
               ? getUKRegion(p.address)
               : stateCode !== "—" ? `${STATES[stateCode] ?? stateCode}, USA` : null;
             return (
-              <div key={p.id} className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 hover:border-[#1B4FE4]/30 hover:shadow-sm transition-all">
+              <div key={p.id} className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4">
                 {/* Row 1: badges + time */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -259,7 +258,7 @@ export function MarketFeedExplorer({ properties }: Props) {
                   {p.bathrooms != null && <span><span className="text-gray-900 font-bold">{p.bathrooms}</span> ba</span>}
                   {p.size_sqm  != null && <span><span className="text-gray-900 font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
                   {p.property_type && (
-                    <span className="ml-auto capitalize text-gray-300">{p.property_type}</span>
+                    <span className="capitalize text-gray-300">{p.property_type}</span>
                   )}
                 </div>
               </div>
