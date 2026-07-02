@@ -30,7 +30,7 @@ export default async function ListingsPage() {
         size_sqm, planning_status,
         gross_yield_pct, gdv_margin_pct, annual_income,
         description, date_listed, status, featured,
-        postcode, bedrooms,
+        postcode, bedrooms, images, highlights,
         municipalities(
           name, slug, country,
           opportunity_score, growth_score, risk_score

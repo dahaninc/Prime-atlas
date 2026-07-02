@@ -287,6 +287,63 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* ── Who is Prime Atlas for? (Mashvisor-style) ── */}
+        <section className="py-20 bg-[#F5F5EF]">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+            <h2 className="text-3xl font-black text-black tracking-tight mb-2">Who Uses Prime Atlas?</h2>
+            <p className="text-base text-black/50 mb-12 max-w-xl mx-auto">
+              From first investment to institutional capital deployment — one platform, every scale.
+            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+              {[
+                {
+                  icon: "🏠",
+                  bg: "bg-[#00C805]",
+                  label: "First-Time Investors",
+                  desc: "Find your first BTR or development site with conviction, not guesswork.",
+                  href: "/auth/signup",
+                },
+                {
+                  icon: "📊",
+                  bg: "bg-blue-500",
+                  label: "Experienced Investors",
+                  desc: "Deploy faster across USA and UK markets with pre-scored pipeline and live underwrite.",
+                  href: "/deal-board",
+                },
+                {
+                  icon: "🏗️",
+                  bg: "bg-purple-500",
+                  label: "Property Developers",
+                  desc: "DCF, planning velocity, and undersupply signals before you spend on surveys.",
+                  href: "/listings",
+                },
+                {
+                  icon: "🏦",
+                  bg: "bg-amber-500",
+                  label: "Institutional Funds",
+                  desc: "IC-ready memos, sourced from government data, on the day the deal arrives.",
+                  href: "/capital",
+                },
+              ].map((p) => (
+                <Link key={p.label} href={p.href} className="group flex flex-col items-center gap-4 hover:opacity-90 transition-opacity">
+                  <div className={`w-24 h-24 rounded-full ${p.bg} flex items-center justify-center text-4xl shadow-lg group-hover:scale-105 transition-transform`}>
+                    {p.icon}
+                  </div>
+                  <p className="font-bold text-black text-sm leading-snug">{p.label}</p>
+                  <p className="text-xs text-black/50 leading-relaxed max-w-[180px]">{p.desc}</p>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-12 flex flex-col items-center gap-2">
+              <p className="text-lg font-black text-black">Your search for investment property — begins and ends here.</p>
+              <p className="text-sm text-black/50">No more spreadsheets. No more stitching data across eight tabs.</p>
+              <Link href="/auth/signup" className="mt-4 inline-flex items-center gap-2 bg-black text-white font-bold px-8 py-3 rounded-full hover:bg-black/85 transition-colors text-sm">
+                Start analysing →
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* ── Audience cards ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
