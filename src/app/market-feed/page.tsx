@@ -67,19 +67,19 @@ export default async function MarketFeedPage() {
           {/* Stat strip */}
           <div className="flex flex-wrap gap-6 mb-2">
             <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">{total.toLocaleString()}</p>
+              <p className="text-2xl font-bold font-mono text-[#1B4FE4]">{total.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Total listings</p>
             </div>
             <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">{forSale.toLocaleString()}</p>
+              <p className="text-2xl font-bold font-mono text-[#1B4FE4]">{forSale.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">For sale</p>
             </div>
             <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">{forRent.toLocaleString()}</p>
+              <p className="text-2xl font-bold font-mono text-[#1B4FE4]">{forRent.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">For rent</p>
             </div>
             <div>
-              <p className="text-2xl font-bold font-mono text-pa-green">2</p>
+              <p className="text-2xl font-bold font-mono text-[#1B4FE4]">2</p>
               <p className="text-xs text-muted-foreground">Markets</p>
             </div>
             <div>

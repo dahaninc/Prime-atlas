@@ -24,12 +24,10 @@ interface Props { properties: ScrapedProperty[] }
 
 const SYM: Record<string, string> = { USD: "$", GBP: "£" };
 
-/** GBP = UK, everything else = US */
 function getCountry(currency: string): "UK" | "US" {
   return currency === "GBP" ? "UK" : "US";
 }
 
-/** Extract readable UK region from address */
 function getUKRegion(address: string | null): string {
   if (!address) return "UK";
   const parts = address.split(",").map(p => p.trim());
@@ -64,6 +62,7 @@ const STATES: Record<string, string> = {
   NC: "N. Carolina", WA: "Washington", CO: "Colorado", TN: "Tennessee",
   OR: "Oregon", NV: "Nevada", MN: "Minnesota", MA: "Massachusetts",
   MI: "Michigan", AZ: "Arizona", WI: "Wisconsin", MD: "Maryland",
+  KY: "Kentucky",
 };
 
 /* ─── component ─────────────────────────────────────────────────── */
@@ -104,29 +103,14 @@ export function MarketFeedExplorer({ properties }: Props) {
     });
   }, [properties, typeFilter, marketFilter, stateFilter, sortBy]);
 
-  /* ── pill factories ── */
-  const typePill = (val: "all" | "sale" | "rent", label: string) => (
+  /* ── pill factory ── */
+  const pill = (active: boolean, onClick: () => void, label: string) => (
     <button
-      key={val}
-      onClick={() => setTypeFilter(val)}
-      className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
-        typeFilter === val
-          ? "bg-[#00C805] text-black"
-          : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
-      }`}
-    >
-      {label}
-    </button>
-  );
-
-  const marketPill = (val: "ALL" | "USA" | "UK", label: string) => (
-    <button
-      key={val}
-      onClick={() => { setMarketFilter(val); setStateFilter("ALL"); }}
-      className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
-        marketFilter === val
-          ? "bg-white text-black"
-          : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+      onClick={onClick}
+      className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+        active
+          ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
+          : "bg-white border-gray-200 text-gray-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]"
       }`}
     >
       {label}
@@ -137,11 +121,11 @@ export function MarketFeedExplorer({ properties }: Props) {
     <button
       onClick={onClick}
       className={`w-full text-left flex items-center justify-between px-5 py-4 rounded-2xl text-sm font-semibold transition-colors ${
-        active ? "bg-[#00C805]/10 text-[#00C805]" : "text-white hover:bg-[#18181B]"
+        active ? "bg-[#EEF3FD] text-[#1B4FE4]" : "text-gray-700 hover:bg-gray-100"
       }`}
     >
       <span>{label}</span>
-      {sub && <span className="text-xs text-[#A1A1AA] font-mono ml-2">{sub}</span>}
+      {sub && <span className="text-xs text-gray-400 font-mono ml-2">{sub}</span>}
     </button>
   );
 
@@ -149,26 +133,26 @@ export function MarketFeedExplorer({ properties }: Props) {
     <div>
       {/* ── Market + Type filter row ── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-3">
-        {marketPill("ALL", "All Markets")}
-        {marketPill("USA", "🇺🇸 USA")}
-        {marketPill("UK",  "🇬🇧 UK")}
-        <div className="shrink-0 w-px h-4 bg-[#27272A] mx-1" />
-        {typePill("all",  "All")}
-        {typePill("sale", "For Sale")}
-        {typePill("rent", "For Rent")}
+        {pill(marketFilter === "ALL", () => { setMarketFilter("ALL"); setStateFilter("ALL"); }, "All Markets")}
+        {pill(marketFilter === "USA", () => { setMarketFilter("USA"); setStateFilter("ALL"); }, "🇺🇸 USA")}
+        {pill(marketFilter === "UK",  () => { setMarketFilter("UK");  setStateFilter("ALL"); }, "🇬🇧 UK")}
+        <div className="shrink-0 w-px h-4 bg-gray-200 mx-1" />
+        {pill(typeFilter === "all",  () => setTypeFilter("all"),  "All")}
+        {pill(typeFilter === "sale", () => setTypeFilter("sale"), "For Sale")}
+        {pill(typeFilter === "rent", () => setTypeFilter("rent"), "For Rent")}
       </div>
 
       {/* ── US State + Sort row ── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-6">
 
-        {/* Mobile state pill → drawer (US only) */}
+        {/* Mobile state pill → drawer */}
         {marketFilter !== "UK" && (
           <button
             onClick={() => setStateOpen(true)}
-            className={`md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
+            className={`md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
               stateFilter !== "ALL"
-                ? "bg-[#00C805] text-black"
-                : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
+                ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
+                : "bg-white border-gray-200 text-gray-600"
             }`}
           >
             {stateFilter === "ALL" ? "All States" : (STATES[stateFilter] ?? stateFilter)}
@@ -178,21 +162,11 @@ export function MarketFeedExplorer({ properties }: Props) {
           </button>
         )}
 
-        {/* Desktop state pills (US only) */}
+        {/* Desktop state pills */}
         {marketFilter !== "UK" && (
           <div className="hidden md:flex flex-wrap gap-1.5">
             {["ALL", ...states].map(s => (
-              <button
-                key={s}
-                onClick={() => setStateFilter(s)}
-                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-100 ${
-                  stateFilter === s
-                    ? "bg-[#00C805] text-black"
-                    : "bg-[#18181B] text-[#A1A1AA] hover:text-white"
-                }`}
-              >
-                {s === "ALL" ? "All States" : (STATES[s] ?? s)}
-              </button>
+              pill(stateFilter === s, () => setStateFilter(s), s === "ALL" ? "All States" : (STATES[s] ?? s))
             ))}
           </div>
         )}
@@ -200,7 +174,7 @@ export function MarketFeedExplorer({ properties }: Props) {
         {/* Mobile sort pill → drawer */}
         <button
           onClick={() => setSortOpen(true)}
-          className="md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold bg-[#18181B] text-[#A1A1AA] hover:text-white whitespace-nowrap ml-auto transition-all"
+          className="md:hidden shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-gray-200 text-gray-600 whitespace-nowrap ml-auto"
         >
           {sortBy === "recent" ? "Recent" : sortBy === "price_asc" ? "Price ↑" : "Price ↓"}
           <svg className="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,11 +184,11 @@ export function MarketFeedExplorer({ properties }: Props) {
 
         {/* Desktop sort */}
         <div className="hidden md:flex items-center gap-2 ml-auto">
-          <span className="text-xs text-[#A1A1AA]">Sort</span>
+          <span className="text-xs text-gray-400">Sort</span>
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value as typeof sortBy)}
-            className="text-xs bg-[#18181B] text-white rounded-full px-3 py-1.5 focus:outline-none"
+            className="text-xs bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1B4FE4]/50"
           >
             <option value="recent">Most recent</option>
             <option value="price_asc">Price ↑</option>
@@ -224,7 +198,7 @@ export function MarketFeedExplorer({ properties }: Props) {
       </div>
 
       {/* ── Count line ── */}
-      <p className="text-[10px] font-semibold text-[#A1A1AA] uppercase tracking-widest mb-5 tabular-nums">
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-5 tabular-nums">
         {filtered.length.toLocaleString()} listings
         {marketFilter !== "ALL" && ` · ${marketFilter === "USA" ? "United States" : "United Kingdom"}`}
         {stateFilter !== "ALL" && ` · ${STATES[stateFilter] ?? stateFilter}`}
@@ -232,69 +206,65 @@ export function MarketFeedExplorer({ properties }: Props) {
 
       {/* ── Grid ── */}
       {filtered.length === 0 ? (
-        <div className="text-center py-24 text-[#A1A1AA] text-sm">No listings match these filters.</div>
+        <div className="text-center py-24 text-gray-400 text-sm">No listings match these filters.</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map(p => (
-            <div key={p.id} className="bg-[#18181B] rounded-2xl p-5 flex flex-col gap-4 hover:bg-[#27272A] transition-colors">
-              {(() => {
-                const country = getCountry(p.currency_code);
-                const stateCode = getState(p.address);
-                const locationLabel = country === "UK"
-                  ? getUKRegion(p.address)
-                  : stateCode !== "—" ? `${STATES[stateCode] ?? stateCode}, USA` : null;
-                return (
-                  <>
-                    {/* Row 1: badges + time */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                          p.listing_type === "sale"
-                            ? "text-[#00C805] bg-[#00C805]/10"
-                            : "text-blue-400 bg-blue-400/10"
-                        }`}>
-                          {p.listing_type === "sale" ? "For Sale" : "For Rent"}
-                        </span>
-                        <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-[#A1A1AA] bg-[#27272A]">
-                          {country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
-                        </span>
-                      </div>
-                      <span className="text-[9px] text-[#A1A1AA]">{timeAgo(p.scraped_at)} ago</span>
-                    </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(p => {
+            const country = getCountry(p.currency_code);
+            const stateCode = getState(p.address);
+            const locationLabel = country === "UK"
+              ? getUKRegion(p.address)
+              : stateCode !== "—" ? `${STATES[stateCode] ?? stateCode}, USA` : null;
+            return (
+              <div key={p.id} className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 hover:border-[#1B4FE4]/30 hover:shadow-sm transition-all">
+                {/* Row 1: badges + time */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                      p.listing_type === "sale"
+                        ? "text-green-600 bg-green-50"
+                        : "text-blue-600 bg-blue-50"
+                    }`}>
+                      {p.listing_type === "sale" ? "For Sale" : "For Rent"}
+                    </span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-gray-500 bg-gray-100">
+                      {country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-gray-400">{timeAgo(p.scraped_at)} ago</span>
+                </div>
 
-                    {/* Row 2: Price */}
-                    {p.price && (
-                      <p className="text-[28px] font-black text-white leading-none tabular-nums tracking-tight">
-                        {fmtPrice(p.price, p.currency_code)}
-                      </p>
-                    )}
+                {/* Row 2: Price */}
+                {p.price && (
+                  <p className="text-[28px] font-black text-gray-900 leading-none tabular-nums tracking-tight">
+                    {fmtPrice(p.price, p.currency_code)}
+                  </p>
+                )}
 
-                    {/* Row 3: Address */}
-                    <div>
-                      <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
-                        {p.address ?? "Address unavailable"}
-                      </p>
-                      {locationLabel && (
-                        <p className="text-[10px] text-[#A1A1AA] mt-0.5 uppercase tracking-widest">
-                          {locationLabel}
-                        </p>
-                      )}
-                    </div>
+                {/* Row 3: Address */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
+                    {p.address ?? "Address unavailable"}
+                  </p>
+                  {locationLabel && (
+                    <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-widest">
+                      {locationLabel}
+                    </p>
+                  )}
+                </div>
 
-                    {/* Row 4: Specs */}
-                    <div className="flex gap-4 text-xs text-[#A1A1AA]">
-                      {p.bedrooms  != null && <span><span className="text-white font-bold">{p.bedrooms}</span> bd</span>}
-                      {p.bathrooms != null && <span><span className="text-white font-bold">{p.bathrooms}</span> ba</span>}
-                      {p.size_sqm  != null && <span><span className="text-white font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
-                      {p.property_type && (
-                        <span className="ml-auto capitalize text-[#52525B]">{p.property_type}</span>
-                      )}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          ))}
+                {/* Row 4: Specs */}
+                <div className="flex gap-4 text-xs text-gray-400">
+                  {p.bedrooms  != null && <span><span className="text-gray-900 font-bold">{p.bedrooms}</span> bd</span>}
+                  {p.bathrooms != null && <span><span className="text-gray-900 font-bold">{p.bathrooms}</span> ba</span>}
+                  {p.size_sqm  != null && <span><span className="text-gray-900 font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm</span>}
+                  {p.property_type && (
+                    <span className="ml-auto capitalize text-gray-300">{p.property_type}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
