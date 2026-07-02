@@ -9,16 +9,16 @@ import { AtlasGlobe } from "@/components/home/AtlasGlobe";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "prime-atlas | Real estate conviction — for every investor, at every scale.",
+  title: "Prime Atlas | Investment-grade real estate intelligence · USA + UK",
   description:
-    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across USA and UK, live underwrite, IC memo in one click.",
+    "80+ pre-screened markets across USA and UK. Live underwrite. Committee-ready IC memo in 20 minutes. Every data point sourced from government — auditable by name in your investment committee.",
 };
 
 /* ─────────────────────────── data ─────────────────────────── */
 
 const STATS = [
-  { value: "58+",    label: "Markets pre-screened · USA + UK" },
-  { value: "10 min", label: "Deal board → preliminary IC memo" },
+  { value: "80+",    label: "Markets pre-screened · USA + UK" },
+  { value: "20 min", label: "Deal board to preliminary IC memo" },
   { value: "£50K+",  label: "Avg. cost of a late-aborted diligence process" },
   { value: "100%",   label: "Government-source attribution on every score" },
 ];
@@ -242,23 +242,34 @@ export default async function HomePage() {
           />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-20 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[calc(100vh-64px)]">
             <div className="order-2 lg:order-1 z-10">
+              {/* Kicker */}
               <div className="flex items-center gap-2 mb-7">
-                <span className="text-sm font-semibold text-black/50 tracking-wide">prime-atlas</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1B4FE4] animate-pulse" />
-                <span className="text-sm text-black/40">Real estate intelligence</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1B4FE4] animate-pulse flex-shrink-0" />
+                <span className="text-[11px] font-bold text-black/40 uppercase tracking-widest">
+                  Investment Intelligence · USA + UK
+                </span>
               </div>
-              <h1 className="font-serif text-[clamp(2.6rem,6vw,4.5rem)] font-bold leading-[1.03] tracking-[-0.02em] text-black mb-6 max-w-[540px] text-balance">
-                The real estate atlas.{" "}
-                <span className="italic font-semibold">Redrawn.</span>
+
+              {/* Headline */}
+              <h1 className="font-serif text-[clamp(2.6rem,5.5vw,4.2rem)] font-bold leading-[1.04] tracking-[-0.02em] text-black mb-6 max-w-[540px] text-balance">
+                Investment conviction.{" "}
+                <span className="italic font-semibold">Before the window closes.</span>
               </h1>
-              <p className="text-lg text-black/55 max-w-[460px] mb-8 leading-relaxed text-pretty">
-                80+ markets pre-screened. Live underwrite. IC memo same day.
-                Sourced from government data you can name in committee.
+
+              {/* Subtext */}
+              <p className="text-base sm:text-lg text-black/55 max-w-[480px] mb-3 leading-relaxed text-pretty">
+                80+ pre-screened markets across USA and UK, ranked by ROI Feasibility Index.
+                Run a live underwrite and export a committee-ready IC memo — on the day the deal arrives.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+              <p className="text-sm text-black/40 max-w-[420px] mb-8 leading-relaxed">
+                Every data point sourced from government. Auditable by name in your investment committee.
+              </p>
+
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <Link
                   href="/deal-board"
-                  className="inline-flex items-center justify-center bg-[#1B4FE4] text-white font-bold px-8 py-3.5 rounded-full hover:bg-[#1641C0] active:scale-[0.98] transition-all text-sm"
+                  className="inline-flex items-center justify-center bg-[#1B4FE4] text-white font-bold px-8 py-3.5 rounded-full hover:bg-[#1641C0] active:scale-[0.98] transition-all text-sm shadow-[0_4px_20px_rgba(27,79,228,0.30)]"
                 >
                   Open the Deal Board
                 </Link>
@@ -266,13 +277,34 @@ export default async function HomePage() {
                   href="/auth/signup"
                   className="inline-flex items-center justify-center border border-black/20 text-black px-8 py-3.5 rounded-full hover:bg-black/5 transition-colors text-sm"
                 >
-                  Create free account
+                  Start free — no card
                 </Link>
               </div>
-              <p className="text-xs text-black/35">Free tier · No credit card · 5 markets per country</p>
-              <div className="flex items-center gap-3 mt-8 flex-wrap">
-                {["🇬🇧 UK", "🇺🇸 US"].map(c => (
-                  <span key={c} className="text-xs text-black/40 font-medium">{c}</span>
+
+              {/* Trust strip */}
+              <div className="flex flex-wrap gap-x-5 gap-y-2 mb-8">
+                {[
+                  { icon: "📊", text: "80+ markets ranked" },
+                  { icon: "⚡", text: "IC memo in 20 min" },
+                  { icon: "🔒", text: "Govt-sourced · auditable" },
+                ].map(({ icon, text }) => (
+                  <span key={text} className="flex items-center gap-1.5 text-xs text-black/40 font-medium">
+                    <span className="text-sm">{icon}</span>
+                    {text}
+                  </span>
+                ))}
+              </div>
+
+              {/* Market flags */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-black/30 font-semibold uppercase tracking-widest">Markets</span>
+                {[
+                  { flag: "🇬🇧", label: "United Kingdom" },
+                  { flag: "🇺🇸", label: "United States" },
+                ].map(({ flag, label }) => (
+                  <span key={label} className="flex items-center gap-1.5 text-xs text-black/45 font-medium">
+                    {flag} {label}
+                  </span>
                 ))}
               </div>
             </div>
@@ -299,9 +331,9 @@ export default async function HomePage() {
         {/* ── Who is Prime Atlas for? ── */}
         <section className="py-20 bg-[#F5F5EF]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Who Uses Prime Atlas?</h2>
+            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Built for every scale of capital.</h2>
             <p className="text-base text-gray-500 mb-12 max-w-xl mx-auto">
-              From first investment to institutional capital deployment — one platform, every scale.
+              From first-time BTR investors to institutional funds closing at speed — one platform, every deal size.
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
               {[
@@ -737,13 +769,13 @@ export default async function HomePage() {
                   Start compressing your conviction timeline
                 </p>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4 leading-tight text-balance text-white">
-                  The deal you miss because you were slow.<br />
-                  The deal that dies because you committed too early.{" "}
+                  Stop losing deals to speed.<br />
+                  Stop burning £50K on diligence that should have been a 20-minute screen.{" "}
                   <span className="text-[#A3C4FF]">Prime Atlas ends both.</span>
                 </h2>
                 <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
                   Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
-                  Analyst: all 58+ markets, full evidence layers, unlimited contact reveals, IC memo export.
+                  Analyst tier: all 80+ markets, full evidence layers, unlimited contact reveals, exportable IC memo.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                   <Link
