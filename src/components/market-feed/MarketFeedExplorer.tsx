@@ -32,8 +32,8 @@ function getUKRegion(address: string | null): string {
   if (!address) return "UK";
   const parts = address.split(",").map(p => p.trim());
   if (parts.length >= 2) {
-    const candidate = parts[parts.length - 2];
-    if (!candidate.match(/^[A-Z]{1,2}\d/)) return candidate;
+    const c = parts[parts.length - 2];
+    if (!c.match(/^[A-Z]{1,2}\d/)) return c;
   }
   return "UK";
 }
@@ -56,7 +56,7 @@ function timeAgo(iso: string): string {
   return h < 1 ? "< 1h" : h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`;
 }
 
-const STATES: Record<string, string> = {
+const STATE_NAMES: Record<string, string> = {
   NY: "New York", CA: "California", TX: "Texas", FL: "Florida",
   IL: "Illinois", PA: "Pennsylvania", OH: "Ohio", GA: "Georgia",
   NC: "N. Carolina", WA: "Washington", CO: "Colorado", TN: "Tennessee",
@@ -82,17 +82,9 @@ function estimateYield(p: ScrapedProperty): number | null {
   const state = getState(p.address);
   const beds = p.bedrooms ?? 2;
   const mult = BED_MULT[Math.min(beds, 4)] ?? 1.80;
-
-  let baseUSD: number;
-  if (country === "UK") {
-    const addr = (p.address ?? "").toLowerCase();
-    baseUSD = addr.includes("london") ? 2500 * 1.27
-            : (addr.includes("manchester") || addr.includes("birmingham")) ? 1200 * 1.27
-            : 1100 * 1.27;
-  } else {
-    baseUSD = STATE_RENTS[state] ?? 1600;
-  }
-
+  let baseUSD = country === "UK"
+    ? ((p.address ?? "").toLowerCase().includes("london") ? 2500 : 1150) * 1.27
+    : (STATE_RENTS[state] ?? 1600);
   const annualUSD = baseUSD * mult * 12;
   const priceUSD  = country === "UK" ? (p.price / 100) * 1.27 : p.price / 100;
   return priceUSD > 0 ? Math.round((annualUSD / priceUSD) * 100 * 10) / 10 : null;
@@ -100,9 +92,9 @@ function estimateYield(p: ScrapedProperty): number | null {
 
 /* ─── property type normalisation ──────────────────────────────── */
 
-type PropTypeBucket = "house" | "apartment" | "condo" | "townhouse" | "other";
+type PropBucket = "house" | "apartment" | "condo" | "townhouse" | "other";
 
-function normPropType(t: string | null): PropTypeBucket {
+function normType(t: string | null): PropBucket {
   if (!t) return "other";
   const l = t.toLowerCase().replace(/[-_]/g, " ");
   if (l.includes("apartment") || l.includes("flat") || l.includes("studio")) return "apartment";
@@ -118,7 +110,9 @@ function normPropType(t: string | null): PropTypeBucket {
 interface Enriched extends ScrapedProperty {
   estYield: number | null;
   sqft: number | null;
-  propBucket: PropTypeBucket;
+  propBucket: PropBucket;
+  stateCode: string;
+  country: "UK" | "US";
 }
 
 function enrich(p: ScrapedProperty): Enriched {
@@ -126,355 +120,472 @@ function enrich(p: ScrapedProperty): Enriched {
     ...p,
     estYield:   estimateYield(p),
     sqft:       p.size_sqm != null ? Math.round(Number(p.size_sqm) * 10.764) : null,
-    propBucket: normPropType(p.property_type),
+    propBucket: normType(p.property_type),
+    stateCode:  getState(p.address),
+    country:    getCountry(p.currency_code),
   };
 }
 
-/* ─── component ─────────────────────────────────────────────────── */
+/* ─── filter types ──────────────────────────────────────────────── */
 
-type SortKey = "recent" | "price_asc" | "price_desc" | "yield_desc" | "yield_asc" | "size_asc" | "size_desc";
-type YieldFilter = "all" | "4" | "6" | "8" | "10";
-type PropTypeFilter = "all" | PropTypeBucket;
+type MarketF    = "ALL" | "USA" | "UK";
+type ListingF   = "all" | "sale" | "rent";
+type PropTypeF  = "all" | PropBucket;
+type YieldF     = "all" | "4" | "6" | "8" | "10";
+type PriceRangeF = "all" | "u300" | "300-600" | "600-1000" | "1000p";
+type SizeRangeF  = "all" | "u100" | "100-200" | "200-400" | "400p";
+type SortKey    = "recent" | "price_asc" | "price_desc" | "yield_desc" | "yield_asc" | "size_desc" | "size_asc";
 
 const SORT_LABELS: Record<SortKey, string> = {
-  recent:     "Most Recent",
-  price_asc:  "Price ↑",
-  price_desc: "Price ↓",
+  recent:     "Most recent",
   yield_desc: "Yield ↓ (highest)",
   yield_asc:  "Yield ↑ (lowest)",
-  size_asc:   "Size ↑",
-  size_desc:  "Size ↓",
+  price_asc:  "Price ↑",
+  price_desc: "Price ↓",
+  size_desc:  "Size ↓ (largest)",
+  size_asc:   "Size ↑ (smallest)",
 };
 
-const YIELD_LABELS: Record<YieldFilter, string> = {
-  all: "Any Yield", "4": "4%+", "6": "6%+", "8": "8%+", "10": "10%+",
+/* ─── off-white palette ─────────────────────────────────────────── */
+// All colors using warm off-white tones (stone/cream palette)
+const C = {
+  pageBg:      "bg-[#F4F2EE]",
+  sidebarBg:   "bg-[#ECEAE5]",
+  cardBg:      "bg-[#FAFAF7]",
+  topbarBg:    "bg-[#F4F2EE]",
+  border:      "border-[#DDD9D2]",
+  borderLight: "border-[#E8E5DF]",
+  textPrimary: "text-stone-800",
+  textMuted:   "text-stone-400",
+  textSecond:  "text-stone-500",
+  pillActive:  "bg-[#1B4FE4] text-white border-[#1B4FE4]",
+  pillInactive:"bg-[#FAFAF7] border-[#DDD9D2] text-stone-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]",
 };
 
-const PROP_TYPE_LABELS: Record<PropTypeFilter, string> = {
-  all: "All Types", house: "House", apartment: "Apartment / Flat",
-  condo: "Condo", townhouse: "Townhouse", other: "Other",
-};
+/* ─── component ─────────────────────────────────────────────────── */
 
 export function MarketFeedExplorer({ properties }: Props) {
-  const [marketFilter,   setMarketFilter]   = useState<"ALL" | "USA" | "UK">("ALL");
-  const [listingFilter,  setListingFilter]  = useState<"all" | "sale" | "rent">("all");
-  const [propTypeFilter, setPropTypeFilter] = useState<PropTypeFilter>("all");
-  const [stateFilter,    setStateFilter]    = useState("ALL");
-  const [yieldFilter,    setYieldFilter]    = useState<YieldFilter>("all");
-  const [sortBy,         setSortBy]         = useState<SortKey>("recent");
+  const [market,    setMarket]    = useState<MarketF>("ALL");
+  const [listing,   setListing]   = useState<ListingF>("all");
+  const [propType,  setPropType]  = useState<PropTypeF>("all");
+  const [state,     setState]     = useState("ALL");
+  const [yieldF,    setYieldF]    = useState<YieldF>("all");
+  const [priceF,    setPriceF]    = useState<PriceRangeF>("all");
+  const [sizeF,     setSizeF]     = useState<SizeRangeF>("all");
+  const [minBeds,   setMinBeds]   = useState(0);
+  const [sortBy,    setSortBy]    = useState<SortKey>("yield_desc");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const closeMobile = useCallback(() => setMobileFiltersOpen(false), []);
 
-  // Drawers (mobile)
-  const [stateOpen,    setStateOpen]    = useState(false);
-  const [sortOpen,     setSortOpen]     = useState(false);
-  const [yieldOpen,    setYieldOpen]    = useState(false);
-  const [propTypeOpen, setPropTypeOpen] = useState(false);
-
-  const closeState    = useCallback(() => setStateOpen(false),    []);
-  const closeSort     = useCallback(() => setSortOpen(false),     []);
-  const closeYield    = useCallback(() => setYieldOpen(false),    []);
-  const closePropType = useCallback(() => setPropTypeOpen(false), []);
-
-  // Enrich all properties once
   const enriched = useMemo(() => properties.map(enrich), [properties]);
 
-  // Available states
   const states = useMemo(() => {
-    const s = new Set(
-      enriched.filter(p => getCountry(p.currency_code) === "US").map(p => getState(p.address)).filter(x => x !== "—")
-    );
+    const s = new Set(enriched.filter(p => p.country === "US").map(p => p.stateCode).filter(x => x !== "—"));
     return Array.from(s).sort();
   }, [enriched]);
 
-  // Filter + sort
   const filtered = useMemo(() => {
     let list = enriched;
-    if (marketFilter === "USA")   list = list.filter(p => getCountry(p.currency_code) === "US");
-    if (marketFilter === "UK")    list = list.filter(p => getCountry(p.currency_code) === "UK");
-    if (listingFilter !== "all")  list = list.filter(p => p.listing_type === listingFilter);
-    if (propTypeFilter !== "all") list = list.filter(p => p.propBucket === propTypeFilter);
-    if (stateFilter !== "ALL" && marketFilter !== "UK") {
-      list = list.filter(p => getState(p.address) === stateFilter);
+    if (market === "USA")     list = list.filter(p => p.country === "US");
+    if (market === "UK")      list = list.filter(p => p.country === "UK");
+    if (listing !== "all")    list = list.filter(p => p.listing_type === listing);
+    if (propType !== "all")   list = list.filter(p => p.propBucket === propType);
+    if (state !== "ALL" && market !== "UK") list = list.filter(p => p.stateCode === state);
+    if (minBeds > 0)          list = list.filter(p => (p.bedrooms ?? 0) >= minBeds);
+    if (yieldF !== "all")     list = list.filter(p => p.estYield != null && p.estYield >= Number(yieldF));
+
+    if (priceF !== "all") {
+      list = list.filter(p => {
+        const priceUSD = p.country === "UK" ? ((p.price ?? 0) / 100) * 1.27 : (p.price ?? 0) / 100;
+        if (priceF === "u300")    return priceUSD < 300_000;
+        if (priceF === "300-600") return priceUSD >= 300_000 && priceUSD < 600_000;
+        if (priceF === "600-1000")return priceUSD >= 600_000 && priceUSD < 1_000_000;
+        if (priceF === "1000p")   return priceUSD >= 1_000_000;
+        return true;
+      });
     }
-    if (yieldFilter !== "all") {
-      const min = Number(yieldFilter);
-      list = list.filter(p => p.estYield != null && p.estYield >= min);
+    if (sizeF !== "all") {
+      list = list.filter(p => {
+        const sqm = Number(p.size_sqm ?? 0);
+        if (sizeF === "u100")    return sqm > 0 && sqm < 100;
+        if (sizeF === "100-200") return sqm >= 100 && sqm < 200;
+        if (sizeF === "200-400") return sqm >= 200 && sqm < 400;
+        if (sizeF === "400p")    return sqm >= 400;
+        return true;
+      });
     }
+
     return [...list].sort((a, b) => {
       if (sortBy === "price_asc")  return (a.price ?? 0) - (b.price ?? 0);
       if (sortBy === "price_desc") return (b.price ?? 0) - (a.price ?? 0);
       if (sortBy === "yield_desc") return (b.estYield ?? 0) - (a.estYield ?? 0);
       if (sortBy === "yield_asc")  return (a.estYield ?? 0) - (b.estYield ?? 0);
-      if (sortBy === "size_asc")   return (a.size_sqm != null ? Number(a.size_sqm) : 0) - (b.size_sqm != null ? Number(b.size_sqm) : 0);
-      if (sortBy === "size_desc")  return (b.size_sqm != null ? Number(b.size_sqm) : 0) - (a.size_sqm != null ? Number(a.size_sqm) : 0);
+      if (sortBy === "size_desc")  return Number(b.size_sqm ?? 0) - Number(a.size_sqm ?? 0);
+      if (sortBy === "size_asc")   return Number(a.size_sqm ?? 0) - Number(b.size_sqm ?? 0);
       return new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime();
     });
-  }, [enriched, marketFilter, listingFilter, propTypeFilter, stateFilter, yieldFilter, sortBy]);
+  }, [enriched, market, listing, propType, state, yieldF, priceF, sizeF, minBeds, sortBy]);
+
+  /* stats */
+  const saleItems  = filtered.filter(p => p.listing_type === "sale");
+  const avgYield   = saleItems.length > 0
+    ? Math.round((saleItems.reduce((s, p) => s + (p.estYield ?? 0), 0) / saleItems.filter(p => p.estYield != null).length) * 10) / 10
+    : null;
+  const avgPrice   = saleItems.length > 0
+    ? Math.round(saleItems.reduce((s, p) => s + (p.price ?? 0), 0) / saleItems.length)
+    : null;
+  const lastSync   = properties[0]?.scraped_at
+    ? new Date(properties[0].scraped_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
+
+  const activeFilterCount = [
+    listing !== "all", propType !== "all", state !== "ALL",
+    yieldF !== "all", priceF !== "all", sizeF !== "all", minBeds > 0
+  ].filter(Boolean).length;
+
+  function clearAll() {
+    setListing("all"); setPropType("all"); setState("ALL");
+    setYieldF("all"); setPriceF("all"); setSizeF("all"); setMinBeds(0);
+    setMarket("ALL");
+  }
 
   /* ── pill ── */
   const pill = (active: boolean, onClick: () => void, label: string) => (
     <button
       onClick={onClick}
-      className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
-        active
-          ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
-          : "bg-white border-gray-200 text-gray-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]"
+      className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
+        active ? C.pillActive : C.pillInactive
       }`}
     >
       {label}
     </button>
   );
 
-  /* ── mobile filter pill (opens drawer) ── */
-  const mobilePill = (active: boolean, onClick: () => void, label: string) => (
-    <button
-      onClick={onClick}
-      className={`md:hidden shrink-0 flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
-        active ? "bg-[#1B4FE4] text-white border-[#1B4FE4]" : "bg-white border-gray-200 text-gray-600"
-      }`}
-    >
-      {label}
-      <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
+  /* ── sidebar section ── */
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className={`px-4 py-4 border-b ${C.border}`}>
+      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-3">{title}</p>
+      {children}
+    </div>
   );
 
-  /* ── drawer row ── */
-  const drawerRow = (active: boolean, onClick: () => void, label: string, sub?: string) => (
-    <button
-      onClick={onClick}
-      className={`w-full text-left flex items-center justify-between px-5 py-3.5 rounded-2xl text-sm font-semibold transition-colors ${
-        active ? "bg-[#EEF3FD] text-[#1B4FE4]" : "text-gray-700 hover:bg-gray-100"
-      }`}
-    >
-      <span>{label}</span>
-      {sub && <span className="text-xs text-gray-400 font-mono ml-2">{sub}</span>}
-    </button>
-  );
-
-  const activeFilters = [
-    listingFilter !== "all",
-    propTypeFilter !== "all",
-    stateFilter !== "ALL",
-    yieldFilter !== "all",
-  ].filter(Boolean).length;
-
-  return (
-    <div>
-
-      {/* ── Row 1: Market + Listing type ── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-3">
-        {pill(marketFilter === "ALL", () => { setMarketFilter("ALL"); setStateFilter("ALL"); }, "All Markets")}
-        {pill(marketFilter === "USA", () => { setMarketFilter("USA"); setStateFilter("ALL"); }, "🇺🇸 USA")}
-        {pill(marketFilter === "UK",  () => { setMarketFilter("UK");  setStateFilter("ALL"); }, "🇬🇧 UK")}
-        <div className="shrink-0 w-px h-4 bg-gray-200 mx-1 hidden md:block" />
-        {pill(listingFilter === "all",  () => setListingFilter("all"),  "All")}
-        {pill(listingFilter === "sale", () => setListingFilter("sale"), "For Sale")}
-        {pill(listingFilter === "rent", () => setListingFilter("rent"), "For Rent")}
-      </div>
-
-      {/* ── Row 2: Property type (desktop) + mobile drawer pills ── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap mb-3">
-
-        {/* Desktop prop type pills */}
-        <div className="hidden md:flex flex-wrap gap-1.5">
-          {(["all", "house", "apartment", "condo", "townhouse"] as PropTypeFilter[]).map(t =>
-            pill(propTypeFilter === t, () => setPropTypeFilter(t), PROP_TYPE_LABELS[t])
-          )}
+  /* ── sidebar content (shared between desktop sidebar and mobile drawer) ── */
+  const SidebarContent = () => (
+    <>
+      <Section title="Market">
+        <div className="flex flex-wrap gap-1.5">
+          {pill(market === "ALL", () => { setMarket("ALL"); setState("ALL"); }, "All markets")}
+          {pill(market === "USA", () => { setMarket("USA"); setState("ALL"); }, "🇺🇸 USA")}
+          {pill(market === "UK",  () => { setMarket("UK");  setState("ALL"); }, "🇬🇧 UK")}
         </div>
+      </Section>
 
-        {/* Mobile drawer pills */}
-        {mobilePill(propTypeFilter !== "all", () => setPropTypeOpen(true), propTypeFilter === "all" ? "Property Type" : PROP_TYPE_LABELS[propTypeFilter])}
-        {mobilePill(stateFilter !== "ALL" && marketFilter !== "UK", () => setStateOpen(true), stateFilter === "ALL" ? "State" : (STATES[stateFilter] ?? stateFilter))}
-        {mobilePill(yieldFilter !== "all", () => setYieldOpen(true), yieldFilter === "all" ? "Yield" : `${yieldFilter}%+`)}
-        {mobilePill(false, () => setSortOpen(true), sortBy === "recent" ? "Sort" : SORT_LABELS[sortBy])}
-      </div>
-
-      {/* ── Row 3: Yield + State (desktop) + Sort ── */}
-      <div className="hidden md:flex items-start gap-3 mb-6">
-
-        {/* Yield pills */}
-        <div className="flex flex-wrap gap-1.5 flex-1">
-          <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider self-center mr-1">Yield</span>
-          {(["all", "4", "6", "8", "10"] as YieldFilter[]).map(y =>
-            pill(yieldFilter === y, () => setYieldFilter(y), YIELD_LABELS[y])
-          )}
-          {marketFilter !== "UK" && states.length > 0 && (
-            <>
-              <div className="w-px h-5 bg-gray-200 mx-2 self-center" />
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider self-center mr-1">State</span>
-              {["ALL", ...states].map(s =>
-                pill(stateFilter === s, () => setStateFilter(s), s === "ALL" ? "All States" : (STATES[s] ?? s))
-              )}
-            </>
-          )}
+      <Section title="Listing type">
+        <div className="flex flex-wrap gap-1.5">
+          {pill(listing === "all",  () => setListing("all"),  "All")}
+          {pill(listing === "sale", () => setListing("sale"), "For sale")}
+          {pill(listing === "rent", () => setListing("rent"), "For rent")}
         </div>
+      </Section>
 
-        {/* Sort */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-gray-400">Sort</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as SortKey)}
-            className="text-xs bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1B4FE4]/50"
-          >
-            <option value="recent">Most recent</option>
-            <option value="price_asc">Price ↑</option>
-            <option value="price_desc">Price ↓</option>
-            <option value="yield_desc">Yield ↓ (highest first)</option>
-            <option value="yield_asc">Yield ↑ (lowest first)</option>
-            <option value="size_desc">Size ↓ (largest first)</option>
-            <option value="size_asc">Size ↑ (smallest first)</option>
-          </select>
+      <Section title="Property type">
+        <div className="flex flex-wrap gap-1.5">
+          {pill(propType === "all",       () => setPropType("all"),       "All types")}
+          {pill(propType === "house",     () => setPropType("house"),     "House")}
+          {pill(propType === "apartment", () => setPropType("apartment"), "Apartment / Flat")}
+          {pill(propType === "condo",     () => setPropType("condo"),     "Condo")}
+          {pill(propType === "townhouse", () => setPropType("townhouse"), "Townhouse")}
         </div>
-      </div>
+      </Section>
 
-      {/* ── Count + active filter summary ── */}
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-5 tabular-nums">
-        {filtered.length.toLocaleString()} listings
-        {marketFilter !== "ALL" && ` · ${marketFilter === "USA" ? "United States" : "United Kingdom"}`}
-        {stateFilter !== "ALL" && ` · ${STATES[stateFilter] ?? stateFilter}`}
-        {propTypeFilter !== "all" && ` · ${PROP_TYPE_LABELS[propTypeFilter]}`}
-        {yieldFilter !== "all" && ` · ${yieldFilter}%+ yield`}
-        {activeFilters > 0 && (
-          <button
-            onClick={() => { setListingFilter("all"); setPropTypeFilter("all"); setStateFilter("ALL"); setYieldFilter("all"); }}
-            className="ml-3 text-[#1B4FE4] hover:underline normal-case tracking-normal"
-          >
-            Clear filters
-          </button>
-        )}
-      </p>
-
-      {/* ── Grid ── */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-24 text-gray-400 text-sm">No listings match these filters.</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(p => {
-            const country = getCountry(p.currency_code);
-            const stateCode = getState(p.address);
-            const locationLabel = country === "UK"
-              ? getUKRegion(p.address)
-              : stateCode !== "—" ? `${STATES[stateCode] ?? stateCode}, USA` : null;
-            const sym = SYM[p.currency_code] ?? "";
-
-            return (
-              <Link
-                key={p.id}
-                href={`/market-feed/${p.id}`}
-                className="group bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-3 hover:border-[#1B4FE4]/30 hover:shadow-md transition-all"
-              >
-                {/* Row 1: badges + time */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                      p.listing_type === "sale" ? "text-green-600 bg-green-50" : "text-blue-600 bg-blue-50"
-                    }`}>
-                      {p.listing_type === "sale" ? "For Sale" : "For Rent"}
-                    </span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-gray-500 bg-gray-100">
-                      {country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
-                    </span>
-                    {p.propBucket !== "other" && (
-                      <span className="text-[9px] capitalize text-gray-400 border border-gray-100 rounded px-1.5 py-0.5">
-                        {PROP_TYPE_LABELS[p.propBucket]}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[9px] text-gray-400">{timeAgo(p.scraped_at)}</span>
-                </div>
-
-                {/* Row 2: Price + yield badge */}
-                <div className="flex items-end justify-between gap-2">
-                  {p.price && (
-                    <p className="text-[28px] font-black text-gray-900 leading-none tabular-nums tracking-tight">
-                      {fmtPrice(p.price, p.currency_code)}
-                    </p>
-                  )}
-                  {p.estYield != null && (
-                    <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg mb-0.5 ${
-                      p.estYield >= 8 ? "text-green-700 bg-green-50 border border-green-200" :
-                      p.estYield >= 6 ? "text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/20" :
-                      "text-amber-700 bg-amber-50 border border-amber-200"
-                    }`}>
-                      ~{p.estYield}% yield
-                    </span>
-                  )}
-                </div>
-
-                {/* Row 3: Address */}
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
-                    {p.address ?? "Address unavailable"}
-                  </p>
-                  {locationLabel && (
-                    <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-widest">{locationLabel}</p>
-                  )}
-                </div>
-
-                {/* Row 4: Specs */}
-                <div className="flex flex-wrap gap-3 text-xs text-gray-400 items-center pt-1 border-t border-gray-50">
-                  {p.bedrooms  != null && <span><span className="text-gray-800 font-bold">{p.bedrooms}</span> bd</span>}
-                  {p.bathrooms != null && <span><span className="text-gray-800 font-bold">{p.bathrooms}</span> ba</span>}
-                  {p.size_sqm  != null && (
-                    <span>
-                      <span className="text-gray-800 font-bold">{Number(p.size_sqm).toLocaleString()}</span> sqm
-                      <span className="text-gray-300 mx-1">·</span>
-                      <span className="text-gray-800 font-bold">{p.sqft?.toLocaleString()}</span> sqft
-                    </span>
-                  )}
-                  {p.price != null && p.size_sqm != null && (
-                    <span className="text-gray-400">
-                      {sym}{Math.round((p.price / 100) / Number(p.size_sqm)).toLocaleString()}/sqm
-                    </span>
-                  )}
-                  <span className="ml-auto text-[#1B4FE4] font-semibold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
-                    Analyse →
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+      <Section title="Est. yield (for sale)">
+        <div className="grid grid-cols-3 gap-1.5">
+          {(["all", "4", "6", "8", "10"] as YieldF[]).map(y => (
+            <button
+              key={y}
+              onClick={() => setYieldF(y)}
+              className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                yieldF === y
+                  ? "bg-green-600 text-white border-green-600"
+                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-green-400 hover:text-green-700`
+              }`}
+            >
+              {y === "all" ? "Any" : `${y}%+`}
+            </button>
+          ))}
         </div>
+      </Section>
+
+      <Section title="Price range">
+        <div className="flex flex-col gap-1.5">
+          {([
+            ["all",     "Any price"],
+            ["u300",    "Under $300K / £200K"],
+            ["300-600", "$300K – $600K"],
+            ["600-1000","$600K – $1M"],
+            ["1000p",   "$1M+"],
+          ] as [PriceRangeF, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setPriceF(val)}
+              className={`text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                priceF === val
+                  ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
+                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]`
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Bedrooms">
+        <div className="flex gap-1.5">
+          {[0, 1, 2, 3, 4].map(n => (
+            <button
+              key={n}
+              onClick={() => setMinBeds(n)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                minBeds === n
+                  ? C.pillActive
+                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-[#1B4FE4]/40`
+              }`}
+            >
+              {n === 0 ? "Any" : `${n}+`}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Size">
+        <div className="flex flex-col gap-1.5">
+          {([
+            ["all",    "Any size"],
+            ["u100",   "Under 100 sqm  /  1,076 sqft"],
+            ["100-200","100 – 200 sqm  /  1k – 2.2k sqft"],
+            ["200-400","200 – 400 sqm  /  2.2k – 4.3k sqft"],
+            ["400p",   "400 sqm+  /  4,300+ sqft"],
+          ] as [SizeRangeF, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setSizeF(val)}
+              className={`text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                sizeF === val
+                  ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
+                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]`
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {market !== "UK" && states.length > 0 && (
+        <Section title="State (US)">
+          <div className="flex flex-wrap gap-1.5">
+            {pill(state === "ALL", () => setState("ALL"), "All states")}
+            {states.map(s => pill(state === s, () => setState(s), STATE_NAMES[s] ?? s))}
+          </div>
+        </Section>
       )}
 
-      {/* ── Mobile: Property Type drawer ── */}
-      <FilterDrawer open={propTypeOpen} onClose={closePropType} title="Property Type">
-        <div className="flex flex-col gap-1">
-          {(["all", "house", "apartment", "condo", "townhouse", "other"] as PropTypeFilter[]).map(t =>
-            drawerRow(propTypeFilter === t, () => { setPropTypeFilter(t); closePropType(); }, PROP_TYPE_LABELS[t])
-          )}
+      {activeFilterCount > 0 && (
+        <div className="px-4 py-4">
+          <button
+            onClick={clearAll}
+            className={`w-full text-center text-xs font-semibold text-[#1B4FE4] py-2 rounded-lg border border-[#1B4FE4]/30 hover:bg-[#1B4FE4]/5 transition-colors`}
+          >
+            Clear all filters ({activeFilterCount})
+          </button>
         </div>
-      </FilterDrawer>
+      )}
+    </>
+  );
 
-      {/* ── Mobile: State drawer ── */}
-      <FilterDrawer open={stateOpen} onClose={closeState} title="Filter by State">
-        <div className="flex flex-col gap-1">
-          {drawerRow(stateFilter === "ALL", () => { setStateFilter("ALL"); closeState(); }, "All States")}
-          {states.map(s =>
-            drawerRow(stateFilter === s, () => { setStateFilter(s); closeState(); }, STATES[s] ?? s, s)
-          )}
-        </div>
-      </FilterDrawer>
+  return (
+    <div className={`flex rounded-2xl border ${C.border} overflow-hidden ${C.pageBg} min-h-[780px]`}>
 
-      {/* ── Mobile: Yield drawer ── */}
-      <FilterDrawer open={yieldOpen} onClose={closeYield} title="Filter by Est. Yield">
-        <div className="flex flex-col gap-1">
-          {(["all", "4", "6", "8", "10"] as YieldFilter[]).map(y =>
-            drawerRow(yieldFilter === y, () => { setYieldFilter(y); closeYield(); }, YIELD_LABELS[y],
-              y !== "all" ? "est. gross yield" : undefined)
-          )}
-        </div>
-      </FilterDrawer>
+      {/* ── Desktop sidebar ── */}
+      <aside className={`hidden md:flex flex-col w-56 shrink-0 ${C.sidebarBg} border-r ${C.border} overflow-y-auto`}>
+        <SidebarContent />
+      </aside>
 
-      {/* ── Mobile: Sort drawer ── */}
-      <FilterDrawer open={sortOpen} onClose={closeSort} title="Sort by">
-        <div className="flex flex-col gap-1">
-          {(Object.keys(SORT_LABELS) as SortKey[]).map(opt =>
-            drawerRow(sortBy === opt, () => { setSortBy(opt); closeSort(); }, SORT_LABELS[opt])
+      {/* ── Main ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+
+        {/* Stats bar */}
+        <div className={`${C.topbarBg} border-b ${C.border} px-5 py-3 flex flex-wrap items-center gap-0`}>
+          <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
+            <span className="text-lg font-bold font-mono text-[#1B4FE4] tabular-nums leading-none">{filtered.length.toLocaleString()}</span>
+            <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Listings</span>
+          </div>
+          <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
+            <span className={`text-lg font-bold font-mono ${C.textPrimary} tabular-nums leading-none`}>
+              {filtered.filter(p => p.listing_type === "sale").length.toLocaleString()}
+            </span>
+            <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>For sale</span>
+          </div>
+          {avgYield != null && (
+            <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
+              <span className="text-lg font-bold font-mono text-green-600 tabular-nums leading-none">~{avgYield}%</span>
+              <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Avg est. yield</span>
+            </div>
           )}
+          {avgPrice != null && saleItems.length > 0 && (
+            <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
+              <span className={`text-lg font-bold font-mono ${C.textPrimary} tabular-nums leading-none`}>
+                {fmtPrice(avgPrice, saleItems[0].currency_code === "GBP" ? "GBP" : "USD")}
+              </span>
+              <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Avg price</span>
+            </div>
+          )}
+          <div className="flex flex-col">
+            <span className={`text-sm font-semibold ${C.textPrimary} leading-none`}>{lastSync}</span>
+            <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Last synced</span>
+          </div>
+
+          {/* Sort + mobile filter */}
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setMobileFiltersOpen(true)}
+              className={`md:hidden flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border ${C.border} ${C.cardBg} ${C.textSecond}`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 8h10M11 12h2" />
+              </svg>
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            </button>
+            <span className={`text-[10px] ${C.textMuted} hidden md:block`}>Sort</span>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as SortKey)}
+              className={`text-xs rounded-lg px-3 py-1.5 border ${C.border} ${C.cardBg} ${C.textSecond} focus:outline-none focus:border-[#1B4FE4]/50`}
+            >
+              {(Object.keys(SORT_LABELS) as SortKey[]).map(k => (
+                <option key={k} value={k}>{SORT_LABELS[k]}</option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Result summary */}
+        <div className={`px-5 py-2 border-b ${C.borderLight} text-[10px] font-semibold ${C.textMuted} uppercase tracking-widest flex items-center gap-2`}>
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          {filtered.length.toLocaleString()} listings
+          {market !== "ALL" && ` · ${market === "USA" ? "United States" : "United Kingdom"}`}
+          {state !== "ALL" && ` · ${STATE_NAMES[state] ?? state}`}
+          {propType !== "all" && ` · ${propType}`}
+          {yieldF !== "all" && ` · ${yieldF}%+ yield`}
+          {priceF !== "all" && ` · price filtered`}
+          {sizeF !== "all" && ` · size filtered`}
+          {minBeds > 0 && ` · ${minBeds}+ beds`}
+        </div>
+
+        {/* Cards */}
+        {filtered.length === 0 ? (
+          <div className={`flex-1 flex flex-col items-center justify-center py-24 ${C.textMuted} text-sm gap-3`}>
+            <svg className="w-10 h-10 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>No listings match these filters</span>
+            <button onClick={clearAll} className="text-[#1B4FE4] text-xs font-semibold hover:underline">Clear all filters</button>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {filtered.map(p => {
+                const sym = SYM[p.currency_code] ?? "";
+                const locationLabel = p.country === "UK"
+                  ? getUKRegion(p.address)
+                  : p.stateCode !== "—" ? `${STATE_NAMES[p.stateCode] ?? p.stateCode}, USA` : null;
+
+                return (
+                  <Link
+                    key={p.id}
+                    href={`/market-feed/${p.id}`}
+                    className={`group ${C.cardBg} border ${C.border} rounded-xl p-4 flex flex-col gap-3 hover:border-[#1B4FE4]/40 hover:shadow-sm transition-all`}
+                  >
+                    {/* Top row: badges + time */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                        p.listing_type === "sale" ? "text-green-700 bg-green-100" : "text-blue-700 bg-blue-100"
+                      }`}>
+                        {p.listing_type === "sale" ? "For sale" : "For rent"}
+                      </span>
+                      <span className="text-[9px] font-semibold text-stone-400 bg-stone-200 px-2 py-0.5 rounded">
+                        {p.country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
+                      </span>
+                      {p.propBucket !== "other" && (
+                        <span className="text-[9px] capitalize text-stone-400 border border-stone-200 rounded px-1.5 py-0.5 bg-stone-100">
+                          {p.propBucket}
+                        </span>
+                      )}
+                      <span className={`text-[9px] ${C.textMuted} ml-auto`}>{timeAgo(p.scraped_at)}</span>
+                    </div>
+
+                    {/* Price + yield */}
+                    <div className="flex items-end justify-between gap-2">
+                      <p className={`text-[26px] font-bold ${C.textPrimary} leading-none tabular-nums tracking-tight`}>
+                        {fmtPrice(p.price ?? 0, p.currency_code)}
+                        {p.listing_type === "rent" && (
+                          <span className="text-sm font-normal text-stone-400 ml-1">/mo</span>
+                        )}
+                      </p>
+                      {p.estYield != null && (
+                        <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border mb-0.5 ${
+                          p.estYield >= 8 ? "text-green-700 bg-green-50 border-green-200" :
+                          p.estYield >= 6 ? "text-[#1B4FE4] bg-[#EEF3FD] border-[#1B4FE4]/20" :
+                          "text-amber-700 bg-amber-50 border-amber-200"
+                        }`}>
+                          ~{p.estYield}%
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Address */}
+                    <div>
+                      <p className={`text-sm font-semibold ${C.textPrimary} leading-snug line-clamp-2`}>
+                        {p.address ?? "Address unavailable"}
+                      </p>
+                      {locationLabel && (
+                        <p className={`text-[10px] ${C.textMuted} mt-0.5 uppercase tracking-widest`}>{locationLabel}</p>
+                      )}
+                    </div>
+
+                    {/* Specs */}
+                    <div className={`flex flex-wrap gap-3 text-xs ${C.textMuted} items-center pt-2.5 border-t ${C.borderLight}`}>
+                      {p.bedrooms  != null && <span><span className={`font-semibold ${C.textPrimary}`}>{p.bedrooms}</span> bd</span>}
+                      {p.bathrooms != null && <span><span className={`font-semibold ${C.textPrimary}`}>{p.bathrooms}</span> ba</span>}
+                      {p.size_sqm  != null && (
+                        <span>
+                          <span className={`font-semibold ${C.textPrimary}`}>{Number(p.size_sqm).toLocaleString()}</span> sqm
+                          <span className="text-stone-300 mx-1">·</span>
+                          <span className={`font-semibold ${C.textPrimary}`}>{p.sqft?.toLocaleString()}</span> sqft
+                        </span>
+                      )}
+                      {p.price != null && p.size_sqm != null && p.listing_type === "sale" && (
+                        <span className="text-[#1B4FE4] font-semibold">
+                          {sym}{Math.round((p.price / 100) / Number(p.size_sqm)).toLocaleString()}/sqm
+                        </span>
+                      )}
+                      <span className="ml-auto text-[#1B4FE4] font-semibold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                        Analyse →
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile filter drawer */}
+      <FilterDrawer open={mobileFiltersOpen} onClose={closeMobile} title="Filters">
+        <SidebarContent />
       </FilterDrawer>
     </div>
   );
