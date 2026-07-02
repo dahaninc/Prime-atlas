@@ -11,13 +11,13 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "prime-atlas | Real estate conviction — for every investor, at every scale.",
   description:
-    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 80+ markets, live underwrite, IC memo in one click. UK · US · AU · CA · ES.",
+    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across USA and UK, live underwrite, IC memo in one click.",
 };
 
 /* ─────────────────────────── data ─────────────────────────── */
 
 const STATS = [
-  { value: "80+",    label: "Markets pre-screened across 5 countries" },
+  { value: "58+",    label: "Markets pre-screened · USA + UK" },
   { value: "10 min", label: "Deal board → preliminary IC memo" },
   { value: "£50K+",  label: "Avg. cost of a late-aborted diligence process" },
   { value: "100%",   label: "Government-source attribution on every score" },
@@ -124,7 +124,7 @@ const WORKFLOW = [
   {
     step: "01",
     title: "Pre-screened deal pipeline",
-    body: "80+ markets ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score sources back to a named government data portal — nothing you can't explain in committee.",
+    body: "58+ markets across USA and UK ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score sources back to a named government data portal — nothing you can't explain in committee.",
     cta: { label: "Open Deal Board", href: "/deal-board" },
   },
   {
@@ -164,7 +164,8 @@ export default async function HomePage() {
   const [{ data: topMunicipalities }, { data: recentSignals }, { data: recentOpps }] = await Promise.all([
     supabase
       .from("municipalities")
-      .select("id, name, region, country, slug, opportunity_score, growth_score, development_score, risk_score")
+      .select("id, name, region, country, slug, opportunity_score, growth_score, development_score, risk_score, infrastructure_score, liquidity_score, population, currency_code")
+      .in("country", ["United Kingdom", "United States"])
       .order("opportunity_score", { ascending: false })
       .limit(6),
     supabase
@@ -466,44 +467,90 @@ export default async function HomePage() {
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <p className="text-xs text-[#A1A1AA] font-semibold uppercase tracking-widest mb-1">
-                    Pre-screened pipeline
+                    Prime Atlas · Pre-screened pipeline · USA + UK
                   </p>
                   <h2 className="text-2xl font-black tracking-tight">Highest-conviction markets right now</h2>
                 </div>
-                <Link href="/deal-board" className="text-sm text-[#00C805] hover:underline whitespace-nowrap">
-                  Full pipeline →
+                <Link href="/listings" className="text-sm text-[#00C805] hover:underline whitespace-nowrap">
+                  Full listings terminal →
                 </Link>
               </div>
-              <div className="space-y-0 max-w-2xl">
-                {topMunicipalities.map((m, i) => (
-                  <Link
-                    key={m.id}
-                    href={`/opportunities/${m.slug}`}
-                    className="flex items-center justify-between py-5 border-b border-[#27272A]/40 group hover:border-[#00C805]/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <span className="text-[11px] font-mono text-[#A1A1AA] tabular-nums w-5 flex-shrink-0">#{i + 1}</span>
-                      <div className="min-w-0">
-                        <p className="text-xs text-[#A1A1AA] font-semibold mb-0.5 uppercase tracking-widest">
-                          {countryFlag[m.country] ?? "🌍"} {m.region}
-                        </p>
-                        <p className="font-black tracking-tight group-hover:text-[#00C805] transition-colors">
-                          {m.name}
-                        </p>
-                        <div className="flex gap-4 mt-1 text-xs text-[#A1A1AA]">
-                          <span>Growth <strong className="text-white tabular-nums">{m.growth_score}</strong></span>
-                          <span>Dev <strong className="text-white tabular-nums">{m.development_score}</strong></span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {topMunicipalities.map((m, i) => {
+                  // Derive macro outlook from scores
+                  const macro = m.opportunity_score >= 70 ? "BULLISH" : m.opportunity_score >= 55 ? "CAUTIOUS" : "NEUTRAL";
+                  const macroColor = macro === "BULLISH" ? "text-[#00C805] bg-[#00C805]/10" : macro === "CAUTIOUS" ? "text-amber-400 bg-amber-400/10" : "text-[#A1A1AA] bg-[#27272A]";
+                  // Estimate cap rate: base 4% + growth premium
+                  const capRate = (4 + (m.growth_score - 50) * 0.04).toFixed(1);
+                  // Estimate IRR range: cap rate + appreciation premium
+                  const irrLow  = (parseFloat(capRate) + (m.development_score - 50) * 0.05).toFixed(1);
+                  const irrHigh = (parseFloat(irrLow) + 3).toFixed(1);
+                  const flag = countryFlag[m.country] ?? "🌍";
+                  return (
+                    <Link
+                      key={m.id}
+                      href={`/opportunities/${m.slug}`}
+                      className="group border border-[#27272A] hover:border-[#00C805]/40 rounded-2xl p-5 bg-[#0C0D14] hover:bg-[#0C0D14]/80 transition-all"
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="text-[10px] font-mono font-bold text-[#A1A1AA] uppercase tracking-widest mb-1">
+                            {flag} {m.country === "United Kingdom" ? "UK" : "USA"} · {m.region}
+                          </p>
+                          <p className="font-black text-lg tracking-tight group-hover:text-[#00C805] transition-colors">
+                            {m.name}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-3">
+                          <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
+                            {m.opportunity_score}
+                          </span>
+                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">ROI index</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-6">
-                      <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
-                        {m.opportunity_score}
-                      </span>
-                      <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold">ROI index</p>
-                    </div>
-                  </Link>
-                ))}
+
+                      {/* Macro outlook badge */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${macroColor}`}>
+                          {macro === "BULLISH" ? "↑ BULLISH" : macro === "CAUTIOUS" ? "→ CAUTIOUS" : "— NEUTRAL"} MACRO
+                        </span>
+                        <span className="text-[9px] text-[#A1A1AA] font-mono">#{i + 1} in pipeline</span>
+                      </div>
+
+                      {/* Metrics grid */}
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        {[
+                          { label: "GROWTH", val: m.growth_score },
+                          { label: "DEV",    val: m.development_score },
+                          { label: "INFRA",  val: m.infrastructure_score ?? "—" },
+                          { label: "RISK",   val: m.risk_score },
+                        ].map(({ label, val }) => (
+                          <div key={label} className="text-center border border-[#27272A] rounded-lg py-2">
+                            <p className="text-xs font-bold tabular-nums text-white">{val}</p>
+                            <p className="text-[8px] text-[#A1A1AA] uppercase tracking-widest mt-0.5">{label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* IRR + Cap Rate row */}
+                      <div className="flex items-center justify-between pt-3 border-t border-[#27272A]">
+                        <div>
+                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mb-0.5">Est. Cap Rate</p>
+                          <p className="text-sm font-bold font-mono text-white">{capRate}%</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mb-0.5">IRR Range (5yr)</p>
+                          <p className="text-sm font-bold font-mono text-[#00C805]">{irrLow}–{irrHigh}%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] text-[#A1A1AA] uppercase tracking-widest font-semibold mb-0.5">Micro view</p>
+                          <p className="text-xs text-[#00C805] font-semibold group-hover:underline">Full analysis →</p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -721,8 +768,8 @@ export default async function HomePage() {
               <span className="text-[#CCFF00]">Prime Atlas ends both.</span>
             </h2>
             <p className="text-[#A1A1AA] text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
-              Free tier: full Deal Board, preliminary underwrite, pre-screened pipeline across 5 markets per country.
-              Pro: all 80+ markets, full evidence layers, IC memo export.
+              Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
+              Analyst: all 58+ markets, full evidence layers, unlimited contact reveals, IC memo export.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
               <Link
