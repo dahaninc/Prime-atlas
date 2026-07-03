@@ -339,7 +339,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
           {[
             {
               q: "Where does the listing data come from?",
-              a: "Prime Atlas aggregates live data from Zillow (USA) and Rightmove/OnTheMarket (UK). Every listing is enriched with our own macro and micro analysis before it's presented — you're seeing Prime Atlas intelligence, not a raw portal repost.",
+              a: "Prime Atlas runs proprietary data pipelines across USA and UK markets. Every listing is enriched with our own macro and micro analysis before it's presented — you're seeing Prime Atlas intelligence, curated and conviction-graded for investors.",
             },
             {
               q: "What is a 'contact reveal'?",

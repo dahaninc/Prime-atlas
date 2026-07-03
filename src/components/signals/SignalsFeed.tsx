@@ -49,7 +49,7 @@ function timeAgo(iso: string): string {
 }
 
 const SIGNAL_TYPES = Object.keys(SIGNAL_TYPE_LABELS);
-const REGIONS = ["Costa Blanca", "Alicante", "Valencia"];
+const REGIONS: string[] = [];
 
 interface Props {
   initialSignals: Signal[];
@@ -250,13 +250,7 @@ export function SignalsFeed({ initialSignals, isPro, userId }: Props) {
 
                   {/* Footer */}
                   <div className="flex items-center gap-3 mt-3 flex-wrap">
-                    <span className="text-xs text-muted-foreground">{sig.source}</span>
-                    {sig.source_url && (
-                      <a href={sig.source_url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-pa-green hover:underline">
-                        Source →
-                      </a>
-                    )}
+                    <span className="text-xs text-muted-foreground">Prime Atlas Intelligence</span>
                     {sig.municipalities && (
                       <Link
                         href={`/opportunities/${slug}`}

@@ -131,7 +131,7 @@ export function ComparablesPanel({ postcode, seeded, askingPrice, currency }: Pr
         </h2>
         {source === "land_registry" && (
           <span className="text-[9px] text-pa-green border border-pa-green/30 rounded px-1.5 py-0.5 font-semibold">
-            🇬🇧 Land Registry — Live
+            🇬🇧 Prime Atlas Comparables
           </span>
         )}
         {source === "seeded" && (
@@ -144,7 +144,7 @@ export function ComparablesPanel({ postcode, seeded, askingPrice, currency }: Pr
       {loading ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
           <span className="w-3 h-3 rounded-full border-2 border-pa-green border-t-transparent animate-spin" />
-          Fetching Land Registry sold prices…
+          Fetching Prime Atlas comparables…
         </div>
       ) : (
         <>

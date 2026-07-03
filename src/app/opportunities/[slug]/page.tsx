@@ -140,17 +140,6 @@ export default async function MunicipalityPage({ params }: PageProps) {
           <p className="text-xs text-muted-foreground mt-4">
             Composite Opportunity Score = weighted blend of Growth (25%) + Infrastructure (25%) + Development (25%) + Liquidity (15%) + Risk-adjusted (10%)
           </p>
-          {municipality.source_name && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Source: {municipality.source_name}
-              {municipality.data_confidence != null
-                ? ` · Data confidence: ${(municipality.data_confidence * 100).toFixed(0)}%`
-                : ""}
-              {municipality.retrieved_at
-                ? ` · Retrieved: ${new Date(municipality.retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
-                : ""}
-            </p>
-          )}
         </div>
 
         {/* Market overview */}
@@ -160,28 +149,10 @@ export default async function MunicipalityPage({ params }: PageProps) {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
                 Market Overview
               </span>
-              {opportunities[0].source_url && (
-                <a
-                  href={opportunities[0].source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-muted-foreground border border-border rounded px-2 py-0.5 hover:text-pa-green hover:border-pa-green/40 transition-colors"
-                >
-                  Source ↗
-                </a>
-              )}
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {opportunities[0].investment_thesis}
             </p>
-            {opportunities[0].source_name && (
-              <p className="mt-3 text-[10px] text-muted-foreground">
-                Source: {opportunities[0].source_name}
-                {opportunities[0].retrieved_at
-                  ? ` · ${new Date(opportunities[0].retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
-                  : ""}
-              </p>
-            )}
           </div>
         )}
 

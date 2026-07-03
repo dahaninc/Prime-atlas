@@ -11,7 +11,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Prime Atlas | Investment-grade real estate intelligence · USA + UK",
   description:
-    "80+ pre-screened markets across USA and UK. Live underwrite. Committee-ready IC memo in 20 minutes. Every data point sourced from government — auditable by name in your investment committee.",
+    "80+ pre-screened markets across USA and UK. Live underwrite. Committee-ready IC memo in 20 minutes. Powered by Prime Atlas proprietary intelligence.",
 };
 
 /* ─────────────────────────── data ─────────────────────────── */
@@ -20,7 +20,7 @@ const STATS = [
   { value: "80+",    label: "Markets pre-screened · USA + UK" },
   { value: "20 min", label: "Deal board to preliminary IC memo" },
   { value: "£50K+",  label: "Avg. cost of a late-aborted diligence process" },
-  { value: "100%",   label: "Government-source attribution on every score" },
+  { value: "100%",   label: "Prime Atlas proprietary intelligence on every score" },
 ];
 
 const SOCIAL_PROOF = [
@@ -78,7 +78,7 @@ const AUDIENCES = [
     value: [
       "80+ markets ranked by ROI Feasibility Index",
       "Undersupply signals before they reach mainstream press",
-      "Conviction scores sourced from government data — not opinion",
+      "Conviction scores built on Prime Atlas proprietary intelligence — not opinion",
       "Free tier: 5 markets per country, no credit card",
     ],
     cta: { label: "Start free", href: "/auth/signup" },
@@ -107,8 +107,8 @@ const AUDIENCES = [
       "Your analysts spend 2–3 weeks per site stitching data from eight different sources in formats that don't match. Off-market windows are 72 hours. You are structurally late.",
     value: [
       "Preliminary underwrite ready the moment a deal hits your desk",
-      "Conviction checklist — every item linked to a named government source",
-      "Exportable IC memo — assumptions traceable, sources cited, committee-ready",
+      "Conviction checklist — every item verified through Prime Atlas intelligence",
+      "Exportable IC memo — assumptions traceable, committee-ready",
       "Multi-market pipeline ranked by ROI index for allocation decisions",
     ],
     cta: { label: "Book institutional access", href: "/auth/signup?tier=institutional" },
@@ -128,7 +128,7 @@ const TIMELINE_WITHOUT = [
 const TIMELINE_WITH = [
   { marker: "Min 1–5",  action: "Market screened — ROI index, growth, risk scores visible" },
   { marker: "Min 5–10", action: "Preliminary underwrite run — DCF inputs adjusted, yield-on-cost live" },
-  { marker: "Min 10–15",action: "Conviction checklist reviewed — signals verified, sources cited" },
+  { marker: "Min 10–15",action: "Conviction checklist reviewed — signals verified, thesis confirmed" },
   { marker: "Min 15–20",action: "IC memo exported — structured, sourced, defensible in committee" },
   { marker: "Same day", action: "Deal in front of committee. Window open.", good: true },
 ];
@@ -158,7 +158,7 @@ const WORKFLOW = [
   {
     step: "01",
     title: "Pre-screened deal pipeline",
-    body: "58+ markets across USA and UK ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score sources back to a named government data portal — nothing you can't explain in committee.",
+    body: "80+ markets across USA and UK ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score is Prime Atlas proprietary intelligence — built to hold up in committee.",
     cta: { label: "Open Deal Board", href: "/deal-board" },
   },
   {
@@ -170,14 +170,14 @@ const WORKFLOW = [
   {
     step: "03",
     title: "IC memo — same day, defensible in writing",
-    body: "Export a structured investment memo covering scores, source attribution, pro-forma outputs, and the conviction checklist you reviewed. Every assumption traced to a named source. Ready for committee the same day the deal hits your desk.",
+    body: "Export a structured investment memo covering Prime Atlas scores, pro-forma outputs, and the conviction checklist you reviewed. Every assumption is traceable and defensible. Ready for committee the same day the deal hits your desk.",
     cta: null,
   },
 ];
 
-const DATA_SOURCES = [
-  { flag: "🇬🇧", label: "United Kingdom", sources: "HM Land Registry · ONS · NHBC · Homes England · GLA · Rightmove" },
-  { flag: "🇺🇸", label: "United States",  sources: "US Census BPS · NAR · HUD · NYC DoB · LA Planning · Zillow" },
+const MARKET_COVERAGE = [
+  { flag: "🇬🇧", label: "United Kingdom", desc: "Residential · BTR · PBSA · Commercial · Industrial" },
+  { flag: "🇺🇸", label: "United States",  desc: "Multifamily · Build-to-Rent · Commercial · Sunbelt Growth Markets" },
 ];
 
 const CATEGORIES = [
@@ -308,7 +308,7 @@ export default async function HomePage() {
                 Run a live underwrite and export a committee-ready IC memo — on the day the deal arrives.
               </p>
               <p className="text-sm text-black/40 max-w-[420px] mb-8 leading-relaxed">
-                Every data point sourced from government. Auditable by name in your investment committee.
+                Prime Atlas proprietary intelligence — built to hold up in your investment committee.
               </p>
 
               {/* CTAs */}
@@ -332,7 +332,7 @@ export default async function HomePage() {
                 {[
                   { icon: "📊", text: "80+ markets ranked" },
                   { icon: "⚡", text: "IC memo in 20 min" },
-                  { icon: "🔒", text: "Govt-sourced · auditable" },
+                  { icon: "🔒", text: "Prime Atlas verified data" },
                 ].map(({ icon, text }) => (
                   <span key={text} className="flex items-center gap-1.5 text-xs text-black/40 font-medium">
                     <span className="text-sm">{icon}</span>
@@ -435,7 +435,7 @@ export default async function HomePage() {
                   Icon: IconBank,
                   bg: "bg-[#0F172A]",
                   label: "Institutional Funds",
-                  desc: "IC-ready memos, sourced from government data, on the day the deal arrives.",
+                  desc: "IC-ready memos powered by Prime Atlas intelligence, on the day the deal arrives.",
                   href: "/capital",
                 },
               ].map((p) => (
@@ -631,7 +631,7 @@ export default async function HomePage() {
             </div>
             <div className="mt-16 text-xs text-gray-500 leading-relaxed max-w-2xl text-pretty">
               <strong className="text-gray-900">Transparency.</strong>{" "}
-              Sub-scores are manually-researched composite indexes compiled from official government data sources.
+              Prime Atlas scores are composite indexes built from proprietary research across USA and UK markets.
               Not black-box ML. The pro-forma is a standard DCF — all inputs are set by you.
               Nothing in Prime Atlas constitutes investment advice.
             </div>
@@ -826,24 +826,23 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── Auditable data sources ── */}
+        {/* ── Market coverage ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-2">Auditable sources</p>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-2">Market coverage</p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-3 text-balance">
-              Every score is traceable to a named government source
+              Prime Atlas intelligence across USA and UK
             </h2>
             <p className="text-sm text-gray-500 text-center mb-10 max-w-2xl mx-auto text-pretty">
-              An IC will ask where your numbers come from. Every score, signal, and opportunity in Prime Atlas
-              links back to the original planning portal, official housing authority, or statistical body —
-              not a model you can&apos;t explain.
+              Every score, signal, and conviction rating is built and maintained by Prime Atlas —
+              proprietary intelligence you can present in committee with full confidence.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-6">
-              {DATA_SOURCES.map((ds) => (
-                <div key={ds.label} className="text-center">
-                  <p className="text-3xl mb-2">{ds.flag}</p>
-                  <p className="text-xs font-semibold mb-1">{ds.label}</p>
-                  <p className="text-[10px] text-gray-500 leading-relaxed">{ds.sources}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-xl mx-auto">
+              {MARKET_COVERAGE.map((mc) => (
+                <div key={mc.label} className="text-center border border-gray-100 rounded-2xl p-6">
+                  <p className="text-4xl mb-3">{mc.flag}</p>
+                  <p className="text-sm font-bold mb-1">{mc.label}</p>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">{mc.desc}</p>
                 </div>
               ))}
             </div>

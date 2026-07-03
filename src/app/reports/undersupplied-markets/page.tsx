@@ -5,7 +5,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "The 25 Most Undersupplied Multifamily Submarkets Q2 2026 | Prime Atlas",
   description:
-    "Ranked by ROI Feasibility Index: the 25 most undersupplied multifamily and BTR submarkets across USA and UK. Data from US Census BPS, HM Land Registry, and municipal planning portals. Updated quarterly.",
+    "Ranked by ROI Feasibility Index: the 25 most undersupplied multifamily and BTR submarkets across USA and UK. Prime Atlas proprietary intelligence. Updated quarterly.",
   openGraph: {
     title: "The 25 Most Undersupplied Multifamily Submarkets This Quarter",
     description:
@@ -54,9 +54,9 @@ function undersupplyLabel(growth: number, dev: number, risk: number): { label: s
   return { label: "Moderate", cls: "text-sky-400 bg-sky-950 border-sky-900" };
 }
 
-const DATA_SOURCES = [
-  { name: "US Census Bureau — Building Permits Survey", url: "https://www.census.gov/construction/bps/", markets: "US" },
-  { name: "HM Land Registry / ONS Housing", url: "https://www.gov.uk/government/organisations/hm-land-registry", markets: "UK" },
+const DATA_COVERAGE = [
+  { label: "USA Markets", desc: "Multifamily · BTR · Sunbelt Growth" },
+  { label: "UK Markets",  desc: "Residential · PBSA · Commercial" },
 ];
 
 export default async function UndersuppliedMarketsReport() {
@@ -84,7 +84,7 @@ export default async function UndersuppliedMarketsReport() {
     "@type": "Report",
     name: "The 25 Most Undersupplied Multifamily Submarkets Q2 2026",
     description:
-      "Global multifamily and BTR markets ranked by ROI Feasibility Index. Built from US Census BPS, HM Land Registry, ABS, and CMHC data.",
+      "Global multifamily and BTR markets ranked by ROI Feasibility Index. Prime Atlas proprietary intelligence across USA and UK markets.",
     datePublished: "2026-06-24",
     publisher: { "@type": "Organization", name: "prime-atlas" },
     about: { "@type": "Thing", name: "Multifamily Real Estate Investment" },
@@ -126,23 +126,20 @@ export default async function UndersuppliedMarketsReport() {
             </h1>
             <p className="text-lg text-gray-400 leading-relaxed max-w-3xl">
               Ranked by ROI Feasibility Index — a composite of opportunity score, zoning velocity,
-              demand pressure, and risk-adjusted yield potential. Sourced from US Census BPS, HM Land Registry,
-              and municipal planning portals across USA and UK.
+              demand pressure, and risk-adjusted yield potential. Prime Atlas proprietary intelligence
+              across USA and UK markets.
             </p>
 
-            {/* Data source chips */}
+            {/* Coverage chips */}
             <div className="flex flex-wrap gap-2 mt-5">
-              {DATA_SOURCES.map((s) => (
-                <a
-                  key={s.name}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#1E2D40] bg-[#0D1221] text-xs text-gray-400 hover:text-[#4A9EFF] hover:border-[#1E4A7A] transition-colors"
+              {DATA_COVERAGE.map((s) => (
+                <span
+                  key={s.label}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#1E2D40] bg-[#0D1221] text-xs text-gray-400"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#4A9EFF]" />
-                  {s.markets}: {s.name.split("—")[0].trim()}
-                </a>
+                  {s.label}: {s.desc}
+                </span>
               ))}
             </div>
           </div>

@@ -71,7 +71,7 @@ const MARKET_TAPE: Record<string, MarketTapeData> = {
       { label: "30y mortgage",  value: "6.41%",  dir: "down" },
       { label: "Net migration", value: "+1.6M",  dir: "up"   },
     ],
-    source: "US Census Building Permits Survey · NAR · Freddie Mac · ACS",
+    source: "Prime Atlas USA Intelligence",
     kpis: [
       { label: "Median new home",    value: "$438,200" },
       { label: "Rent growth YoY",    value: "+2.9%"    },
@@ -87,7 +87,7 @@ const MARKET_TAPE: Record<string, MarketTapeData> = {
       { label: "Base rate",      value: "5.25%",  dir: "flat" },
       { label: "Net migration",  value: "+685K",  dir: "up"   },
     ],
-    source: "NHBC · HM Land Registry · Bank of England · ONS",
+    source: "Prime Atlas UK Intelligence",
     kpis: [
       { label: "Median price",       value: "£285K"    },
       { label: "Rent growth YoY",    value: "+3.1%"    },
@@ -255,8 +255,7 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
       ["City",         selectedRow.name],
       ["Region",       selectedRow.region],
       ["Country",      selectedRow.country],
-      ["Data source",  selectedRow.source_name],
-      ["Confidence",   `${(selectedRow.data_confidence * 100).toFixed(0)}%`],
+      ["Intelligence", "Prime Atlas"],
       [""],
       ["SCORES"],
       ["ROI (Composite)", selectedRow.opportunity_score],
@@ -505,8 +504,7 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
                 </div>
                 <div className="text-lg font-bold text-white">{selectedRow.name}</div>
                 <div className="text-xs text-[#4A6080]">
-                  {selectedRow.region} · {selectedRow.country} · {selectedRow.source_name}
-                  {selectedRow.retrieved_at && ` · data ${new Date(selectedRow.retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`}
+                  {selectedRow.region} · {selectedRow.country} · Prime Atlas Intelligence
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -562,12 +560,6 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
                               opp.risk_level === "low" ? "text-emerald-400" :
                               opp.risk_level === "medium" ? "text-amber-400" : "text-red-400"
                             }`}>{opp.risk_level} risk</span>
-                            {opp.source_url && (
-                              <a href={opp.source_url} target="_blank" rel="noopener noreferrer"
-                                className="text-[9px] text-[#3A5068] hover:text-emerald-400 transition-colors">
-                                {opp.source_name ?? "source"} ↗
-                              </a>
-                            )}
                           </div>
                         </div>
                         <div className="flex-shrink-0 text-right">
@@ -623,7 +615,7 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
                         </div>
                         <div className="text-[10px] text-[#3A5068] mt-0.5">{layer.desc}</div>
                         <div className="text-[9px] text-[#2E4560] mt-0.5">
-                          {selectedRow.source_name} · {
+                          Prime Atlas Intelligence · {
                             selectedRow.retrieved_at
                               ? new Date(selectedRow.retrieved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                               : today
