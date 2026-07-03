@@ -41,6 +41,19 @@ const COUNTRY_FLAG: Record<string, string> = {
   "United States":  "🇺🇸",
 };
 
+/** Returns city/county only — no street, no postcode */
+function getLocationSummary(address: string, country?: string | null): string {
+  const parts = address.split(",").map(s => s.trim()).filter(Boolean);
+  if (country === "United States" || /,\s*[A-Z]{2}\s+\d{5}/.test(address)) {
+    const stateZip = parts.findIndex(p => /^[A-Z]{2}\s+\d{5}/.test(p));
+    if (stateZip > 0) return `${parts[stateZip - 1]}, ${parts[stateZip].split(/\s+/)[0]}`;
+    if (parts.length >= 2) return parts.slice(-2).join(", ");
+  }
+  const filtered = parts.filter(p => !/^[A-Z]{1,2}\d/.test(p));
+  if (filtered.length >= 2) return filtered.slice(-2).join(", ");
+  return parts.at(-1) ?? address;
+}
+
 const DEAL_LABEL: Record<string, string> = {
   "buy-to-rent":      "BTR",
   "development":      "Development",
@@ -196,7 +209,19 @@ function ListingCard({ listing, index }: { listing: FullListing; index: number }
           <p className="font-bold text-sm leading-snug line-clamp-2 text-gray-900 group-hover:text-[#1B4FE4] transition-colors">
             {listing.title}
           </p>
-          <p className="text-[11px] text-gray-400 mt-1 line-clamp-1">{listing.address}</p>
+          {isMember ? (
+            <p className="text-[11px] text-gray-400 mt-1 line-clamp-1">{listing.address}</p>
+          ) : (
+            <div>
+              <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">
+                {getLocationSummary(listing.address, listing.municipalities?.country)}
+              </p>
+              <p className="text-[9px] text-gray-400 mt-0.5 flex items-center gap-1">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Full address · members only
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Key metrics */}
@@ -251,7 +276,7 @@ type Market   = "all" | "US" | "UK";
 type DealType = "all" | "buy-to-rent" | "development" | "commercial-income" | "pbsa" | "industrial";
 type SortKey  = "date_desc" | "price_asc" | "price_desc" | "yield_desc" | "roi_desc";
 
-export function ListingsExplorer({ listings }: { listings: FullListing[] }) {
+export function ListingsExplorer({ listings, isMember = false }: { listings: FullListing[]; isMember?: boolean }) {
   const [market,   setMarket]   = useState<Market>("all");
   const [dealType, setDealType] = useState<DealType>("all");
   const [sortKey,  setSortKey]  = useState<SortKey>("date_desc");

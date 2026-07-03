@@ -26,6 +26,19 @@ function formatPrice(pence: number, currency: string): string {
   return `${sym}${amount.toLocaleString()}`;
 }
 
+/** Returns city/county only — no street, no postcode */
+function getLocationSummary(address: string, country?: string | null): string {
+  const parts = address.split(",").map(s => s.trim()).filter(Boolean);
+  if (country === "United States" || /,\s*[A-Z]{2}\s+\d{5}/.test(address)) {
+    const stateZip = parts.findIndex(p => /^[A-Z]{2}\s+\d{5}/.test(p));
+    if (stateZip > 0) return `${parts[stateZip - 1]}, ${parts[stateZip].split(/\s+/)[0]}`;
+    if (parts.length >= 2) return parts.slice(-2).join(", ");
+  }
+  const filtered = parts.filter(p => !/^[A-Z]{1,2}\d/.test(p));
+  if (filtered.length >= 2) return filtered.slice(-2).join(", ");
+  return parts.at(-1) ?? address;
+}
+
 const LISTING_TYPE_LABEL: Record<string, string> = {
   "land":              "Land",
   "residential":       "Residential",
@@ -431,15 +444,27 @@ export default async function ListingDetailPage(
               <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-2">
                 {listing.title}
               </h1>
-              <p className="text-sm text-muted-foreground flex items-start gap-1">
-                <span className="mt-0.5 flex-shrink-0">📍</span>
-                {listing.address}
-                {muni && (
-                  <span className="ml-1">
-                    · {COUNTRY_FLAG[muni.country] ?? ""} {muni.country}
-                  </span>
-                )}
-              </p>
+              {isMember ? (
+                <p className="text-sm text-muted-foreground flex items-start gap-1">
+                  <span className="mt-0.5 flex-shrink-0">📍</span>
+                  {listing.address}
+                  {muni && <span className="ml-1">· {COUNTRY_FLAG[muni.country] ?? ""} {muni.country}</span>}
+                </p>
+              ) : (
+                <div className="flex items-start gap-1">
+                  <span className="mt-0.5 flex-shrink-0 text-sm">📍</span>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {getLocationSummary(listing.address, muni?.country)}
+                      {muni && <span className="ml-1">· {COUNTRY_FLAG[muni.country] ?? ""} {muni.country}</span>}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5 flex items-center gap-1">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Full address available to members · <a href="/pricing" className="underline hover:text-foreground">Upgrade</a>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Specs bar */}

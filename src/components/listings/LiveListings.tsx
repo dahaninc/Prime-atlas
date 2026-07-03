@@ -1,6 +1,18 @@
 import Link from "next/link";
 import { scoreColor } from "@/lib/utils";
 
+function getLocationSummary(address: string, country?: string | null): string {
+  const parts = address.split(",").map(s => s.trim()).filter(Boolean);
+  if (country === "United States" || /,\s*[A-Z]{2}\s+\d{5}/.test(address)) {
+    const stateZip = parts.findIndex(p => /^[A-Z]{2}\s+\d{5}/.test(p));
+    if (stateZip > 0) return `${parts[stateZip - 1]}, ${parts[stateZip].split(/\s+/)[0]}`;
+    if (parts.length >= 2) return parts.slice(-2).join(", ");
+  }
+  const filtered = parts.filter(p => !/^[A-Z]{1,2}\d/.test(p));
+  if (filtered.length >= 2) return filtered.slice(-2).join(", ");
+  return parts.at(-1) ?? address;
+}
+
 /* ─────────────────────────── types ─────────────────────────── */
 
 export interface Listing {
@@ -138,7 +150,7 @@ function ListingCard({ listing, market }: {
         <h3 className="font-bold text-sm leading-snug mb-1.5 line-clamp-2">{listing.title}</h3>
         <p className="text-xs text-muted-foreground mb-3 flex items-start gap-1">
           <span className="mt-0.5 flex-shrink-0">📍</span>
-          {listing.address}
+          {getLocationSummary(listing.address, listing.municipalities?.country)}
         </p>
 
         {/* Price + size */}

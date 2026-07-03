@@ -16,11 +16,12 @@ export const metadata: Metadata = {
 export default async function ListingsPage() {
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   const [
-    { data: { user } },
     { data: rawListings },
+    { data: profile },
   ] = await Promise.all([
-    supabase.auth.getUser(),
     supabase
       .from("listings")
       .select(`
@@ -39,8 +40,14 @@ export default async function ListingsPage() {
       .in("status", ["active", "under_offer"])
       .order("featured", { ascending: false })
       .order("date_listed", { ascending: false }),
+    user
+      ? supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
+  const isMember = ["explorer", "analyst", "institutional"].includes(
+    (profile as { subscription_tier?: string } | null)?.subscription_tier ?? ""
+  );
   const listings = (rawListings ?? []) as unknown as FullListing[];
   const total    = listings.length;
   const featured = listings.filter((l) => l.featured).length;
@@ -75,7 +82,7 @@ export default async function ListingsPage() {
         </div>
 
         {/* Explorer */}
-        <ListingsExplorer listings={listings} />
+        <ListingsExplorer listings={listings} isMember={isMember} />
 
         {/* Browse by market */}
         <div className="mt-10 pt-8 border-t border-border">
