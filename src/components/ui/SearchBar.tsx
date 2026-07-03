@@ -41,6 +41,7 @@ export function SearchBar({ className }: { className?: string }) {
           supabase
             .from("municipalities")
             .select("id, name, region, opportunity_score")
+            .in("country", ["United Kingdom", "United States"])
             .ilike("name", `%${query}%`)
             .order("opportunity_score", { ascending: false })
             .limit(4),

@@ -67,6 +67,7 @@ export default async function UndersuppliedMarketsReport() {
     .select(
       "name, region, country, slug, currency_code, opportunity_score, growth_score, development_score, risk_score, population"
     )
+    .in("country", ["United Kingdom", "United States"])
     .order("opportunity_score", { ascending: false })
     .limit(60);
 

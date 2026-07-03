@@ -41,6 +41,7 @@ export default async function WatchlistsPage({
   const { data: municipalities } = await supabase
     .from("municipalities")
     .select("id, name, region, opportunity_score")
+    .in("country", ["United Kingdom", "United States"])
     .order("opportunity_score", { ascending: false });
 
   const isPro = profile?.subscription_tier !== "free";

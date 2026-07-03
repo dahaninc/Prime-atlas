@@ -24,7 +24,8 @@ export default async function DealBoardPage() {
        opportunity_score, growth_score, infrastructure_score,
        development_score, liquidity_score, risk_score,
        population, retrieved_at, source_name, data_confidence, slug`
-    ).order("opportunity_score", { ascending: false }).limit(120),
+    ).in("country", ["United Kingdom", "United States"])
+     .order("opportunity_score", { ascending: false }).limit(120),
     supabase.from("data_freshness").select("market_iso2, last_updated"),
     supabase.from("opportunities")
       .select("id, municipality_id, title, category, opportunity_score, risk_level, source_name, source_url")

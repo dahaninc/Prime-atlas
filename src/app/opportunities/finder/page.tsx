@@ -28,7 +28,7 @@ export default async function FinderPage() {
 
   // Fetch available regions and categories for the form
   const [{ data: regions }, { data: categories }] = await Promise.all([
-    supabase.from("municipalities").select("region").order("region"),
+    supabase.from("municipalities").select("region").in("country", ["United Kingdom", "United States"]).order("region"),
     supabase.from("opportunities").select("category").eq("status", "active"),
   ]);
 
