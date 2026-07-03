@@ -23,6 +23,7 @@ interface Property {
   scraped_at: string;
 }
 
+
 /* ─── helpers ─────────────────────────────────────────────────── */
 
 const SYM: Record<string, string> = { USD: "$", GBP: "£" };
@@ -960,11 +961,20 @@ export default async function MarketFeedPropertyPage(
                 )}
                 <div className={!isMember ? "blur-sm select-none pointer-events-none" : ""}>
                   <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                    Agent / Vendor Contact
+                    Enquire via Prime Atlas
                   </p>
-                  <p className="text-sm font-semibold text-gray-800">Prime Atlas Data</p>
-                  <p className="text-xs text-gray-500">contact@primeatlas.co</p>
-                  <p className="text-xs text-gray-500">+44 20 0000 0000</p>
+                  <p className="text-sm font-semibold text-gray-800">Prime Atlas Research Desk</p>
+                  <p className="text-xs text-gray-500 mt-0.5">contact@prime-atlas.io</p>
+                  <p className="text-xs text-gray-500">+44 20 3322 0000</p>
+                  <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
+                    Our team will connect you with the listing agent and handle due diligence coordination.
+                  </p>
+                  <a
+                    href={`mailto:contact@prime-atlas.io?subject=Enquiry: ${encodeURIComponent(getLocationSummary(property.address, e.country))} ${fmtPrice(property.price ?? 0, property.currency_code)}&body=I am interested in this property. Please provide agent contact details and arrange a viewing.`}
+                    className="inline-flex items-center gap-1 mt-3 bg-[#1B4FE4] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#1641C0] transition-colors"
+                  >
+                    Send Enquiry →
+                  </a>
                 </div>
               </div>
 

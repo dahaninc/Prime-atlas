@@ -24,8 +24,6 @@ const LANDMASSES = [
   "M 248,192 L 276,188 L 302,202 L 310,242 L 295,282 L 270,305 L 244,300 L 228,268 L 224,238 Z",
   // Asia (large eastern land mass)
   "M 295,108 L 362,96 L 428,112 L 442,142 L 432,168 L 398,180 L 352,177 L 308,166 L 293,142 Z",
-  // Australia
-  "M 383,296 L 415,284 L 442,296 L 446,320 L 426,336 L 398,333 L 380,316 Z",
 ];
 
 /* ── Globe SVG component ─────────────────────────────────────────── */
@@ -131,11 +129,11 @@ export function AtlasGlobe() {
         <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ Growing fast</p>
       </div>
 
-      {/* Sydney — lower right */}
+      {/* Manchester — lower right */}
       <div className="absolute bottom-[18%] right-[4%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">SYDNEY · AU</p>
-        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">71</p>
-        <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#F5A623" }}>→ Moderate</p>
+        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">MANCHESTER · UK</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">78</p>
+        <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ BTR pipeline</p>
       </div>
 
       {/* Market count badge — bottom left */}
