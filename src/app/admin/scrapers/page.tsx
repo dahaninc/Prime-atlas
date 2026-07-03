@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function AdminScrapersPage() {
   // ── Auth gate — admin emails only ────────────────────────────────────────
-  const ADMIN_EMAILS = ["admin@prime-atlas.io"];
+  const ADMIN_EMAILS = ["alpha.richie@outlook.com", "admin@prime-atlas.io"];
 
   const ssrClient = await createSsrClient();
   const { data: { user } } = await ssrClient.auth.getUser();

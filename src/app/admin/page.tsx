@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Admin Dashboard | Prime Atlas",
 };
 
-const ADMIN_EMAILS = ["admin@prime-atlas.io"];
+const ADMIN_EMAILS = ["alpha.richie@outlook.com", "admin@prime-atlas.io"];
 
 const TIER_COLORS: Record<string, string> = {
   institutional: "text-green-700 bg-green-50 border-green-200",
