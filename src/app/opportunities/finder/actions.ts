@@ -20,6 +20,7 @@ export interface FinderParams {
 export interface FinderResult {
   id: string;
   municipality_id: string;
+  municipality_slug: string;
   municipality_name: string;
   municipality_region: string;
   title: string;
@@ -55,7 +56,7 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
   // Build query — UK + USA only, municipalities!inner enforces join
   let query = supabase
     .from("opportunities")
-    .select("*, municipalities!inner(id, name, region, country, growth_score, infrastructure_score, development_score, liquidity_score, risk_score)")
+    .select("*, municipalities!inner(id, name, region, slug, country, growth_score, infrastructure_score, development_score, liquidity_score, risk_score)")
     .eq("status", "active");
 
   if (params.categories.length > 0) {
@@ -79,7 +80,7 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
     scores: Record<string, number> | null;
     evidence: unknown[];
     municipalities: {
-      id: string; name: string; region: string; country: string;
+      id: string; name: string; region: string; slug: string; country: string;
       growth_score: number; infrastructure_score: number;
       development_score: number; liquidity_score: number; risk_score: number;
     } | null;
@@ -115,7 +116,7 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
       risk_score:           opp.risk_score                   ?? m.risk_score           ?? 50,
     };
     // Spread scores at root level so computeOpportunityScore can access them directly
-    return { ...opp, ...scores, municipality_name: m.name, municipality_region: m.region, scores };
+    return { ...opp, ...scores, municipality_name: m.name, municipality_region: m.region, municipality_slug: m.slug, scores };
   });
 
   const ranked = rankOpportunities(enriched, weights);
@@ -123,6 +124,7 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
   return ranked.slice(0, 20).map((opp, i) => ({
     id: opp.id,
     municipality_id: opp.municipality_id,
+    municipality_slug: opp.municipality_slug,
     municipality_name: opp.municipality_name,
     municipality_region: opp.municipality_region,
     title: opp.title,

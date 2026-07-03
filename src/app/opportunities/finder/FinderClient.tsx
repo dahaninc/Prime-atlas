@@ -297,7 +297,7 @@ export function FinderClient({ geoOptions, categories }: Props) {
                     <p className="text-xs text-muted-foreground">Conviction scores, signals, deal pipeline and IC memo.</p>
                   </div>
                   <a
-                    href={`/opportunities/${selectedResult.municipality_id}`}
+                    href={`/opportunities/${selectedResult.municipality_slug}`}
                     className="flex-shrink-0 bg-pa-green text-pa-navy font-semibold text-xs px-4 py-2 rounded-lg hover:bg-pa-green/90 transition-colors"
                   >
                     Open market →
