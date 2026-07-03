@@ -516,26 +516,35 @@ export default async function ListingDetailPage(
               )}
             </div>
 
-            {/* Full description */}
+            {/* Full description — truncated for non-members */}
             {listing.description && (
               <div>
                 <h2 className="font-semibold text-sm mb-3 text-muted-foreground uppercase tracking-widest text-[10px]">
                   About this listing
                 </h2>
-                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
-                  {listing.description}
-                </p>
+                {isMember ? (
+                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                    {listing.description}
+                  </p>
+                ) : (
+                  <div className="relative">
+                    <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                      {listing.description}
+                    </p>
+                    <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card to-transparent" />
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Key features */}
+            {/* Key features — first 3 for free, all for members */}
             {features.length > 0 && (
               <div>
                 <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
                   Key features
                 </h2>
                 <div className="flex flex-wrap gap-2">
-                  {features.map((feat, i) => (
+                  {(isMember ? features : features.slice(0, 3)).map((feat, i) => (
                     <span
                       key={i}
                       className="text-xs border border-border rounded-full px-3 py-1.5 bg-secondary/30 text-foreground"
@@ -543,39 +552,113 @@ export default async function ListingDetailPage(
                       {feat}
                     </span>
                   ))}
+                  {!isMember && features.length > 3 && (
+                    <span className="text-xs border border-dashed border-border rounded-full px-3 py-1.5 text-muted-foreground">
+                      +{features.length - 3} more · <a href="/pricing" className="text-pa-green font-semibold hover:underline">members</a>
+                    </span>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Highlights checklist */}
-            {highlights.length > 0 && (
-              <div className="border border-pa-green/20 rounded-xl p-5 bg-pa-green/[0.03]">
-                <h2 className="text-[10px] font-bold text-pa-green uppercase tracking-widest mb-4">
-                  Investment highlights
-                </h2>
-                <ul className="space-y-2.5">
-                  {highlights.map((hl, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm">
-                      <span className="text-pa-green flex-shrink-0 mt-0.5">✓</span>
-                      <span>{hl}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Highlights + Investment Thesis + Comparables — members only */}
+            {isMember ? (
+              <>
+                {highlights.length > 0 && (
+                  <div className="border border-pa-green/20 rounded-xl p-5 bg-pa-green/[0.03]">
+                    <h2 className="text-[10px] font-bold text-pa-green uppercase tracking-widest mb-4">
+                      Investment highlights
+                    </h2>
+                    <ul className="space-y-2.5">
+                      {highlights.map((hl, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm">
+                          <span className="text-pa-green flex-shrink-0 mt-0.5">✓</span>
+                          <span>{hl}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <InvestmentThesis listing={listing} muni={muni} />
+                <ComparablesPanel
+                  postcode={listing.postcode ?? null}
+                  seeded={seededComps}
+                  askingPrice={listing.asking_price}
+                  currency={listing.currency_code}
+                />
+              </>
+            ) : (
+              /* ── Upgrade CTA: intelligence locked ── */
+              <div className="relative border border-border rounded-2xl overflow-hidden">
+                {/* Blurred teaser content */}
+                <div className="blur-sm select-none pointer-events-none p-6 space-y-4">
+                  <div className="border border-pa-green/20 rounded-xl p-5 bg-pa-green/[0.03]">
+                    <p className="text-[10px] font-bold text-pa-green uppercase tracking-widest mb-3">Investment highlights</p>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex gap-2"><span className="text-pa-green">✓</span>Planning permission granted for 68 units</li>
+                      <li className="flex gap-2"><span className="text-pa-green">✓</span>Gross yield estimated at 7.4% · BTL fundamentals</li>
+                      <li className="flex gap-2"><span className="text-pa-green">✓</span>3× comparable transactions above asking price</li>
+                    </ul>
+                  </div>
+                  <div className="border border-border rounded-xl p-5">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Investment thesis</p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">Strong demand fundamentals with constrained supply pipeline. Cap rate spread of 220bps above Treasury provides defensive income floor. Exit via institutional block sale or fractionalised residential disposal...</p>
+                  </div>
+                  <div className="border border-border rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Comparable Evidence</p>
+                    <div className="space-y-2">
+                      {[1,2,3].map(i => (
+                        <div key={i} className="flex justify-between text-xs py-2 border-b border-border">
+                          <span>Comparable property {i}</span>
+                          <span className="font-bold">£{(320 + i * 45).toLocaleString()}K</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {/* Gradient unlock overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/70 to-background flex flex-col items-center justify-end pb-10 px-6">
+                  <div className="bg-card border border-border rounded-2xl shadow-xl px-8 py-7 text-center max-w-sm w-full">
+                    <div className="w-12 h-12 bg-pa-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-6 h-6 text-pa-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <p className="text-base font-bold mb-1">Prime Atlas Intelligence</p>
+                    <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                      This listing has been fully underwritten. Members unlock:
+                    </p>
+                    <ul className="text-xs text-left space-y-1.5 mb-5 text-muted-foreground">
+                      {[
+                        "Investment highlights & conviction thesis",
+                        "Gross/net yield & IRR projections",
+                        "Comparable transaction evidence",
+                        "Full market conviction scores",
+                        "Agent contact details",
+                        "Full property address",
+                      ].map(item => (
+                        <li key={item} className="flex items-center gap-2">
+                          <span className="text-pa-green font-bold flex-shrink-0">→</span>{item}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href="/pricing"
+                      className="block w-full bg-pa-green text-white text-sm font-bold py-2.5 rounded-xl hover:bg-pa-green/90 transition-colors text-center"
+                    >
+                      Become a Member
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      className="mt-2.5 block text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Create free account →
+                    </Link>
+                  </div>
+                </div>
               </div>
             )}
-
-            {/* Agent info intentionally hidden — contact details are member-only */}
-
-            {/* ── Investment Thesis ── */}
-            <InvestmentThesis listing={listing} muni={muni} />
-
-            {/* Comparables panel — live LR for UK, seeded JSONB for non-UK */}
-            <ComparablesPanel
-              postcode={listing.postcode ?? null}
-              seeded={seededComps}
-              askingPrice={listing.asking_price}
-              currency={listing.currency_code}
-            />
           </div>
 
           {/* ── Right / Sidebar (1/3) ── */}
@@ -596,39 +679,53 @@ export default async function ListingDetailPage(
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center">
-                    <p className={`text-2xl font-bold font-mono ${scoreColor(muni.opportunity_score)}`}>
-                      {muni.opportunity_score}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">ROI index</p>
+                {isMember ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="text-center">
+                        <p className={`text-2xl font-bold font-mono ${scoreColor(muni.opportunity_score)}`}>
+                          {muni.opportunity_score}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">ROI index</p>
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-2xl font-bold font-mono ${scoreColor(muni.growth_score)}`}>
+                          {muni.growth_score}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">growth</p>
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-2xl font-bold font-mono ${
+                          muni.risk_score <= 40 ? "text-pa-green" :
+                          muni.risk_score <= 55 ? "text-pa-amber" : "text-red-400"
+                        }`}>
+                          {muni.risk_score}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">risk</p>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/opportunities/${muni.slug}`}
+                      className="block text-center text-xs text-pa-green hover:underline mt-1"
+                    >
+                      Full market analysis →
+                    </Link>
+                  </>
+                ) : (
+                  <div className="text-center py-2">
+                    <div className="grid grid-cols-3 gap-3 mb-4 blur-sm select-none">
+                      {["ROI", "Growth", "Risk"].map(l => (
+                        <div key={l} className="text-center">
+                          <p className="text-2xl font-bold font-mono text-pa-green">—</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{l}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <Link href="/pricing" className="text-xs font-bold text-pa-green hover:underline">
+                      Unlock market scores →
+                    </Link>
                   </div>
-                  <div className="text-center">
-                    <p className={`text-2xl font-bold font-mono ${scoreColor(muni.growth_score)}`}>
-                      {muni.growth_score}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">growth</p>
-                  </div>
-                  <div className="text-center">
-                    <p className={`text-2xl font-bold font-mono ${
-                      muni.risk_score <= 40
-                        ? "text-pa-green"
-                        : muni.risk_score <= 55
-                        ? "text-pa-amber"
-                        : "text-red-400"
-                    }`}>
-                      {muni.risk_score}
-                    </p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">risk</p>
-                  </div>
-                </div>
-
-                <Link
-                  href={`/opportunities/${muni.slug}`}
-                  className="block text-center text-xs text-pa-green hover:underline mt-1"
-                >
-                  Full market analysis →
-                </Link>
+                )}
               </div>
             )}
 

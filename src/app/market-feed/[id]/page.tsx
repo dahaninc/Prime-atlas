@@ -474,6 +474,95 @@ export default async function MarketFeedPropertyPage(
             </div>
 
             {/* ── Intelligence Panel ── */}
+            {!isMember ? (
+              /* ── Non-member: blurred teaser + unlock CTA ── */
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] font-bold text-[#1B4FE4] uppercase tracking-widest mb-0.5">
+                      Prime Atlas Intelligence
+                    </p>
+                    <h2 className="text-xl font-bold text-gray-900">Investment Analysis</h2>
+                  </div>
+                  <span className="text-[9px] font-bold px-3 py-1 rounded-full border text-gray-400 border-gray-200 bg-gray-50">
+                    MEMBERS ONLY
+                  </span>
+                </div>
+
+                <div className="relative rounded-2xl overflow-hidden border border-gray-200">
+                  {/* Blurred preview */}
+                  <div className="blur-sm select-none pointer-events-none p-6 space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      {["Est. Gross Yield", "Net Yield", "5-Yr IRR (Est.)"].map(l => (
+                        <div key={l} className="border border-gray-100 rounded-xl p-4 bg-gray-50 text-center">
+                          <p className="text-xl font-black font-mono text-green-600">—.—%</p>
+                          <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mt-2">{l}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="border border-gray-100 rounded-xl p-4 bg-[#F8FAFF]">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Macro Outlook</p>
+                        <p className="text-sm text-gray-600 leading-relaxed">Sunbelt state with strong inbound population migration and business-friendly tax environment. Above-average rent growth expected over a 5-year horizon.</p>
+                      </div>
+                      <div className="border border-gray-100 rounded-xl p-4 bg-[#F8FAFF]">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Micro Outlook</p>
+                        <p className="text-sm text-gray-600 leading-relaxed">Gross yield above 7% indicates strong day-one cashflow. Multi-bed configuration supports family rental demand with lower void rates.</p>
+                      </div>
+                    </div>
+                    <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                      <div className="px-5 py-3 bg-[#F8FAFF] border-b border-gray-100">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Predictive Exit Architecture</p>
+                      </div>
+                      <div className="grid grid-cols-3 divide-x divide-gray-100">
+                        {[{ y: 3, irr: "+11.2" }, { y: 5, irr: "+14.8" }, { y: 10, irr: "+17.6" }].map(({ y, irr }) => (
+                          <div key={y} className="px-4 py-5 text-center">
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">{y}-YR EXIT</p>
+                            <p className="text-xl font-black font-mono text-green-600">{irr}%</p>
+                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1">IRR (EST.)</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gradient unlock overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white flex flex-col items-center justify-end pb-10 px-6">
+                    <div className="bg-white border border-gray-200 rounded-2xl shadow-xl px-8 py-7 text-center max-w-sm w-full">
+                      <div className="w-12 h-12 bg-[#EEF3FD] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-[#1B4FE4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <p className="text-base font-bold text-gray-900 mb-1">Prime Atlas Intelligence</p>
+                      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                        Every property is fully underwritten by Prime Atlas. Members unlock:
+                      </p>
+                      <ul className="text-xs text-left space-y-1.5 mb-5 text-gray-600">
+                        {["Gross & net yield estimates", "3yr, 5yr & 10yr IRR projections", "Macro & micro market outlook", "Predictive exit architecture", "Comparable property analysis", "Full property address & agent contact"].map(item => (
+                          <li key={item} className="flex items-center gap-2">
+                            <span className="text-[#1B4FE4] font-bold flex-shrink-0">→</span>{item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link
+                        href="/pricing"
+                        className="block w-full bg-[#1B4FE4] text-white text-sm font-bold py-2.5 rounded-xl hover:bg-[#1641C0] transition-colors text-center"
+                      >
+                        Become a Member
+                      </Link>
+                      <Link
+                        href="/auth/signup"
+                        className="mt-2.5 block text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                      >
+                        Create free account →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
@@ -657,6 +746,7 @@ export default async function MarketFeedPropertyPage(
                 </div>
               )}
             </div>
+            )} {/* end member-only Intelligence Panel */}
 
             {/* ── Comparable Properties ── */}
             {(comps ?? []).length > 0 && (
@@ -807,45 +897,46 @@ export default async function MarketFeedPropertyPage(
                 <ConvictionRing score={e.conviction} />
               </div>
 
-              <div className="space-y-3 mb-5">
-                <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                  <span className="text-xs text-gray-500">Strategy</span>
-                  <span className="text-xs font-bold text-gray-900">{e.strategy}</span>
-                </div>
-                {isSale && (
-                  <>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-xs text-gray-500">Est. Gross Yield</span>
-                      <span className={`text-xs font-bold ${
-                        e.grossYield >= 7 ? "text-green-600" : e.grossYield >= 5 ? "text-[#1B4FE4]" : "text-amber-600"
-                      }`}>{e.grossYield}%</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                      <span className="text-xs text-gray-500">5-Yr IRR (Est.)</span>
-                      {isMember ? (
+              {isMember ? (
+                <div className="space-y-3 mb-5">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-xs text-gray-500">Strategy</span>
+                    <span className="text-xs font-bold text-gray-900">{e.strategy}</span>
+                  </div>
+                  {isSale && (
+                    <>
+                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-xs text-gray-500">Est. Gross Yield</span>
+                        <span className={`text-xs font-bold ${
+                          e.grossYield >= 7 ? "text-green-600" : e.grossYield >= 5 ? "text-[#1B4FE4]" : "text-amber-600"
+                        }`}>{e.grossYield}%</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-xs text-gray-500">5-Yr IRR (Est.)</span>
                         <span className={`text-xs font-bold ${
                           e.irr5yr >= 12 ? "text-green-600" : e.irr5yr >= 8 ? "text-[#1B4FE4]" : "text-amber-600"
                         }`}>{e.irr5yr > 0 ? "+" : ""}{e.irr5yr}%</span>
-                      ) : (
-                        <Link href="/pricing" className="flex items-center gap-1 text-[10px] font-bold text-[#1B4FE4] hover:underline">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                          Unlock
-                        </Link>
-                      )}
-                    </div>
-                  </>
-                )}
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-xs text-gray-500">Macro</span>
-                  <span className={`text-xs font-bold ${
-                    e.macro.sentiment === "bullish" ? "text-green-600" :
-                    e.macro.sentiment === "cautious" ? "text-amber-600" : "text-gray-500"
-                  }`}>{e.macro.label}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-xs text-gray-500">Macro</span>
+                    <span className={`text-xs font-bold ${
+                      e.macro.sentiment === "bullish" ? "text-green-600" :
+                      e.macro.sentiment === "cautious" ? "text-amber-600" : "text-gray-500"
+                    }`}>{e.macro.label}</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="border border-dashed border-[#1B4FE4]/20 rounded-xl p-4 mb-5 bg-[#EEF3FD]/30 text-center">
+                  <p className="text-[10px] font-semibold text-gray-500 mb-2 leading-relaxed">
+                    Yield, IRR, macro outlook & exit projections — members only
+                  </p>
+                  <Link href="/pricing" className="text-xs font-bold text-[#1B4FE4] hover:underline">
+                    Unlock full intelligence →
+                  </Link>
+                </div>
+              )}
 
               {/* Contact gate */}
               <div className="border border-dashed border-gray-200 rounded-xl p-4 relative overflow-hidden">
