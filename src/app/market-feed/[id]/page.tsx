@@ -1,26 +1,34 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as adminClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ContactRequestButton } from "@/components/property/ContactRequestButton";
 
 export const dynamic = "force-dynamic";
 
 /* ─── types ──────────────────────────────────────────────────── */
 
 interface Property {
-  id: string;
-  provider: string;
-  address: string | null;
-  price: number | null;
+  id:            string;
+  provider:      string;
+  address:       string | null;
+  price:         number | null;
   currency_code: string;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  size_sqm: number | null;
+  bedrooms:      number | null;
+  bathrooms:     number | null;
+  size_sqm:      number | null;
   property_type: string | null;
-  listing_type: string;
-  scraped_at: string;
+  listing_type:  string;
+  scraped_at:    string;
+  images:        string[] | null;
+  agent_name:    string | null;
+  agent_company: string | null;
+  agent_phone:   string | null;
+  agent_email:   string | null;
 }
 
 
@@ -322,7 +330,7 @@ export default async function MarketFeedPropertyPage(
     supabase.auth.getUser(),
     supabase
       .from("properties")
-      .select("id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at")
+      .select("id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images, agent_name, agent_company, agent_phone, agent_email")
       .eq("id", id)
       .eq("status", "active")
       .single(),
@@ -338,6 +346,22 @@ export default async function MarketFeedPropertyPage(
     : { data: null };
   const tier = (profile as { subscription_tier?: string } | null)?.subscription_tier ?? "free";
   const isMember = ["explorer", "analyst", "institutional"].includes(tier);
+
+  // Check if this member already requested agent details for this property
+  let alreadySent = false;
+  if (user && isMember) {
+    const admin = adminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    const { data: existing } = await admin
+      .from("contact_requests")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("property_id", id)
+      .maybeSingle();
+    alreadySent = !!existing;
+  }
 
   // Comparable properties — same market, similar price (±40%)
   const priceMin = Math.round((property.price ?? 0) * 0.60);
@@ -375,6 +399,32 @@ export default async function MarketFeedPropertyPage(
           <span>/</span>
           <span className="text-gray-700 line-clamp-1">{getLocationSummary(property.address, e.country)}</span>
         </nav>
+
+        {/* Property image hero */}
+        {(() => {
+          const images = Array.isArray(property.images) ? (property.images as string[]) : [];
+          const heroImg = images.find(img => img && img.startsWith("http"));
+          return heroImg ? (
+            <div className="relative w-full h-56 sm:h-72 rounded-2xl overflow-hidden mb-8 bg-gray-100">
+              <Image
+                src={heroImg}
+                alt={`Property in ${locationLabel}`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 75vw"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <div className="absolute bottom-4 left-5">
+                <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                  isSale ? "text-green-600 bg-green-50" : "text-blue-600 bg-blue-50"
+                }`}>
+                  {isSale ? "For Sale" : "For Rent"}
+                </span>
+              </div>
+            </div>
+          ) : null;
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -939,17 +989,20 @@ export default async function MarketFeedPropertyPage(
                 </div>
               )}
 
-              {/* Contact gate */}
+              {/* Agent details / contact request */}
               <div className="border border-dashed border-gray-200 rounded-xl p-4 relative overflow-hidden">
-                {!isMember && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-xl">
-                    <svg className="w-6 h-6 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                {!isMember ? (
+                  /* Non-member gate */
+                  <div className="flex flex-col items-center text-center py-2">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
                     <p className="text-xs font-bold text-gray-700 mb-1">Members Only</p>
-                    <p className="text-[10px] text-gray-400 text-center mb-3">
-                      Unlock agent contact details
+                    <p className="text-[10px] text-gray-400 text-center mb-3 leading-relaxed">
+                      Members receive the full property research report including agent contact details, investment analysis and exit projections — delivered to your inbox.
                     </p>
                     <Link
                       href="/pricing"
@@ -958,24 +1011,22 @@ export default async function MarketFeedPropertyPage(
                       Become a Member
                     </Link>
                   </div>
+                ) : (
+                  /* Member: button + description */
+                  <div>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                      Agent Details & Research Report
+                    </p>
+                    <p className="text-[10px] text-gray-500 leading-relaxed mb-4">
+                      Receive a full research report delivered to your email, including agent contact, yield analysis, exit projections, and investment thesis.
+                    </p>
+                    <ContactRequestButton
+                      propertyId={property.id}
+                      isMember={isMember}
+                      alreadySent={alreadySent}
+                    />
+                  </div>
                 )}
-                <div className={!isMember ? "blur-sm select-none pointer-events-none" : ""}>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                    Enquire via Prime Atlas
-                  </p>
-                  <p className="text-sm font-semibold text-gray-800">Prime Atlas Research Desk</p>
-                  <p className="text-xs text-gray-500 mt-0.5">contact@prime-atlas.io</p>
-                  <p className="text-xs text-gray-500">+44 20 3322 0000</p>
-                  <p className="text-[10px] text-gray-400 mt-2 leading-relaxed">
-                    Our team will connect you with the listing agent and handle due diligence coordination.
-                  </p>
-                  <a
-                    href={`mailto:contact@prime-atlas.io?subject=Enquiry: ${encodeURIComponent(getLocationSummary(property.address, e.country))} ${fmtPrice(property.price ?? 0, property.currency_code)}&body=I am interested in this property. Please provide agent contact details and arrange a viewing.`}
-                    className="inline-flex items-center gap-1 mt-3 bg-[#1B4FE4] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#1641C0] transition-colors"
-                  >
-                    Send Enquiry →
-                  </a>
-                </div>
               </div>
 
               <Link

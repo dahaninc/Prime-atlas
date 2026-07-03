@@ -128,6 +128,7 @@ interface ExtractedProperty {
   property_type:         string | null;
   listing_type:          ListingType;
   listing_url:           string | null;
+  images:                string[];
   scraped_at:            string;
 }
 
@@ -315,6 +316,9 @@ function extractZillow(
         const sqft     = r.area ? parseInt(String(r.area).replace(/,/g, ""), 10) : null;
         const homeType = (r.hdpData?.homeInfo?.homeType ?? r.homeType ?? "").toLowerCase().replace(/_/g, " ");
 
+        const zillowImg: string[] = [];
+        if (r.imgSrc) zillowImg.push(String(r.imgSrc));
+
         results.push({
           provider:             "zillow",
           external_property_id: zpid,
@@ -328,6 +332,7 @@ function extractZillow(
           property_type:        homeType || null,
           listing_type:         listingType,
           listing_url:          fullUrl,
+          images:               zillowImg,
           scraped_at:           now,
         });
       } catch (e) {
@@ -392,6 +397,14 @@ function extractRightmove(
         const address = r.displayAddress ?? null;
         const typeRaw = (r.propertySubType ?? r.propertyType ?? "").toLowerCase().trim();
 
+        const rmImgSrc: string =
+          r.propertyImages?.images?.[0]?.srcUrl ??
+          r.propertyImages?.mainImageSrc ??
+          r.mainImage?.src ??
+          r.image?.src ??
+          "";
+        const rmImages: string[] = rmImgSrc ? [rmImgSrc] : [];
+
         results.push({
           provider:             "rightmove",
           external_property_id: id,
@@ -405,6 +418,7 @@ function extractRightmove(
           property_type:        typeRaw || null,
           listing_type:         listingType,
           listing_url:          fullUrl,
+          images:               rmImages,
           scraped_at:           now,
         });
       } catch (e) {
@@ -443,6 +457,8 @@ function extractRightmove(
           $(el).attr("aria-label") || ""
         ).replace(/\s+/g, " ").trim();
         const typeRaw   = card.find('[class*="type"], [class*="Type"]').first().text().trim().toLowerCase();
+        const cardImg   = card.find("img").first().attr("src") ?? "";
+        const cardImages: string[] = cardImg && cardImg.startsWith("http") ? [cardImg] : [];
 
         results.push({
           provider:             "rightmove",
@@ -457,6 +473,7 @@ function extractRightmove(
           property_type:        typeRaw || null,
           listing_type:         listingType,
           listing_url:          fullUrl,
+          images:               cardImages,
           scraped_at:           now,
         });
       } catch (e) {
@@ -520,6 +537,14 @@ function extractOnTheMarket(
             const typeRaw = (r.propertyType ?? r.type ?? "").toLowerCase().trim();
             const sqm     = r.floorArea?.value != null ? Number(r.floorArea.value) : null;
 
+            const otmImgSrc: string =
+              r.mainImage?.src ??
+              r.images?.[0]?.src ??
+              r.image?.src ??
+              r.thumbnail ??
+              "";
+            const otmImages: string[] = otmImgSrc ? [otmImgSrc] : [];
+
             results.push({
               provider:             "onthemarket",
               external_property_id: id,
@@ -533,6 +558,7 @@ function extractOnTheMarket(
               property_type:        typeRaw || null,
               listing_type:         listingType,
               listing_url:          fullUrl,
+              images:               otmImages,
               scraped_at:           now,
             });
           } catch (e) {
@@ -564,13 +590,15 @@ function extractOnTheMarket(
       const extId   = idFromUrl(href);
       if (!extId) return;
 
-      const priceText = card.find('[class*="price"], [class*="Price"]').first().text().trim();
-      const address   = (
+      const priceText  = card.find('[class*="price"], [class*="Price"]').first().text().trim();
+      const address    = (
         card.find('[data-testid*="address"], [data-testid*="Address"]').first().text() ||
         card.find('[class*="address"], [class*="Address"], [class*="title"]').first().text()
       ).replace(/\s+/g, " ").trim();
-      const typeRaw   = card.find('[class*="type"], [class*="property-type"]')
+      const typeRaw    = card.find('[class*="type"], [class*="property-type"]')
         .first().text().trim().toLowerCase();
+      const cardImgSrc = card.find("img").first().attr("src") ?? "";
+      const cardImgs: string[] = cardImgSrc && cardImgSrc.startsWith("http") ? [cardImgSrc] : [];
 
       results.push({
         provider:             "onthemarket",
@@ -585,6 +613,7 @@ function extractOnTheMarket(
         property_type:        typeRaw || null,
         listing_type:         listingType,
         listing_url:          fullUrl,
+        images:               cardImgs,
         scraped_at:           now,
       });
     } catch (e) {
@@ -619,6 +648,7 @@ function extractOnTheMarket(
           property_type:        null,
           listing_type:         listingType,
           listing_url:          fullUrl,
+          images:               [],
           scraped_at:           now,
         });
       } catch (e) {
