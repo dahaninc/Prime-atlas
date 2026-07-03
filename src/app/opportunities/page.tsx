@@ -37,16 +37,26 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
 
   let query = supabase
     .from("opportunities")
-    .select("id, title, category, opportunity_score, risk_level, source_name, source_url, municipalities(name, region, country, slug)")
+    .select("id, title, category, opportunity_score, risk_level, municipalities(name, region, country, slug)")
     .eq("status", "active")
     .order("opportunity_score", { ascending: false })
-    .limit(60);
+    .limit(120);
 
   if (category && category !== "All") {
     query = query.eq("category", category);
   }
 
-  const { data: opportunities } = await query;
+  const { data: rawOpps } = await query;
+
+  type OppRow = {
+    id: string; title: string; category: string; opportunity_score: number;
+    risk_level: string;
+    municipalities: { name: string; region: string; country: string; slug: string } | null;
+  };
+  // UK + USA only
+  const opportunities = ((rawOpps as unknown as OppRow[]) ?? []).filter(
+    (o) => ["United Kingdom", "United States"].includes(o.municipalities?.country ?? "")
+  );
 
   const activeCategory = category && category !== "All" ? category : "All";
 
@@ -67,7 +77,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
 
       <div className="mb-6">
         <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mb-2">
-          prime-atlas · {opportunities?.length ?? 0} opportunities{category && category !== "All" ? ` · ${category}` : ""}
+          prime-atlas · {opportunities.length} opportunities{category && category !== "All" ? ` · ${category}` : ""}
         </p>
         <h1 className="text-3xl font-bold mb-2">
           {category && category !== "All" ? `${category} Opportunities` : "All Investment Opportunities"}
@@ -98,14 +108,11 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
       {/* Cards */}
       {opportunities && opportunities.length > 0 ? (
         <div className="space-y-3">
-          {(opportunities as Array<{
-            id: string; title: string; category: string; opportunity_score: number;
-            risk_level: string; source_name: string | null; source_url: string | null;
-            municipalities: { name: string; region: string; country: string; slug: string } | null;
-          }>).map((opp) => {
+          {opportunities.map((opp) => {
             const muni = opp.municipalities;
+            const href = muni ? `/opportunities/${muni.slug}` : "/opportunities";
             return (
-              <div key={opp.id} className="border border-border rounded-xl p-5 bg-card hover:border-pa-green/30 transition-colors">
+              <Link key={opp.id} href={href} className="block border border-border rounded-xl p-5 bg-card hover:border-pa-green/30 transition-colors group">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     {/* Tags */}
@@ -129,19 +136,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
                       )}
                     </div>
                     {/* Title */}
-                    {muni ? (
-                      <Link href={`/opportunities/${muni.slug}`} className="font-semibold text-sm hover:text-pa-green transition-colors">
-                        {opp.title}
-                      </Link>
-                    ) : (
-                      <p className="font-semibold text-sm">{opp.title}</p>
-                    )}
-                    {/* Source name only — no external URL */}
-                    {opp.source_name && (
-                      <p className="mt-1.5 text-[10px] text-muted-foreground">
-                        Data: {opp.source_name}
-                      </p>
-                    )}
+                    <p className="font-semibold text-sm group-hover:text-pa-green transition-colors">{opp.title}</p>
                   </div>
                   {/* Score */}
                   <div className="flex-shrink-0 text-center">
@@ -151,7 +146,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
                     <p className="text-[9px] text-muted-foreground">score</p>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

@@ -19,12 +19,12 @@ export const metadata: Metadata = {
 const STATS = [
   { value: "80+",    label: "Markets pre-screened · USA + UK" },
   { value: "20 min", label: "Deal board to preliminary IC memo" },
-  { value: "£50K+",  label: "Avg. cost of a late-aborted diligence process" },
+  { value: "$50K+",  label: "Avg. cost of a late-aborted diligence process" },
   { value: "100%",   label: "Prime Atlas proprietary intelligence on every score" },
 ];
 
 const SOCIAL_PROOF = [
-  { value: "£2.4B+",  label: "Active deal pipeline tracked on platform" },
+  { value: "$3B+",    label: "Active deal pipeline tracked on platform" },
   { value: "4,800+",  label: "Registered investors · USA + UK" },
   { value: "3×",      label: "Faster to conviction vs. solo research" },
   { value: "87%",     label: "Users find a high-conviction market in session 1" },
@@ -50,7 +50,7 @@ const OUTCOMES = [
     border: "border-[#1B4FE4]/10",
   },
   {
-    stat: "£340K",
+    stat: "$430K",
     statSub: "avg. deal value",
     body: "Average deal value across the Prime Atlas platform — from single-unit BTR to multi-site commercial acquisitions.",
     tag: "Deal size",
@@ -87,14 +87,14 @@ const AUDIENCES = [
   },
   {
     tag: "Developers & operators",
-    headline: "Know before you spend £50K on surveys.",
+    headline: "Know before you spend $50K on surveys.",
     pain:
       "You're committing to diligence costs before you have high-confidence conviction. Most aborted deals absorb 6–10 weeks of analyst and consultant time before hitting a wall that was visible from day one.",
     value: [
       "Live DCF — units, GSF, land cost, hard cost, yield-on-cost",
       "Planning pipeline and zoning velocity per market",
       "Pre-screened BTR, PBSA, Industrial, Mixed-use pipeline",
-      "Go/no-go conviction before the £50K diligence commitment",
+      "Go/no-go conviction before the $50K diligence commitment",
     ],
     cta: { label: "Open Deal Board", href: "/deal-board" },
     tagColor: "text-blue-600",
@@ -142,9 +142,9 @@ const PAIN_POINTS = [
   },
   {
     label: "Cost",
-    stat: "£50K+",
+    stat: "$50K+",
     statLabel: "avg. aborted deal cost",
-    body: "Late-stage diligence kills deals after £30–60K in fees — surveys, legal, planning consultants. The cost isn't the diligence: it's committing before you had conviction.",
+    body: "Late-stage diligence kills deals after $40–80K in fees — surveys, legal, planning consultants. The cost isn't the diligence: it's committing before you had conviction.",
   },
   {
     label: "Committee",
@@ -884,7 +884,7 @@ export default async function HomePage() {
                 </p>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4 leading-tight text-balance text-white">
                   Stop losing deals to speed.<br />
-                  Stop burning £50K on diligence that should have been a 20-minute screen.{" "}
+                  Stop burning $50K on diligence that should have been a 20-minute screen.{" "}
                   <span className="text-[#A3C4FF]">Prime Atlas ends both.</span>
                 </h2>
                 <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">

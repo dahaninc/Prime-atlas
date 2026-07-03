@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { runOpportunityFinder, type FinderParams, type FinderResult } from "./actions";
 import { analytics } from "@/lib/analytics";
 import { ScoreRadar } from "@/components/charts/ScoreRadar";
@@ -9,9 +9,11 @@ import { OpportunityScoreGauge } from "@/components/charts/OpportunityScoreGauge
 import { ThesisStream } from "@/components/ui/ThesisStream";
 import { cn, scoreColor } from "@/lib/utils";
 
+/* ─────────────────────────── constants ────────────────────────────── */
+
 const OBJECTIVES = [
   { value: "capital_growth", label: "Capital Growth", desc: "Long-term appreciation, pre-infrastructure plays" },
-  { value: "rental_yield",   label: "Rental Yield",   desc: "Income-generating assets, high liquidity markets" },
+  { value: "rental_yield",   label: "Rental Yield",   desc: "Income-generating assets, high-liquidity markets" },
   { value: "development",    label: "Development",    desc: "Planning plays, consented land, greenfield sites" },
   { value: "mixed",          label: "Mixed",          desc: "Balanced weighting across all factors" },
 ] as const;
@@ -22,27 +24,86 @@ const RISK_OPTIONS = [
   { value: "high",   label: "High",   desc: "No restriction" },
 ] as const;
 
-interface Props {
-  regions: string[];
-  categories: string[];
+const CURRENCIES = [
+  { value: "USD", label: "$ USD" },
+  { value: "GBP", label: "£ GBP" },
+  { value: "EUR", label: "€ EUR" },
+] as const;
+
+const COUNTRY_FLAG: Record<string, string> = {
+  "United Kingdom": "🇬🇧",
+  "United States":  "🇺🇸",
+};
+
+/* ─────────────────────────── types ────────────────────────────────── */
+
+interface GeoOption {
+  country: string;
+  region:  string;
+  city:    string;
 }
 
-export function FinderClient({ regions, categories }: Props) {
+interface Props {
+  geoOptions:  GeoOption[];
+  categories:  string[];
+}
+
+/* ─────────────────────────── component ────────────────────────────── */
+
+export function FinderClient({ geoOptions, categories }: Props) {
   const [params, setParams] = useState<FinderParams>({
-    regions: [],
-    categories: [],
-    risk_tolerance: "medium",
-    objective: "capital_growth",
-    min_score: 70,
-    budget_min: undefined,
-    budget_max: undefined,
+    categories:       [],
+    risk_tolerance:   "medium",
+    objective:        "capital_growth",
+    min_score:        70,
+    budget_currency:  "USD",
+    country:          undefined,
+    region:           undefined,
+    city:             undefined,
+    budget_min:       undefined,
+    budget_max:       undefined,
   });
 
-  const [results, setResults] = useState<FinderResult[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [results,      setResults]      = useState<FinderResult[] | null>(null);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
   const [activeResult, setActiveResult] = useState<string | null>(null);
-  const [step, setStep] = useState<"form" | "results">("form");
+  const [step,         setStep]         = useState<"form" | "results">("form");
+
+  // Derived geo lists
+  const availableCountries = useMemo(() => (
+    Array.from(new Set(geoOptions.map((g) => g.country))).sort()
+  ), [geoOptions]);
+
+  const availableRegions = useMemo(() => (
+    params.country
+      ? Array.from(new Set(geoOptions.filter((g) => g.country === params.country).map((g) => g.region))).sort()
+      : []
+  ), [geoOptions, params.country]);
+
+  const availableCities = useMemo(() => (
+    params.region
+      ? geoOptions.filter((g) => g.country === params.country && g.region === params.region).map((g) => g.city).sort()
+      : []
+  ), [geoOptions, params.country, params.region]);
+
+  function setCountry(c: string) {
+    setParams((p) => ({ ...p, country: c || undefined, region: undefined, city: undefined }));
+  }
+  function setRegion(r: string) {
+    setParams((p) => ({ ...p, region: r || undefined, city: undefined }));
+  }
+  function setCity(c: string) {
+    setParams((p) => ({ ...p, city: c || undefined }));
+  }
+  function toggleCategory(c: string) {
+    setParams((p) => ({
+      ...p,
+      categories: p.categories.includes(c) ? p.categories.filter((x) => x !== c) : [...p.categories, c],
+    }));
+  }
+
+  const currencySymbol = params.budget_currency === "GBP" ? "£" : params.budget_currency === "EUR" ? "€" : "$";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +113,7 @@ export function FinderClient({ regions, categories }: Props) {
       const data = await runOpportunityFinder(params);
       analytics.opportunityFinderRun({
         objective:      params.objective,
-        region:         params.regions.join(", "),
+        region:         params.region ?? params.country ?? "all",
         category:       params.categories.join(", "),
         budget_min:     params.budget_min,
         budget_max:     params.budget_max,
@@ -70,30 +131,22 @@ export function FinderClient({ regions, categories }: Props) {
     }
   }
 
-  function toggleRegion(r: string) {
-    setParams((p) => ({
-      ...p,
-      regions: p.regions.includes(r) ? p.regions.filter((x) => x !== r) : [...p.regions, r],
-    }));
-  }
-
-  function toggleCategory(c: string) {
-    setParams((p) => ({
-      ...p,
-      categories: p.categories.includes(c) ? p.categories.filter((x) => x !== c) : [...p.categories, c],
-    }));
-  }
-
   const selectedResult = results?.find((r) => r.id === activeResult);
+
+  /* ──────────────────────── RESULTS VIEW ──────────────────────────── */
 
   if (step === "results" && results) {
     return (
       <div>
-        {/* Results header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-sm font-semibold">{results.length} opportunities found</p>
-            <p className="text-xs text-muted-foreground">Ranked by personalised score · {params.objective.replace("_", " ")} objective</p>
+            <p className="text-xs text-muted-foreground">
+              Ranked by Prime Atlas conviction score · {params.objective.replace("_", " ")} objective
+              {params.country ? ` · ${COUNTRY_FLAG[params.country] ?? ""} ${params.country}` : ""}
+              {params.region  ? ` · ${params.region}`  : ""}
+              {params.city    ? ` · ${params.city}`    : ""}
+            </p>
           </div>
           <button
             onClick={() => { setStep("form"); setResults(null); setActiveResult(null); }}
@@ -141,9 +194,9 @@ export function FinderClient({ regions, categories }: Props) {
                   <div className="flex gap-1.5 mt-2 flex-wrap">
                     <span className="text-xs border border-border rounded px-1.5 py-0.5 text-muted-foreground">{r.category}</span>
                     <span className={cn("text-xs border rounded px-1.5 py-0.5 font-medium",
-                      r.risk_level === "low" ? "border-pa-green/30 text-pa-green bg-pa-green/5" :
+                      r.risk_level === "low"    ? "border-pa-green/30 text-pa-green bg-pa-green/5" :
                       r.risk_level === "medium" ? "border-pa-amber/30 text-pa-amber bg-pa-amber/5" :
-                      "border-pa-red/30 text-pa-red bg-pa-red/5"
+                                                  "border-red-400/30 text-red-400 bg-red-400/5"
                     )}>{r.risk_level} risk</span>
                   </div>
                 </button>
@@ -153,11 +206,12 @@ export function FinderClient({ regions, categories }: Props) {
             {/* Detail panel */}
             {selectedResult && (
               <div className="lg:col-span-2 space-y-5">
-                {/* Score header */}
                 <div className="border border-border rounded-xl p-6 bg-card">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-6">
                     <div className="flex-1">
-                      <p className="text-xs text-muted-foreground font-mono mb-1">#{selectedResult.rank} · {selectedResult.municipality_name}, {selectedResult.municipality_region}</p>
+                      <p className="text-xs text-muted-foreground font-mono mb-1">
+                        #{selectedResult.rank} · {selectedResult.municipality_name}, {selectedResult.municipality_region}
+                      </p>
                       <h2 className="text-xl font-bold mb-1">{selectedResult.title}</h2>
                       <div className="flex gap-2 mt-2">
                         <span className="text-xs border border-border rounded px-2 py-0.5 text-muted-foreground">{selectedResult.category}</span>
@@ -166,11 +220,14 @@ export function FinderClient({ regions, categories }: Props) {
                         )}>{selectedResult.risk_level} risk</span>
                       </div>
                     </div>
-                    <OpportunityScoreGauge score={selectedResult.personalised_score} size="md" label={`Personalised score (${params.objective.replace("_"," ")})`} />
+                    <OpportunityScoreGauge
+                      score={selectedResult.personalised_score}
+                      size="md"
+                      label={`Personalised score (${params.objective.replace("_", " ")})`}
+                    />
                   </div>
                 </div>
 
-                {/* Charts */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="border border-border rounded-xl p-5 bg-card">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Score Radar</p>
@@ -181,10 +238,10 @@ export function FinderClient({ regions, categories }: Props) {
                     <ScoreBreakdown scores={selectedResult.scores} />
                     <div className="mt-4 space-y-1.5">
                       {[
-                        { label: "Growth",        v: selectedResult.scores.growth_score },
+                        { label: "Growth",         v: selectedResult.scores.growth_score },
                         { label: "Infrastructure", v: selectedResult.scores.infrastructure_score },
-                        { label: "Development",   v: selectedResult.scores.development_score },
-                        { label: "Liquidity",     v: selectedResult.scores.liquidity_score },
+                        { label: "Development",    v: selectedResult.scores.development_score },
+                        { label: "Liquidity",      v: selectedResult.scores.liquidity_score },
                         { label: "Risk (inverted)",v: 100 - selectedResult.scores.risk_score },
                       ].map(({ label, v }) => (
                         <div key={label} className="flex justify-between text-xs">
@@ -196,26 +253,24 @@ export function FinderClient({ regions, categories }: Props) {
                   </div>
                 </div>
 
-                {/* AI Thesis */}
                 <div className="border border-border rounded-xl p-6 bg-card">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">AI Investment Thesis</span>
-                    <span className="text-xs border border-pa-green/30 bg-pa-green/5 text-pa-green px-2 py-0.5 rounded-full font-mono">Claude</span>
+                    <span className="text-xs border border-pa-green/30 bg-pa-green/5 text-pa-green px-2 py-0.5 rounded-full font-mono">Prime Atlas</span>
                   </div>
                   <ThesisStream
                     municipalityId={selectedResult.municipality_id}
                     opportunityId={selectedResult.id}
                     context={{
-                      objective: params.objective,
-                      budget_min: params.budget_min,
-                      budget_max: params.budget_max,
+                      objective:      params.objective,
+                      budget_min:     params.budget_min,
+                      budget_max:     params.budget_max,
                       risk_tolerance: params.risk_tolerance,
                     }}
                     fallbackThesis={selectedResult.investment_thesis}
                   />
                 </div>
 
-                {/* Evidence */}
                 {selectedResult.evidence && (selectedResult.evidence as { source: string; summary: string; confidence: number }[]).length > 0 && (
                   <div className="border border-border rounded-xl p-5 bg-card">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Supporting Evidence</p>
@@ -236,17 +291,16 @@ export function FinderClient({ regions, categories }: Props) {
                   </div>
                 )}
 
-                {/* CTA */}
                 <div className="border border-dashed border-pa-green/30 rounded-xl p-4 flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium">Add {selectedResult.municipality_name} to your Watchlist</p>
-                    <p className="text-xs text-muted-foreground">Get alerted when new signals are detected.</p>
+                    <p className="text-sm font-medium">View {selectedResult.municipality_name} full market analysis</p>
+                    <p className="text-xs text-muted-foreground">Conviction scores, signals, deal pipeline and IC memo.</p>
                   </div>
                   <a
-                    href={`/watchlists?add=${selectedResult.municipality_id}`}
+                    href={`/opportunities/${selectedResult.municipality_id}`}
                     className="flex-shrink-0 bg-pa-green text-pa-navy font-semibold text-xs px-4 py-2 rounded-lg hover:bg-pa-green/90 transition-colors"
                   >
-                    Add to Watchlist
+                    Open market →
                   </a>
                 </div>
               </div>
@@ -257,13 +311,16 @@ export function FinderClient({ regions, categories }: Props) {
     );
   }
 
-  // Form view
+  /* ──────────────────────── FORM VIEW ─────────────────────────────── */
+
   return (
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column — primary inputs */}
+
+        {/* ── Left column ── */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Objective */}
+
+          {/* Investment Objective */}
           <div className="border border-border rounded-xl p-6 bg-card">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Investment Objective</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -286,35 +343,84 @@ export function FinderClient({ regions, categories }: Props) {
             </div>
           </div>
 
-          {/* Geography */}
+          {/* Geography — hierarchical */}
           <div className="border border-border rounded-xl p-6 bg-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
-              Geography <span className="normal-case font-normal text-muted-foreground">(leave blank for all)</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {regions.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => toggleRegion(r)}
-                  className={cn(
-                    "text-sm px-3 py-1.5 rounded-full border transition-colors",
-                    params.regions.includes(r)
-                      ? "border-pa-green/50 bg-pa-green/10 text-pa-green"
-                      : "border-border text-muted-foreground hover:text-foreground"
-                  )}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Geography</p>
+            <p className="text-xs text-muted-foreground mb-4">Narrow by country, then region, then city — or leave all blank to search globally across UK + USA.</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Country */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5 font-medium">Country</label>
+                <select
+                  value={params.country ?? ""}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pa-green/50"
                 >
-                  {r}
-                </button>
-              ))}
+                  <option value="">🌍 All (UK + USA)</option>
+                  {availableCountries.map((c) => (
+                    <option key={c} value={c}>{COUNTRY_FLAG[c] ?? ""} {c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Region / State */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5 font-medium">
+                  {params.country === "United States" ? "State" : "Region"}
+                </label>
+                <select
+                  value={params.region ?? ""}
+                  onChange={(e) => setRegion(e.target.value)}
+                  disabled={!params.country}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pa-green/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <option value="">All regions</option>
+                  {availableRegions.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1.5 font-medium">City</label>
+                <select
+                  value={params.city ?? ""}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={!params.region}
+                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pa-green/50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <option value="">All cities</option>
+                  {availableCities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {/* Active geo display */}
+            {(params.country || params.region || params.city) && (
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Searching:</span>
+                {[params.country, params.region, params.city].filter(Boolean).map((v, i) => (
+                  <span key={i} className="text-[10px] border border-pa-green/30 bg-pa-green/5 text-pa-green rounded px-2 py-0.5 font-mono">{v}</span>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setCountry(""); }}
+                  className="text-[10px] text-muted-foreground hover:text-pa-green ml-1"
+                >
+                  Clear ✕
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Categories */}
           <div className="border border-border rounded-xl p-6 bg-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">
-              Category <span className="normal-case font-normal text-muted-foreground">(leave blank for all)</span>
-            </p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Asset Class</p>
+            <p className="text-xs text-muted-foreground mb-4">Leave blank to search all asset classes.</p>
             <div className="flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -335,27 +441,51 @@ export function FinderClient({ regions, categories }: Props) {
           </div>
         </div>
 
-        {/* Right column — filters */}
+        {/* ── Right column ── */}
         <div className="space-y-4">
+
           {/* Budget */}
           <div className="border border-border rounded-xl p-5 bg-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Budget (EUR)</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Budget</p>
+
+            {/* Currency selector */}
+            <div className="mb-3">
+              <label className="text-xs text-muted-foreground block mb-1.5">Currency</label>
+              <div className="flex gap-1.5">
+                {CURRENCIES.map((cur) => (
+                  <button
+                    key={cur.value}
+                    type="button"
+                    onClick={() => setParams((p) => ({ ...p, budget_currency: cur.value }))}
+                    className={cn(
+                      "flex-1 text-xs py-1.5 rounded-lg border font-medium transition-all",
+                      params.budget_currency === cur.value
+                        ? "border-pa-green/50 bg-pa-green/10 text-pa-green"
+                        : "border-border text-muted-foreground hover:bg-secondary/50"
+                    )}
+                  >
+                    {cur.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Minimum</label>
+                <label className="text-xs text-muted-foreground block mb-1">Min ({currencySymbol})</label>
                 <input
                   type="number"
-                  placeholder="e.g. 100000"
+                  placeholder={`e.g. ${currencySymbol}100,000`}
                   value={params.budget_min ?? ""}
                   onChange={(e) => setParams((p) => ({ ...p, budget_min: e.target.value ? Number(e.target.value) : undefined }))}
                   className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50"
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Maximum</label>
+                <label className="text-xs text-muted-foreground block mb-1">Max ({currencySymbol})</label>
                 <input
                   type="number"
-                  placeholder="e.g. 500000"
+                  placeholder={`e.g. ${currencySymbol}1,000,000`}
                   value={params.budget_max ?? ""}
                   onChange={(e) => setParams((p) => ({ ...p, budget_max: e.target.value ? Number(e.target.value) : undefined }))}
                   className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-pa-green/50"
@@ -389,8 +519,8 @@ export function FinderClient({ regions, categories }: Props) {
 
           {/* Min score */}
           <div className="border border-border rounded-xl p-5 bg-card">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Minimum Score</p>
-            <p className="text-xs text-muted-foreground mb-3">Only show opportunities scoring above:</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">Minimum Conviction Score</p>
+            <p className="text-xs text-muted-foreground mb-3">Only return opportunities scoring above:</p>
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -405,19 +535,24 @@ export function FinderClient({ regions, categories }: Props) {
             </div>
           </div>
 
-          {/* Submit */}
+          {/* Error */}
           {error && (
-            <div className="p-3 border border-pa-red/30 bg-pa-red/5 rounded-xl text-xs text-pa-red">{error}</div>
+            <div className="p-3 border border-red-400/30 bg-red-400/5 rounded-xl text-xs text-red-400">{error}</div>
           )}
 
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-pa-green text-pa-navy font-bold py-3.5 rounded-xl hover:bg-pa-green/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading && <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
-            {loading ? "Finding opportunities…" : "Find opportunities →"}
+            {loading ? "Scoring opportunities…" : "Find opportunities →"}
           </button>
+
+          <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+            Ranked by Prime Atlas conviction score, personalised to your objective. UK + USA markets only.
+          </p>
         </div>
       </div>
     </form>

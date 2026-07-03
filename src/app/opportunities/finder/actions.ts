@@ -7,7 +7,10 @@ import type { SubScores } from "@/lib/scoring";
 export interface FinderParams {
   budget_min?: number;
   budget_max?: number;
-  regions: string[];
+  budget_currency?: "USD" | "GBP" | "EUR";
+  country?: string;
+  region?: string;
+  city?: string;
   categories: string[];
   risk_tolerance: "low" | "medium" | "high";
   objective: "capital_growth" | "rental_yield" | "development" | "mixed";
@@ -38,25 +41,23 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
   if (!user) throw new Error("Authentication required");
 
   // Tier check
-  const { data: profile } = await supabase
+  const { data: profileRaw } = await supabase
     .from("profiles")
     .select("subscription_tier")
     .eq("id", user.id)
     .single();
+  const profile = profileRaw as { subscription_tier: string } | null;
 
   if (!profile || profile.subscription_tier === "free") {
     throw new Error("Pro subscription required to use the Opportunity Finder");
   }
 
-  // Build query
+  // Build query — UK + USA only, municipalities!inner enforces join
   let query = supabase
     .from("opportunities")
-    .select("*, municipalities!inner(id, name, region, growth_score, infrastructure_score, development_score, liquidity_score, risk_score)")
+    .select("*, municipalities!inner(id, name, region, country, growth_score, infrastructure_score, development_score, liquidity_score, risk_score)")
     .eq("status", "active");
 
-  if (params.regions.length > 0) {
-    query = query.in("municipalities.region", params.regions);
-  }
   if (params.categories.length > 0) {
     query = query.in("category", params.categories);
   }
@@ -69,27 +70,52 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
     query = query.gte("opportunity_score", params.min_score);
   }
 
-  const { data: opportunities, error } = await query.limit(50);
+  const { data: rawOpportunities, error } = await query.limit(100);
   if (error) throw new Error(error.message);
-  if (!opportunities || opportunities.length === 0) return [];
+
+  type OppRow = {
+    id: string; title: string; category: string; risk_level: string; investment_thesis: string;
+    opportunity_score: number; risk_score: number; municipality_id: string;
+    scores: Record<string, number> | null;
+    evidence: unknown[];
+    municipalities: {
+      id: string; name: string; region: string; country: string;
+      growth_score: number; infrastructure_score: number;
+      development_score: number; liquidity_score: number; risk_score: number;
+    } | null;
+  };
+  const rows = (rawOpportunities as unknown as OppRow[]) ?? [];
+  if (rows.length === 0) return [];
+
+  // JS-filter to UK + USA and apply geography params
+  const ALLOWED_COUNTRIES = ["United Kingdom", "United States"];
+  const opportunities = rows.filter((opp) => {
+    const m = opp.municipalities;
+    if (!m) return false;
+    if (!ALLOWED_COUNTRIES.includes(m.country)) return false;
+    if (params.country && m.country !== params.country) return false;
+    if (params.region && m.region !== params.region) return false;
+    if (params.city && m.name !== params.city) return false;
+    return true;
+  });
+
+  if (opportunities.length === 0) return [];
 
   const weights = weightsForObjective(params.objective);
 
   // Enrich with sub-scores from municipality
+  // IMPORTANT: spread scores at root level so rankOpportunities can access growth_score etc. directly
   const enriched = opportunities.map((opp) => {
-    const m = opp.municipalities as {
-      id: string; name: string; region: string;
-      growth_score: number; infrastructure_score: number;
-      development_score: number; liquidity_score: number; risk_score: number;
-    };
+    const m = opp.municipalities!;
     const scores: SubScores = {
-      growth_score:         (opp.scores as { growth_score?: number } | null)?.growth_score ?? m.growth_score,
-      infrastructure_score: (opp.scores as { infrastructure_score?: number } | null)?.infrastructure_score ?? m.infrastructure_score,
-      development_score:    (opp.scores as { development_score?: number } | null)?.development_score ?? m.development_score,
-      liquidity_score:      (opp.scores as { liquidity_score?: number } | null)?.liquidity_score ?? m.liquidity_score,
-      risk_score:           opp.risk_score,
+      growth_score:         opp.scores?.growth_score         ?? m.growth_score         ?? 50,
+      infrastructure_score: opp.scores?.infrastructure_score ?? m.infrastructure_score ?? 50,
+      development_score:    opp.scores?.development_score    ?? m.development_score    ?? 50,
+      liquidity_score:      opp.scores?.liquidity_score      ?? m.liquidity_score      ?? 50,
+      risk_score:           opp.risk_score                   ?? m.risk_score           ?? 50,
     };
-    return { ...opp, municipality_name: m.name, municipality_region: m.region, scores };
+    // Spread scores at root level so computeOpportunityScore can access them directly
+    return { ...opp, ...scores, municipality_name: m.name, municipality_region: m.region, scores };
   });
 
   const ranked = rankOpportunities(enriched, weights);
