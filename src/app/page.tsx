@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 const STATS = [
   { value: "80+",    label: "Markets pre-screened · USA + UK" },
   { value: "20 min", label: "Deal board to preliminary IC memo" },
-  { value: "$50K+",  label: "Avg. cost of a late-aborted diligence process" },
+  { value: "$70K+",  label: "Avg. cost of a late-aborted diligence process" },
   { value: "100%",   label: "Prime Atlas proprietary intelligence on every score" },
 ];
 
@@ -87,14 +87,14 @@ const AUDIENCES = [
   },
   {
     tag: "Developers & operators",
-    headline: "Know before you spend $50K on surveys.",
+    headline: "Know before you spend $70K on surveys.",
     pain:
       "You're committing to diligence costs before you have high-confidence conviction. Most aborted deals absorb 6–10 weeks of analyst and consultant time before hitting a wall that was visible from day one.",
     value: [
       "Live DCF — units, GSF, land cost, hard cost, yield-on-cost",
       "Planning pipeline and zoning velocity per market",
       "Pre-screened BTR, PBSA, Industrial, Mixed-use pipeline",
-      "Go/no-go conviction before the $50K diligence commitment",
+      "Go/no-go conviction before the $70K diligence commitment",
     ],
     cta: { label: "Open Deal Board", href: "/deal-board" },
     tagColor: "text-blue-600",
@@ -142,9 +142,9 @@ const PAIN_POINTS = [
   },
   {
     label: "Cost",
-    stat: "$50K+",
+    stat: "$70K+",
     statLabel: "avg. aborted deal cost",
-    body: "Late-stage diligence kills deals after $40–80K in fees — surveys, legal, planning consultants. The cost isn't the diligence: it's committing before you had conviction.",
+    body: "Late-stage diligence kills deals after $50–100K in fees — surveys, legal, planning consultants. The cost isn't the diligence: it's committing before you had conviction.",
   },
   {
     label: "Committee",
@@ -884,7 +884,7 @@ export default async function HomePage() {
                 </p>
                 <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-4 leading-tight text-balance text-white">
                   Stop losing deals to speed.<br />
-                  Stop burning $50K on diligence that should have been a 20-minute screen.{" "}
+                  Stop burning $70K on diligence that should have been a 20-minute screen.{" "}
                   <span className="text-[#A3C4FF]">Prime Atlas ends both.</span>
                 </h2>
                 <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
