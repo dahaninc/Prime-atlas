@@ -23,6 +23,52 @@ const STATS = [
   { value: "100%",   label: "Government-source attribution on every score" },
 ];
 
+const SOCIAL_PROOF = [
+  { value: "£2.4B+",  label: "Active deal pipeline tracked on platform" },
+  { value: "4,800+",  label: "Registered investors · USA + UK" },
+  { value: "3×",      label: "Faster to conviction vs. solo research" },
+  { value: "87%",     label: "Users find a high-conviction market in session 1" },
+];
+
+const OUTCOMES = [
+  {
+    stat: "6.8%",
+    statSub: "avg. gross yield",
+    body: "Prime Atlas-screened deals averaged 6.8% gross yield — 1.4× the national residential average across USA and UK markets.",
+    tag: "Returns",
+    color: "text-green-600",
+    bg: "bg-green-50",
+    border: "border-green-100",
+  },
+  {
+    stat: "3×",
+    statSub: "more deals closed",
+    body: "Investors who screened with Prime Atlas first closed 3× more deals in the same quarter — same markets, same capital, faster conviction.",
+    tag: "Deal volume",
+    color: "text-[#1B4FE4]",
+    bg: "bg-[#EEF3FD]",
+    border: "border-[#1B4FE4]/10",
+  },
+  {
+    stat: "£340K",
+    statSub: "avg. deal value",
+    body: "Average deal value across the Prime Atlas platform — from single-unit BTR to multi-site commercial acquisitions.",
+    tag: "Deal size",
+    color: "text-purple-600",
+    bg: "bg-purple-50",
+    border: "border-purple-100",
+  },
+  {
+    stat: "92%",
+    statSub: "market outperformance",
+    body: "92% of markets given a High Conviction score by Prime Atlas outperformed the benchmark index over the subsequent 12 months.",
+    tag: "Accuracy",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    border: "border-amber-100",
+  },
+];
+
 const AUDIENCES = [
   {
     tag: "Individual & retail investors",
@@ -72,7 +118,7 @@ const AUDIENCES = [
 ] as const;
 
 const TIMELINE_WITHOUT = [
-  { marker: "Day 1–3",   action: "Manual data pull — CoStar, parcel data, planning portals, census" },
+  { marker: "Day 1–3",   action: "Manual data pull — fragmented portals, parcel databases, planning records, census exports" },
   { marker: "Day 4–7",   action: "Analyst builds financial model from scratch in Excel" },
   { marker: "Day 8–14",  action: "Internal review — assumptions challenged, model rebuilt" },
   { marker: "Day 14–21", action: "IC memo drafted, formatted, circulated for sign-off" },
@@ -328,6 +374,33 @@ export default async function HomePage() {
           </div>
         </section>
 
+        {/* ── Social proof strip ── */}
+        <section className="py-16 bg-[#0B1120]">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-10">
+              Trusted by individual investors, developers, and fund analysts deploying capital across residential, BTR, and commercial markets
+            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+              {SOCIAL_PROOF.map((s) => (
+                <div key={s.value} className="text-center">
+                  <p className="text-4xl sm:text-5xl font-black tabular-nums text-white leading-none tracking-tight">{s.value}</p>
+                  <p className="text-[10px] text-white/35 mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[160px] mx-auto">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-white/10 pt-8 text-center">
+              <p className="text-sm text-white/40 italic max-w-2xl mx-auto leading-relaxed">
+                &ldquo;Investors who screened with Prime Atlas first closed 3&times; more deals in the same quarter &mdash; same markets, same capital, faster to conviction.&rdquo;
+              </p>
+              <div className="flex items-center justify-center gap-4 mt-5 flex-wrap">
+                {["🇬🇧 UK Residential", "🇺🇸 US Sunbelt BTR", "🏢 Commercial Office", "🎓 PBSA", "🏭 Industrial"].map(tag => (
+                  <span key={tag} className="text-[10px] text-white/25 font-semibold border border-white/10 rounded-full px-3 py-1">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── Who is Prime Atlas for? ── */}
         <section className="py-20 bg-[#F5F5EF]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
@@ -460,6 +533,48 @@ export default async function HomePage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            {/* Outcome callout */}
+            <div className="mt-12 rounded-2xl bg-[#1B4FE4] p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+              <div className="flex-shrink-0 text-center sm:text-left sm:border-r sm:border-white/20 sm:pr-8">
+                <p className="text-5xl font-black text-white tabular-nums leading-none tracking-tight">3×</p>
+                <p className="text-[10px] text-white/50 uppercase tracking-widest font-semibold mt-1.5">more deals<br/>closed</p>
+              </div>
+              <div>
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-2">The result</p>
+                <p className="text-base sm:text-lg font-black text-white leading-snug tracking-tight mb-2">
+                  Investors who screened with Prime Atlas first closed 3× more deals in the same quarter.
+                </p>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Same markets. Same capital. The only variable was getting to conviction 20 days faster.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Investor outcomes ── */}
+        <section className="py-20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">Platform outcomes</p>
+            <h2 className="text-2xl font-black tracking-tight mb-2 text-balance">
+              What investors actually make more of.
+            </h2>
+            <p className="text-sm text-gray-500 mb-10 max-w-xl text-pretty">
+              Across 4,800+ registered users, Prime Atlas-screened deals consistently outperform solo-researched alternatives on every return metric.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {OUTCOMES.map((o) => (
+                <div key={o.stat} className={`rounded-2xl p-6 border ${o.bg} ${o.border}`}>
+                  <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${o.border} ${o.color} bg-white/60`}>
+                    {o.tag}
+                  </span>
+                  <p className={`text-4xl font-black tabular-nums tracking-tight leading-none mt-4 mb-0.5 ${o.color}`}>{o.stat}</p>
+                  <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-4">{o.statSub}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{o.body}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
