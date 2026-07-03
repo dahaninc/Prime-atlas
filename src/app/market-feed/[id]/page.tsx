@@ -1022,7 +1022,7 @@ export default async function MarketFeedPropertyPage(
                     </p>
                     <ContactRequestButton
                       propertyId={property.id}
-                      isMember={isMember}
+                      userEmail={user?.email ?? ""}
                       alreadySent={alreadySent}
                     />
                   </div>
