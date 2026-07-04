@@ -675,6 +675,43 @@ function extractOnTheMarket(
    PROVIDER REGISTRY
 ───────────────────────────────────────────────────────────────────────────── */
 
+/* Target generators — batches of BATCH_SIZE slice these lists in order, so
+   "fresh" page-1 targets sit first (re-scraped daily by cron; see vercel.json)
+   and deep pagination sits at higher batch indices (one-shot backfill). */
+
+const ZILLOW_SALE_CITIES = [
+  "New-York-NY", "Los-Angeles-CA", "Chicago-IL", "Houston-TX", "Phoenix-AZ",
+  "Philadelphia-PA", "San-Antonio-TX", "San-Diego-CA", "Dallas-TX", "San-Francisco-CA",
+  "Austin-TX", "Jacksonville-FL", "Columbus-OH", "Charlotte-NC", "Indianapolis-IN",
+  "Seattle-WA", "Denver-CO", "Nashville-TN", "Oklahoma-City-OK", "Atlanta-GA",
+  "Baltimore-MD", "Miami-FL", "Louisville-KY", "Portland-OR", "Milwaukee-WI",
+  "Las-Vegas-NV", "Albuquerque-NM", "Minneapolis-MN", "Boston-MA", "Detroit-MI",
+];
+const ZILLOW_RENT_CITIES = [
+  "New-York-NY", "Los-Angeles-CA", "Chicago-IL", "Houston-TX", "Miami-FL",
+  "San-Francisco-CA", "Seattle-WA", "Boston-MA", "Denver-CO", "Atlanta-GA",
+];
+const zillowTarget = (city: string, type: ListingType, page: number): SearchTarget => ({
+  url: `https://www.zillow.com/homes/${type === "sale" ? "for_sale" : "for_rent"}/${city}_rb/${page > 1 ? `${page}_p/` : ""}`,
+  listingType: type,
+});
+
+const RM_LONDON = "REGION%5E87490";
+const rightmoveTarget = (type: ListingType, index: number): SearchTarget => ({
+  url: `https://www.rightmove.co.uk/property-${type === "sale" ? "for-sale" : "to-rent"}/find.html?locationIdentifier=${RM_LONDON}&sortType=6&numberOfPropertiesPerPage=24&index=${index}`,
+  listingType: type,
+});
+
+const OTM_CITIES = [
+  "london", "birmingham", "leeds", "glasgow", "sheffield", "manchester",
+  "edinburgh", "liverpool", "bristol", "leicester", "cardiff", "nottingham",
+  "oxford", "cambridge",
+];
+const otmTarget = (city: string, type: ListingType, page: number): SearchTarget => ({
+  url: `https://www.onthemarket.com/${type === "sale" ? "for-sale" : "to-rent"}/property/${city}/${page > 1 ? `?page=${page}` : ""}`,
+  listingType: type,
+});
+
 const PROVIDERS: Record<Provider, ProviderConfig> = {
 
   zillow: {
@@ -686,46 +723,13 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     baseUrl:       "https://www.zillow.com",
     countryIso2:   "US",
     searchTargets: [
-      { url: "https://www.zillow.com/homes/for_sale/New-York-NY_rb/",         listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Los-Angeles-CA_rb/",      listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Chicago-IL_rb/",          listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Houston-TX_rb/",          listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Phoenix-AZ_rb/",          listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Philadelphia-PA_rb/",     listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/San-Antonio-TX_rb/",      listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/San-Diego-CA_rb/",        listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Dallas-TX_rb/",           listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/San-Francisco-CA_rb/",    listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Austin-TX_rb/",           listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Jacksonville-FL_rb/",     listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Columbus-OH_rb/",         listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Charlotte-NC_rb/",        listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Indianapolis-IN_rb/",     listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Seattle-WA_rb/",          listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Denver-CO_rb/",           listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Nashville-TN_rb/",        listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Oklahoma-City-OK_rb/",    listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Atlanta-GA_rb/",          listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Baltimore-MD_rb/",        listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Miami-FL_rb/",            listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Louisville-KY_rb/",       listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Portland-OR_rb/",         listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Milwaukee-WI_rb/",        listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Las-Vegas-NV_rb/",        listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Albuquerque-NM_rb/",      listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Minneapolis-MN_rb/",      listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Boston-MA_rb/",           listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_sale/Detroit-MI_rb/",          listingType: "sale" },
-      { url: "https://www.zillow.com/homes/for_rent/New-York-NY_rb/",         listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Los-Angeles-CA_rb/",      listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Chicago-IL_rb/",          listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Houston-TX_rb/",          listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Miami-FL_rb/",            listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/San-Francisco-CA_rb/",    listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Seattle-WA_rb/",          listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Boston-MA_rb/",           listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Denver-CO_rb/",           listingType: "rent" },
-      { url: "https://www.zillow.com/homes/for_rent/Atlanta-GA_rb/",          listingType: "rent" },
+      // Page 1 per city — fresh (cron batches 0-7, daily)
+      ...ZILLOW_SALE_CITIES.map((c) => zillowTarget(c, "sale", 1)),
+      ...ZILLOW_RENT_CITIES.map((c) => zillowTarget(c, "rent", 1)),
+      // Deep pages — backfill coverage (batches 8+)
+      ...ZILLOW_SALE_CITIES.map((c) => zillowTarget(c, "sale", 2)),
+      ...ZILLOW_RENT_CITIES.map((c) => zillowTarget(c, "rent", 2)),
+      ...ZILLOW_SALE_CITIES.slice(0, 20).map((c) => zillowTarget(c, "sale", 3)),
     ],
     extract: extractZillow,
   },
@@ -739,14 +743,13 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     baseUrl:       "https://www.rightmove.co.uk",
     countryIso2:   "GB",
     searchTargets: [
-      {
-        url:         "https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&sortType=6&numberOfPropertiesPerPage=24&index=0",
-        listingType: "sale",
-      },
-      {
-        url:         "https://www.rightmove.co.uk/property-to-rent/find.html?locationIdentifier=REGION%5E87490&sortType=6&numberOfPropertiesPerPage=24&index=0",
-        listingType: "rent",
-      },
+      // Fresh pages (cron batches 0-1, daily)
+      rightmoveTarget("sale", 0), rightmoveTarget("rent", 0),
+      rightmoveTarget("sale", 24), rightmoveTarget("rent", 24),
+      rightmoveTarget("sale", 48),
+      // Deep London pagination — backfill coverage (sale to idx 744, rent to 360)
+      ...Array.from({ length: 29 }, (_, i) => rightmoveTarget("sale", (i + 3) * 24)),
+      ...Array.from({ length: 14 }, (_, i) => rightmoveTarget("rent", (i + 2) * 24)),
     ],
     extract: extractRightmove,
   },
@@ -760,8 +763,13 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     baseUrl:       "https://www.onthemarket.com",
     countryIso2:   "GB",
     searchTargets: [
-      { url: "https://www.onthemarket.com/for-sale/property/london/",  listingType: "sale" },
-      { url: "https://www.onthemarket.com/to-rent/property/london/",   listingType: "rent" },
+      // Page 1 per market — fresh (cron batches 0-5, daily)
+      ...OTM_CITIES.map((c) => otmTarget(c, "sale", 1)),
+      ...OTM_CITIES.map((c) => otmTarget(c, "rent", 1)),
+      // Deep pages — backfill coverage
+      ...OTM_CITIES.map((c) => otmTarget(c, "sale", 2)),
+      ...OTM_CITIES.map((c) => otmTarget(c, "rent", 2)),
+      ...OTM_CITIES.map((c) => otmTarget(c, "sale", 3)),
     ],
     extract: extractOnTheMarket,
   },

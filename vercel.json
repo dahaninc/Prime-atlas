@@ -37,8 +37,32 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=1",
+      "schedule": "20 7 * * *"
+    },
+    {
       "path": "/api/cron/scrape-listings?provider=onthemarket&batch=0",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=1",
+      "schedule": "20 8 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=2",
+      "schedule": "40 8 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=3",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=4",
+      "schedule": "20 9 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=5",
+      "schedule": "40 9 * * *"
     },
     {
       "path": "/api/cron/enrich-agents",
