@@ -35,22 +35,32 @@ function adminSupabase() {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchPage(url: string): Promise<string | null> {
+async function fetchPage(url: string, country: string): Promise<string | null> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
   if (!apiKey) return null;
 
-  const proxyUrl = `${SCRAPEOPS_BASE}?api_key=${apiKey}&url=${encodeURIComponent(url)}&render_js=false`;
+  // Cheap plain fetch first; when the target blocks it (Zillow especially),
+  // retry once with JS rendering + residential IP — costs more ScrapeOps
+  // credits but reliably gets through.
+  const attempts = [
+    `${SCRAPEOPS_BASE}?api_key=${apiKey}&url=${encodeURIComponent(url)}&render_js=false`,
+    `${SCRAPEOPS_BASE}?api_key=${apiKey}&url=${encodeURIComponent(url)}&render_js=true&residential=true&country=${country}`,
+  ];
 
-  try {
-    const res = await fetch(proxyUrl, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { "Accept": "text/html" },
-    });
-    if (!res.ok) return null;
-    return await res.text();
-  } catch {
-    return null;
+  for (const proxyUrl of attempts) {
+    try {
+      const res = await fetch(proxyUrl, {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        headers: { "Accept": "text/html" },
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      if (html.length > 2000) return html;
+    } catch {
+      // fall through to the rendered attempt / give up
+    }
   }
+  return null;
 }
 
 /* ── Per-provider agent selectors ───────────────────────────────────────── */
@@ -226,8 +236,17 @@ export async function GET(req: NextRequest) {
       break;
     }
     try {
-      const html = await fetchPage(row.listing_url);
-      if (!html) { errors.push(`${row.id}: fetch failed`); continue; }
+      const country = row.provider === "zillow" ? "us" : "gb";
+      const html = await fetchPage(row.listing_url, country);
+      if (!html) {
+        errors.push(`${row.id}: fetch failed`);
+        // Send permanently-blocked rows to the back of the queue so they
+        // don't head-of-line block the hourly backfill.
+        await supabase.from("properties")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", row.id);
+        continue;
+      }
 
       let info: AgentInfo;
       if (row.provider === "rightmove")   info = parseRightmoveDetail(html);
