@@ -192,6 +192,92 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_alert_hits: {
+        Row: {
+          id: string
+          notified_at: string
+          property_id: string
+          rule_id: string
+        }
+        Insert: {
+          id?: string
+          notified_at?: string
+          property_id: string
+          rule_id: string
+        }
+        Update: {
+          id?: string
+          notified_at?: string
+          property_id?: string
+          rule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_alert_hits_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_alert_hits_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "deal_alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_alert_rules: {
+        Row: {
+          active: boolean
+          country_iso2: string | null
+          created_at: string
+          id: string
+          listing_type: string
+          max_price: number | null
+          min_bedrooms: number | null
+          min_discount_pct: number | null
+          min_yield_pct: number | null
+          municipality_id: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          country_iso2?: string | null
+          created_at?: string
+          id?: string
+          listing_type?: string
+          max_price?: number | null
+          min_bedrooms?: number | null
+          min_discount_pct?: number | null
+          min_yield_pct?: number | null
+          municipality_id?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          country_iso2?: string | null
+          created_at?: string
+          id?: string
+          listing_type?: string
+          max_price?: number | null
+          min_bedrooms?: number | null
+          min_discount_pct?: number | null
+          min_yield_pct?: number | null
+          municipality_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_alert_rules_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infrastructure_projects: {
         Row: {
           budget: number
@@ -411,6 +497,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "listings_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_score_history: {
+        Row: {
+          captured_on: string
+          development_score: number
+          growth_score: number
+          id: string
+          infrastructure_score: number
+          liquidity_score: number
+          municipality_id: string
+          opportunity_score: number
+          risk_score: number
+        }
+        Insert: {
+          captured_on?: string
+          development_score: number
+          growth_score: number
+          id?: string
+          infrastructure_score: number
+          liquidity_score: number
+          municipality_id: string
+          opportunity_score: number
+          risk_score: number
+        }
+        Update: {
+          captured_on?: string
+          development_score?: number
+          growth_score?: number
+          id?: string
+          infrastructure_score?: number
+          liquidity_score?: number
+          municipality_id?: string
+          opportunity_score?: number
+          risk_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_score_history_municipality_id_fkey"
             columns: ["municipality_id"]
             isOneToOne: false
             referencedRelation: "municipalities"
@@ -662,6 +792,53 @@ export type Database = {
           },
         ]
       }
+      portfolio_assets: {
+        Row: {
+          address: string | null
+          created_at: string
+          currency_code: string
+          id: string
+          municipality_id: string | null
+          name: string
+          notes: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          currency_code?: string
+          id?: string
+          municipality_id?: string | null
+          name: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          currency_code?: string
+          id?: string
+          municipality_id?: string | null
+          name?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_assets_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           alert_preferences: Json
@@ -717,6 +894,7 @@ export type Database = {
           images: Json | null
           listing_type: string
           listing_url: string | null
+          municipality_id: string | null
           postcode: string | null
           price: number | null
           property_type: string | null
@@ -747,6 +925,7 @@ export type Database = {
           images?: Json | null
           listing_type?: string
           listing_url?: string | null
+          municipality_id?: string | null
           postcode?: string | null
           price?: number | null
           property_type?: string | null
@@ -777,6 +956,7 @@ export type Database = {
           images?: Json | null
           listing_type?: string
           listing_url?: string | null
+          municipality_id?: string | null
           postcode?: string | null
           price?: number | null
           property_type?: string | null
@@ -789,7 +969,15 @@ export type Database = {
           title?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "properties_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scraper_runs: {
         Row: {
@@ -988,6 +1176,25 @@ export type Database = {
       }
     }
     Views: {
+      market_listing_stats: {
+        Row: {
+          median_ppsqm: number | null
+          median_price: number | null
+          municipality_id: string | null
+          rent_count: number | null
+          sale_count: number | null
+          underpriced_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signals_public: {
         Row: {
           ai_summary: string | null

@@ -170,12 +170,14 @@ function parseZillowDetail(html: string): AgentInfo {
       }
       // Images — capture the FULL gallery. The cache holds many size variants
       // per photo, so dedupe on the photo hash (path before the size suffix).
+      // NOTE: gdpClientCache is usually a JSON *string*, not an object.
       const photos = data?.props?.pageProps?.componentProps?.gdpClientCache ?? data?.props?.pageProps?.gdpClientCache;
-      if (photos && typeof photos === "object") {
-        const photoMatch = JSON.stringify(photos).match(/"url"\s*:\s*"(https:\/\/photos\.zillowstatic[^"]+)"/g) ?? [];
+      if (photos) {
+        const photoStr = typeof photos === "string" ? photos : JSON.stringify(photos);
+        const photoMatch = photoStr.match(/"url"\s*:\s*"(https:\\?\/\\?\/photos\.zillowstatic[^"]+)"/g) ?? [];
         const byBase = new Map<string, string>();
         for (const m of photoMatch) {
-          const url  = m.replace(/^"url"\s*:\s*"/, "").replace(/"$/, "");
+          const url  = m.replace(/^"url"\s*:\s*"/, "").replace(/"$/, "").replace(/\\\//g, "/");
           const base = url.replace(/(-cc_ft_\d+|-p_[a-z])?\.(jpg|webp|png)$/i, "");
           // Prefer jpg over webp for broadest <img> support
           if (!byBase.has(base) || url.endsWith(".jpg")) byBase.set(base, url);
@@ -253,13 +255,12 @@ export async function GET(req: NextRequest) {
       else if (row.provider === "onthemarket") info = parseOnTheMarketDetail(html);
       else info = parseZillowDetail(html);
 
-      // Build update payload — only set fields we got
-      const update: Record<string, any> = {
-        updated_at: new Date().toISOString(),
-        // Detail page fetched + parsed → this row's full gallery is synced
-        // (even when the listing genuinely has no photos).
-        gallery_synced_at: new Date().toISOString(),
-      };
+      // Build update payload — only set fields we got.
+      // gallery_synced_at is set ONLY when photos were actually extracted;
+      // parse misses keep the row in the queue (updated_at bump sends it to
+      // the back) so a future run with better parsing picks it up again.
+      const update: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (info.images.length > 0) update.gallery_synced_at = new Date().toISOString();
       if (info.agent_name)    update.agent_name    = info.agent_name;
       if (info.agent_company) update.agent_company = info.agent_company;
       if (info.agent_phone)   update.agent_phone   = info.agent_phone;

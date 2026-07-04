@@ -13,7 +13,8 @@ export const metadata: Metadata = {
     "Live property intelligence feed — residential and commercial listings across USA and UK markets, refreshed daily. Powered by Prime Atlas.",
 };
 
-export default async function MarketFeedPage() {
+export default async function MarketFeedPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
   const supabase = await createClient();
 
   const [
@@ -98,7 +99,7 @@ export default async function MarketFeedPage() {
         </div>
 
         {/* Explorer */}
-        <MarketFeedExplorer properties={properties} />
+        <MarketFeedExplorer properties={properties} initialQuery={q} />
 
         {/* Bottom CTA */}
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-4 items-center justify-between">

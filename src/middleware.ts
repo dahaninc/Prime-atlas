@@ -9,6 +9,8 @@ const PROTECTED_ROUTES = [
   "/signals",
   "/opportunities/finder",
   "/admin",
+  "/portfolio",
+  "/deal-board",
 ];
 
 /** Routes that require a paid subscription */

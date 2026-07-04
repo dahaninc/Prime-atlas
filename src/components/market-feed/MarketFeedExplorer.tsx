@@ -19,7 +19,7 @@ export interface ScrapedProperty {
   images?: string[] | null;
 }
 
-interface Props { properties: ScrapedProperty[] }
+interface Props { properties: ScrapedProperty[]; initialQuery?: string }
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 
@@ -188,8 +188,9 @@ const C = {
 
 /* ─── component ─────────────────────────────────────────────────── */
 
-export function MarketFeedExplorer({ properties }: Props) {
+export function MarketFeedExplorer({ properties, initialQuery }: Props) {
   const [market,    setMarket]    = useState<MarketF>("ALL");
+  const [query,     setQuery]     = useState(initialQuery ?? "");
   const [listing,   setListing]   = useState<ListingF>("all");
   const [propType,  setPropType]  = useState<PropTypeF>("all");
   const [state,     setState]     = useState("ALL");
@@ -206,10 +207,14 @@ export function MarketFeedExplorer({ properties }: Props) {
   const states = useMemo(() => {
     const s = new Set(enriched.filter(p => p.country === "US").map(p => p.stateCode).filter(x => x !== "—"));
     return Array.from(s).sort();
-  }, [enriched]);
+  }, [enriched, query]);
 
   const filtered = useMemo(() => {
     let list = enriched;
+    if (query.trim()) {
+      const q = query.trim().toLowerCase();
+      list = list.filter(p => (p.address ?? "").toLowerCase().includes(q));
+    }
     if (market === "USA")     list = list.filter(p => p.country === "US");
     if (market === "UK")      list = list.filter(p => p.country === "UK");
     if (listing !== "all")    list = list.filter(p => p.listing_type === listing);
@@ -498,6 +503,15 @@ export function MarketFeedExplorer({ properties }: Props) {
         <div className={`px-5 py-2 border-b ${C.borderLight} text-[10px] font-semibold ${C.textMuted} uppercase tracking-widest flex items-center gap-2`}>
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           {filtered.length.toLocaleString()} listings
+          {query.trim() && (
+            <button
+              onClick={() => setQuery("")}
+              className="inline-flex items-center gap-1.5 normal-case tracking-normal text-[10px] font-bold text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/25 rounded-full px-2.5 py-0.5 hover:bg-[#1B4FE4]/10 transition-colors"
+              title="Clear market filter"
+            >
+              {query.trim()} <span className="text-[#1B4FE4]/60">✕</span>
+            </button>
+          )}
           {market !== "ALL" && ` · ${market === "USA" ? "United States" : "United Kingdom"}`}
           {state !== "ALL" && ` · ${STATE_NAMES[state] ?? state}`}
           {propType !== "all" && ` · ${propType}`}

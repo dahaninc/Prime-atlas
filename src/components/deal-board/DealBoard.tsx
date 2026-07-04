@@ -5,8 +5,9 @@
  * Pre-screened pipeline · Preliminary underwrite · One-click IC memo
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { createDealAlert } from "@/app/deal-board/actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,12 +41,53 @@ export interface LiveOpportunity {
   source_url: string | null;
 }
 
+export interface MarketStats {
+  municipality_id: string;
+  sale_count: number;
+  rent_count: number;
+  median_price: number | null;   // minor units
+  median_ppsqm: number | null;   // minor units per sqm
+  underpriced_count: number;
+}
+
+export interface EvidenceInfra {
+  municipality_id: string | null;
+  project_name: string;
+  type: string;
+  budget: number;
+  status: string;
+  expected_completion: string | null;
+}
+
+export interface EvidencePlanning {
+  municipality_id: string | null;
+  project_type: string;
+  status: string;
+  application_date: string;
+  description: string | null;
+}
+
+export interface EvidenceSignal {
+  municipality_id: string | null;
+  title: string;
+  signal_type: string;
+  opportunity_impact: number;
+  detected_at: string;
+}
+
 interface DealBoardProps {
   rows: DealRow[];
   tier: "free" | "explorer" | "professional" | "institutional";
   freshnessMap: Record<string, string>;
   userEmail?: string;
   opportunitiesMap?: Record<string, LiveOpportunity[]>;
+  statsMap?: Record<string, MarketStats>;
+  prevScoreMap?: Record<string, number>;
+  evidence?: {
+    infra: Record<string, EvidenceInfra[]>;
+    planning: Record<string, EvidencePlanning[]>;
+    signals: Record<string, EvidenceSignal[]>;
+  };
 }
 
 // ─── Market Tape Data ─────────────────────────────────────────────────────────
@@ -186,8 +228,14 @@ type SortMode = "roi" | "zoning" | "demand";
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMap = {} }: DealBoardProps) {
+export function DealBoard({
+  rows, tier, freshnessMap, userEmail, opportunitiesMap = {},
+  statsMap = {}, prevScoreMap = {},
+  evidence = { infra: {}, planning: {}, signals: {} },
+}: DealBoardProps) {
   const isPro = tier !== "free";
+  const [alertState, setAlertState] = useState<"idle" | "done" | "error">("idle");
+  const [alertPending, startAlert] = useTransition();
 
   const [country,     setCountry]     = useState("United States");
   const [sortMode,    setSortMode]    = useState<SortMode>("roi");
@@ -212,6 +260,7 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
   }, [rows, country, sortMode]);
 
   const selectedRow = sorted.find((r) => r.id === selectedId) ?? null;
+  useEffect(() => { setAlertState("idle"); }, [selectedId]);
 
   // Pro-forma state — reset when selected row changes
   const [pf, setPf] = useState<PF | null>(null);
@@ -284,8 +333,64 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
       [""],
       ["Evidence layers included:", Array.from(checkedLayers).join(", ") || "None selected"],
       [""],
-      ["DISCLAIMER: Illustrative only. Scores are index-based. Not investment advice.", ""],
     ];
+
+    // ── Evidence appendix: live market data, momentum, infra, planning, signals ──
+    const st = statsMap[selectedRow.id];
+    if (st) {
+      lines.push(
+        ["LIVE MARKET PULSE (scraped listings)"],
+        ["Active sale listings",  st.sale_count],
+        ["Active rent listings",  st.rent_count],
+        ["Median asking price",   st.median_price ? fmt(st.median_price / 100, s) : "n/a"],
+        [`Median ${s}/sqm`,       st.median_ppsqm ? fmt(Number(st.median_ppsqm) / 100, s) : "n/a"],
+        ["Listings >=15% below median /sqm", st.underpriced_count],
+        [""],
+      );
+    }
+    const prev = prevScoreMap[selectedRow.id];
+    if (prev !== undefined) {
+      lines.push(
+        ["SCORE MOMENTUM"],
+        ["Composite score (previous snapshot)", prev],
+        ["Composite score (current)", selectedRow.opportunity_score],
+        ["Delta", selectedRow.opportunity_score - prev],
+        [""],
+      );
+    }
+    const infra = evidence.infra[selectedRow.id] ?? [];
+    if (infra.length) {
+      lines.push(["INFRASTRUCTURE PIPELINE"]);
+      for (const pr of infra) {
+        lines.push([pr.project_name, `${pr.type} · ${pr.status} · budget ${fmt(pr.budget / 100, s)}${pr.expected_completion ? ` · ETA ${pr.expected_completion}` : ""}`]);
+      }
+      lines.push([""]);
+    }
+    const plans = evidence.planning[selectedRow.id] ?? [];
+    if (plans.length) {
+      lines.push(["PLANNING APPLICATIONS (recent)"]);
+      for (const pl of plans) {
+        lines.push([`${pl.project_type} · ${pl.status}`, `${pl.application_date}${pl.description ? ` · ${pl.description.slice(0, 80)}` : ""}`]);
+      }
+      lines.push([""]);
+    }
+    const sigs = evidence.signals[selectedRow.id] ?? [];
+    if (sigs.length) {
+      lines.push(["MARKET SIGNALS (recent)"]);
+      for (const sg of sigs) {
+        lines.push([sg.title, `${sg.signal_type} · impact ${sg.opportunity_impact}/100 · ${new Date(sg.detected_at).toLocaleDateString("en-GB")}`]);
+      }
+      lines.push([""]);
+    }
+    lines.push(
+      ["DATA PROVENANCE"],
+      ["Source",          selectedRow.source_name],
+      ["Confidence",      `${Math.round(selectedRow.data_confidence * 100)}%`],
+      ["Data retrieved",  selectedRow.retrieved_at ?? "n/a"],
+      ["Market freshness", freshnessMap[selectedRow.country] ?? "n/a"],
+      [""],
+      ["DISCLAIMER: Illustrative only. Scores are index-based. Not investment advice.", ""],
+    );
     const csv  = lines.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url  = URL.createObjectURL(blob);
@@ -307,6 +412,9 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-emerald-400 text-xs">live</span>
           <span className="text-[#4A6080] text-xs ml-2 tabular-nums">{time}</span>
+          {tier === "institutional" && (
+            <Link href="/portfolio" className="ml-4 text-[#7BBFFF] hover:text-white text-xs transition-colors">portfolio →</Link>
+          )}
           <Link href="/" className="ml-4 text-[#4A6080] hover:text-white text-xs transition-colors">← exit</Link>
         </div>
       </div>
@@ -453,10 +561,35 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
                             {oppCount} live
                           </span>
                         )}
+                        {(statsMap[row.id]?.underpriced_count ?? 0) > 0 && (
+                          <span className="text-[9px] text-amber-300 border border-amber-800 bg-amber-950/40 rounded px-1 py-0.5 font-mono" title="Listings ≥15% below market median £/sqm">
+                            {statsMap[row.id].underpriced_count} underpriced
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[11px] text-[#4A6080] mt-0.5">{row.region}, {row.country}</div>
+                      <div className="text-[11px] text-[#4A6080] mt-0.5">
+                        {row.region}, {row.country}
+                        {statsMap[row.id] && (
+                          <span className="text-[#3A6080]">
+                            {" "}· {statsMap[row.id].sale_count + statsMap[row.id].rent_count} live listings
+                            {statsMap[row.id].median_price ? ` · median ${fmt(statsMap[row.id].median_price! / 100, symFor(row.currency_code))}` : ""}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-center"><Badge score={row.opportunity_score} /></div>
+                    <div className="flex items-center justify-center gap-1">
+                      <Badge score={row.opportunity_score} />
+                      {(() => {
+                        const prev = prevScoreMap[row.id];
+                        if (prev === undefined || prev === row.opportunity_score) return null;
+                        const up = row.opportunity_score > prev;
+                        return (
+                          <span className={`text-[10px] font-bold ${up ? "text-emerald-400" : "text-red-400"}`} title={`was ${prev}`}>
+                            {up ? "▲" : "▼"}
+                          </span>
+                        );
+                      })()}
+                    </div>
                     <div className="flex items-center justify-center"><Badge score={row.development_score} /></div>
                     <div className="flex items-center justify-center"><Badge score={row.growth_score} /></div>
                     <div className="flex items-center justify-end gap-2">
@@ -585,6 +718,83 @@ export function DealBoard({ rows, tier, freshnessMap, userEmail, opportunitiesMa
                   >
                     View opportunities & market data for {selectedRow.name} ↗
                   </Link>
+                </div>
+              );
+            })()}
+
+            {/* Live market pulse — real scraped listings for this market */}
+            {(() => {
+              const st = statsMap[selectedRow.id];
+              if (!st) return null;
+              const s2 = symFor(selectedRow.currency_code);
+              return (
+                <div className="px-5 pt-4 pb-4 border-b border-[#1E2D40]">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase">
+                      Live market pulse <span className="text-emerald-400">· scraped today</span>
+                    </span>
+                    <Link href={`/market-feed?q=${encodeURIComponent(selectedRow.name)}`}
+                          className="text-[10px] text-[#4A7090] hover:text-emerald-400 transition-colors">
+                      Open live deals ↗
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                      <div className="text-[10px] text-[#4A6080] mb-1">Active listings</div>
+                      <div className="text-lg font-bold text-white">{st.sale_count + st.rent_count}
+                        <span className="text-[10px] text-[#4A6080] ml-1">({st.sale_count} sale)</span>
+                      </div>
+                    </div>
+                    <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                      <div className="text-[10px] text-[#4A6080] mb-1">Median asking</div>
+                      <div className="text-lg font-bold text-white">{st.median_price ? fmt(st.median_price / 100, s2) : "—"}</div>
+                    </div>
+                    <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                      <div className="text-[10px] text-[#4A6080] mb-1">Median {s2}/sqm</div>
+                      <div className="text-lg font-bold text-white">{st.median_ppsqm ? fmt(Number(st.median_ppsqm) / 100, s2) : "—"}</div>
+                    </div>
+                    <div className="bg-[#111827] border border-amber-900/50 px-4 py-3">
+                      <div className="text-[10px] text-amber-500/80 mb-1">Underpriced ≥15%</div>
+                      <div className="text-lg font-bold text-amber-300">{st.underpriced_count}</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {st.median_price && (
+                      <button
+                        onClick={() => setPf((prev) => prev ? {
+                          ...prev,
+                          landCost:      Math.round((st.median_price! / 100) * 30),
+                          rentPerUnitMo: Math.round((st.median_price! / 100) * 0.004),
+                        } : prev)}
+                        className="px-3 py-1.5 border border-emerald-900 bg-emerald-950/40 text-emerald-400 hover:bg-emerald-900/40 text-[10px] tracking-wider transition-colors"
+                      >
+                        ⚡ Seed underwrite from live median ({fmt(st.median_price / 100, s2)} × {st.sale_count} listings)
+                      </button>
+                    )}
+                    <button
+                      disabled={alertPending || alertState === "done"}
+                      onClick={() => startAlert(async () => {
+                        const res = await createDealAlert(selectedRow.id);
+                        setAlertState(res.ok ? "done" : "error");
+                      })}
+                      className={`px-3 py-1.5 border text-[10px] tracking-wider transition-colors ${
+                        alertState === "done"
+                          ? "border-emerald-900 text-emerald-400 bg-emerald-950/40"
+                          : "border-[#1E4A7A] bg-[#163559] text-[#7BBFFF] hover:text-white"
+                      }`}
+                    >
+                      {alertState === "done" ? "✓ Alert active — email on underpriced deals"
+                        : alertState === "error" ? "Could not create alert — retry"
+                        : alertPending ? "Creating…"
+                        : `🔔 Alert me: new ${selectedRow.name} deals ≥15% below market`}
+                    </button>
+                    <Link
+                      href={`/capital?market=${selectedRow.slug}`}
+                      className="px-3 py-1.5 border border-[#2A3D54] text-[#6A8098] hover:text-white text-[10px] tracking-wider transition-colors"
+                    >
+                      Raise capital for this deal →
+                    </Link>
+                  </div>
                 </div>
               );
             })()}
