@@ -23,7 +23,7 @@ export default async function MarketFeedPage() {
     supabase.auth.getUser(),
     supabase
       .from("properties")
-      .select("id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at")
+      .select("id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images")
       .eq("status", "active")
       .order("scraped_at", { ascending: false })
       .limit(2000),

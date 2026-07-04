@@ -231,7 +231,7 @@ const IconBank = () => (
 export default async function HomePage() {
   const supabase = createPublicClient();
 
-  const [{ data: topMunicipalities }, { data: recentSignals }, { data: recentOpps }] = await Promise.all([
+  const [{ data: topMunicipalities }, { data: recentSignals }, { data: recentOpps }, { count: marketCount }] = await Promise.all([
     supabase
       .from("municipalities")
       .select("id, name, region, country, slug, opportunity_score, growth_score, development_score, risk_score, infrastructure_score, liquidity_score, population, currency_code")
@@ -249,6 +249,10 @@ export default async function HomePage() {
       .eq("status", "active")
       .order("opportunity_score", { ascending: false })
       .limit(4),
+    supabase
+      .from("municipalities")
+      .select("id", { count: "exact", head: true })
+      .in("country", ["United Kingdom", "United States"]),
   ]);
 
   const countryFlag: Record<string, string> = {
@@ -354,7 +358,7 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="order-1 lg:order-2 flex items-center justify-center lg:justify-end">
-              <AtlasGlobe />
+              <AtlasGlobe marketCount={marketCount ?? 80} />
             </div>
           </div>
         </section>

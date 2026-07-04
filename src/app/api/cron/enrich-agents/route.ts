@@ -188,14 +188,17 @@ export async function GET(req: NextRequest) {
 
   const supabase = adminSupabase();
 
-  // Fetch properties needing enrichment
+  // Fetch properties needing enrichment: missing agent info OR photos.
+  // Ordered by updated_at ASC and always touched on processing, so the cron
+  // cycles through the whole backlog over successive runs instead of
+  // re-fetching the same rows forever.
   const { data: rows, error } = await supabase
     .from("properties")
     .select("id, provider, listing_url")
-    .is("agent_name", null)
+    .or("agent_name.is.null,images.eq.[]")
     .not("listing_url", "is", null)
     .eq("status", "active")
-    .order("created_at", { ascending: false })
+    .order("updated_at", { ascending: true })
     .limit(BATCH_SIZE);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -220,8 +223,8 @@ export async function GET(req: NextRequest) {
       if (info.agent_company) update.agent_company = info.agent_company;
       if (info.agent_phone)   update.agent_phone   = info.agent_phone;
       if (info.agent_email)   update.agent_email   = info.agent_email;
-      // Only overwrite images if we got better ones (more than 1)
-      if (info.images.length > 1) update.images = info.images;
+      // Overwrite images only when the detail page yielded any
+      if (info.images.length > 0) update.images = info.images.slice(0, 8);
 
       await supabase.from("properties").update(update).eq("id", row.id);
       enriched++;

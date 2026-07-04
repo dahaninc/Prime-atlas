@@ -16,6 +16,7 @@ export interface ScrapedProperty {
   property_type: string | null;
   listing_type: string;
   scraped_at: string;
+  images?: string[] | null;
 }
 
 interface Props { properties: ScrapedProperty[] }
@@ -529,8 +530,30 @@ export function MarketFeedExplorer({ properties }: Props) {
                   <Link
                     key={p.id}
                     href={`/market-feed/${p.id}`}
-                    className={`group ${C.cardBg} border ${C.border} rounded-xl p-4 flex flex-col gap-3 hover:border-[#1B4FE4]/40 hover:shadow-sm transition-all`}
+                    className={`group ${C.cardBg} border ${C.border} rounded-xl overflow-hidden flex flex-col hover:border-[#1B4FE4]/40 hover:shadow-sm transition-all`}
                   >
+                    {/* Property photo */}
+                    {(() => {
+                      const photo = (Array.isArray(p.images) ? p.images : []).find(
+                        (img) => typeof img === "string" && img.startsWith("http")
+                      );
+                      return photo ? (
+                        <div className="relative h-36 w-full bg-stone-100 overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photo}
+                            alt={getLocationSummary(p.address, p.country)}
+                            loading="lazy"
+                            className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                          />
+                          <span className="absolute bottom-2 left-2 text-[8px] font-bold uppercase tracking-widest text-white/90 bg-black/45 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                            Prime Atlas
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
+
+                    <div className="p-4 flex flex-col gap-3">
                     {/* Top row: badges + time */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
@@ -601,6 +624,7 @@ export function MarketFeedExplorer({ properties }: Props) {
                       <span className="ml-auto text-[#1B4FE4] font-semibold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
                         Analyse →
                       </span>
+                    </div>
                     </div>
                   </Link>
                 );

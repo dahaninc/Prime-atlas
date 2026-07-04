@@ -324,6 +324,12 @@ function extractZillow(
 
         const zillowImg: string[] = [];
         if (r.imgSrc) zillowImg.push(String(r.imgSrc));
+        if (Array.isArray(r.carouselPhotos)) {
+          for (const ph of r.carouselPhotos.slice(0, 5)) {
+            const u = ph?.url ?? ph?.src;
+            if (u && !zillowImg.includes(u)) zillowImg.push(String(u));
+          }
+        }
 
         results.push({
           provider:             "zillow",
@@ -400,13 +406,15 @@ function extractRightmove(
         const address = r.displayAddress ?? null;
         const typeRaw = (r.propertySubType ?? r.propertyType ?? "").toLowerCase().trim();
 
-        const rmImgSrc: string =
-          r.propertyImages?.images?.[0]?.srcUrl ??
-          r.propertyImages?.mainImageSrc ??
-          r.mainImage?.src ??
-          r.image?.src ??
-          "";
-        const rmImages: string[] = rmImgSrc ? [rmImgSrc] : [];
+        const rmImages: string[] = [];
+        if (Array.isArray(r.propertyImages?.images)) {
+          for (const im of r.propertyImages.images.slice(0, 5)) {
+            const u = im?.srcUrl ?? im?.url ?? im?.src;
+            if (u && !rmImages.includes(u)) rmImages.push(String(u));
+          }
+        }
+        const rmFallback = r.propertyImages?.mainImageSrc ?? r.mainImage?.src ?? r.image?.src;
+        if (!rmImages.length && rmFallback) rmImages.push(String(rmFallback));
 
         results.push({
           provider:             "rightmove",
@@ -538,13 +546,15 @@ function extractOnTheMarket(
             const typeRaw = (r.propertyType ?? r.type ?? "").toLowerCase().trim();
             const sqm     = r.floorArea?.value != null ? Number(r.floorArea.value) : null;
 
-            const otmImgSrc: string =
-              r.mainImage?.src ??
-              r.images?.[0]?.src ??
-              r.image?.src ??
-              r.thumbnail ??
-              "";
-            const otmImages: string[] = otmImgSrc ? [otmImgSrc] : [];
+            const otmImages: string[] = [];
+            if (Array.isArray(r.images)) {
+              for (const im of r.images.slice(0, 5)) {
+                const u = typeof im === "string" ? im : (im?.src ?? im?.url ?? im?.["default"]);
+                if (u && !otmImages.includes(u)) otmImages.push(String(u));
+              }
+            }
+            const otmFallback = r.mainImage?.src ?? r.image?.src ?? r.thumbnail;
+            if (!otmImages.length && otmFallback) otmImages.push(String(otmFallback));
 
             results.push({
               provider:             "onthemarket",
@@ -770,22 +780,28 @@ async function upsertProperties(
   if (!rows.length) return 0;
   let total = 0;
 
-  for (let i = 0; i < rows.length; i += SUPABASE_BATCH_SIZE) {
-    const batch = rows.slice(i, i + SUPABASE_BATCH_SIZE).map((r) => ({
-      ...r,
-      updated_at: new Date().toISOString(),
-    }));
+  // Rows scraped WITHOUT images must not wipe images already stored on the
+  // row (e.g. backfilled by /api/cron/enrich-agents) — omit the column so
+  // the upsert leaves the existing value untouched.
+  const stamp = new Date().toISOString();
+  const withImages    = rows.filter((r) => r.images.length > 0).map((r) => ({ ...r, updated_at: stamp }));
+  const withoutImages = rows.filter((r) => r.images.length === 0).map(({ images: _images, ...r }) => ({ ...r, updated_at: stamp }));
 
-    const { data, error } = await supabase
-      .from("properties")
-      .upsert(batch as any, {
-        onConflict:       "provider,external_property_id",
-        ignoreDuplicates: false,
-      })
-      .select("id");
+  for (const group of [withImages, withoutImages]) {
+    for (let i = 0; i < group.length; i += SUPABASE_BATCH_SIZE) {
+      const batch = group.slice(i, i + SUPABASE_BATCH_SIZE);
 
-    if (error) throw new Error(`Supabase upsert failed (batch ${i}): ${error.message}`);
-    total += data?.length ?? 0;
+      const { data, error } = await supabase
+        .from("properties")
+        .upsert(batch as any, {
+          onConflict:       "provider,external_property_id",
+          ignoreDuplicates: false,
+        })
+        .select("id");
+
+      if (error) throw new Error(`Supabase upsert failed (batch ${i}): ${error.message}`);
+      total += data?.length ?? 0;
+    }
   }
 
   return total;
