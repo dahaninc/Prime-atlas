@@ -45,7 +45,7 @@ export default async function ListingsPage() {
       : Promise.resolve({ data: null }),
   ]);
 
-  const isMember = ["explorer", "analyst", "institutional"].includes(
+  const isMember = ["explorer", "professional", "institutional"].includes(
     (profile as { subscription_tier?: string } | null)?.subscription_tier ?? ""
   );
   const listings = (rawListings ?? []) as unknown as FullListing[];

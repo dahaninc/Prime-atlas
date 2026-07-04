@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -195,8 +196,21 @@ function MarketsDropdown({ open, onClose }: { open: boolean; onClose: () => void
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function Navbar({ user }: NavbarProps) {
+export function Navbar({ user: initialUser }: NavbarProps) {
   const pathname = usePathname();
+  // When no server-verified user is passed (cached/static pages), resolve the
+  // session client-side so public pages stay CDN-cacheable.
+  const [user, setUser] = useState<{ email?: string } | null>(initialUser ?? null);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? { email: session.user.email } : null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? { email: session.user.email } : null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
   const [marketsOpen,  setMarketsOpen]  = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

@@ -140,7 +140,7 @@ function Pill({
 
 /* ─── listing card ───────────────────────────────────────────────── */
 
-function ListingCard({ listing, index }: { listing: FullListing; index: number }) {
+function ListingCard({ listing, index, isMember }: { listing: FullListing; index: number; isMember: boolean }) {
   const muni = listing.municipalities;
   const cap  = capRate(listing);
   const returnFigure = cap
@@ -433,7 +433,7 @@ export function ListingsExplorer({ listings, isMember = false }: { listings: Ful
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((l, i) => (
-            <ListingCard key={l.id} listing={l} index={i} />
+            <ListingCard key={l.id} listing={l} index={i} isMember={isMember} />
           ))}
         </div>
       )}

@@ -345,7 +345,7 @@ export default async function MarketFeedPropertyPage(
     ? await supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
     : { data: null };
   const tier = (profile as { subscription_tier?: string } | null)?.subscription_tier ?? "free";
-  const isMember = ["explorer", "analyst", "institutional"].includes(tier);
+  const isMember = ["explorer", "professional", "institutional"].includes(tier);
 
   // Check if this member already requested agent details for this property
   let alreadySent = false;

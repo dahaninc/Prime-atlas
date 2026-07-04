@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminEmail } from "@/lib/auth/admins";
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = [
@@ -7,13 +8,14 @@ const PROTECTED_ROUTES = [
   "/watchlists",
   "/signals",
   "/opportunities/finder",
+  "/admin",
 ];
 
-/** Routes that require Pro+ subscription */
-const PRO_ROUTES = [
-  "/opportunities/finder",
-  "/signals",
-];
+/** Routes that require a paid subscription */
+const PAID_ROUTES = ["/opportunities/finder", "/signals"];
+
+/** Routes that require admin access (checked on top of auth) */
+const ADMIN_ROUTES = ["/admin"];
 
 const FREE_TIERS = new Set(["free"]);
 
@@ -27,16 +29,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(clean);
   }
 
-  // Only run Supabase auth for routes that actually need it.
-  // CRITICAL: @supabase/ssr v0.3.0 uses cookies.get/set/remove (NOT getAll/setAll).
-  // Using getAll/setAll causes getItem() to return undefined on every call →
-  // session is never found → session wipe on every response.
-  const needsAuth =
-    PROTECTED_ROUTES.some((r) => path.startsWith(r)) ||
-    PRO_ROUTES.some((r) => path.startsWith(r));
+  // ── Anonymous fast-path ───────────────────────────────────────────────────
+  // Visitors with no Supabase auth cookies can't have a session to refresh.
+  // Skip the auth round-trip entirely on public routes so anonymous traffic
+  // never touches Supabase (protected routes still fall through to the
+  // login redirect below).
+  const hasAuthCookies = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-"));
+  const isProtectedPath = PROTECTED_ROUTES.some((r) => path.startsWith(r));
 
-  if (!needsAuth) {
-    return NextResponse.next({ request });
+  if (!hasAuthCookies) {
+    if (!isProtectedPath) {
+      return NextResponse.next({ request });
+    }
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth/login";
+    loginUrl.search = "";
+    loginUrl.searchParams.set("redirect", path);
+    return NextResponse.redirect(loginUrl);
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -46,44 +57,60 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          // Must set on both request (for downstream reads) and response (for browser)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          request.cookies.set(name, value);
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
           supabaseResponse = NextResponse.next({ request });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          supabaseResponse.cookies.set(name, value, options as any);
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          request.cookies.set(name, "");
-          supabaseResponse = NextResponse.next({ request });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          supabaseResponse.cookies.set(name, "", { ...(options as any), maxAge: 0 });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
-  // getUser() validates the JWT with GoTrue and refreshes if needed.
-  // With the correct cookie API above, the session is now readable.
+  // getUser() validates the JWT with GoTrue and refreshes it when expired.
+  // This must run on EVERY matched request (not just protected routes) so
+  // sessions stay alive while users browse public pages.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Any redirect we return must carry the refreshed session cookies,
+  // otherwise the browser keeps the stale token and loops.
+  const redirectWithCookies = (url: URL) => {
+    const response = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie);
+    });
+    return response;
+  };
+
   // ── Auth guard ────────────────────────────────────────────────────────────
-  const isProtected = PROTECTED_ROUTES.some((r) => path.startsWith(r));
-  if (isProtected && !user) {
+  if (isProtectedPath && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/auth/login";
+    loginUrl.search = "";
     loginUrl.searchParams.set("redirect", path);
-    return NextResponse.redirect(loginUrl);
+    return redirectWithCookies(loginUrl);
+  }
+
+  // ── Admin guard ───────────────────────────────────────────────────────────
+  if (user && ADMIN_ROUTES.some((r) => path.startsWith(r))) {
+    if (!isAdminEmail(user.email)) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = "/";
+      homeUrl.search = "";
+      return redirectWithCookies(homeUrl);
+    }
   }
 
   // ── Subscription tier guard ───────────────────────────────────────────────
-  if (user && PRO_ROUTES.some((r) => path.startsWith(r))) {
+  if (user && PAID_ROUTES.some((r) => path.startsWith(r))) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("subscription_tier")
@@ -95,12 +122,11 @@ export async function middleware(request: NextRequest) {
     if (FREE_TIERS.has(tier)) {
       const upgradeUrl = request.nextUrl.clone();
       upgradeUrl.pathname = "/pricing";
-      upgradeUrl.searchParams.set("upgrade", "pro");
+      upgradeUrl.search = "";
+      upgradeUrl.searchParams.set("upgrade", "1");
       upgradeUrl.searchParams.set("source", path.replace(/\//g, ""));
-      return NextResponse.redirect(upgradeUrl);
+      return redirectWithCookies(upgradeUrl);
     }
-
-    supabaseResponse.headers.set("x-subscription-tier", tier);
   }
 
   return supabaseResponse;
@@ -108,6 +134,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

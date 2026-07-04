@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { scoreColor } from "@/lib/utils";
@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     "Real estate investment opportunities across the UK and USA — categorised by BTR, PBSA, Affordable Housing, Commercial, Industrial, and Mixed-use. Scored and sourced from official planning portals.",
 };
 
-export const dynamic = "force-dynamic";
+// Revalidate every 5 minutes — public data, served from the CDN in between.
+export const revalidate = 300;
 
 const CATEGORIES = [
   { key: "All",              label: "All",                 },
@@ -33,7 +34,7 @@ type PageProps = {
 
 export default async function OpportunitiesPage({ searchParams }: PageProps) {
   const { category } = await searchParams;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   let query = supabase
     .from("opportunities")

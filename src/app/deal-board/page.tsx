@@ -34,7 +34,7 @@ export default async function DealBoardPage() {
   ]);
 
   const tier = (profileRes.data?.subscription_tier ?? "free") as
-    "free" | "pro" | "investor" | "institutional";
+    "free" | "explorer" | "professional" | "institutional";
 
   const isoToCountry: Record<string, string> = {
     GB: "United Kingdom", US: "United States",

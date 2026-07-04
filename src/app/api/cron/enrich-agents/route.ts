@@ -66,7 +66,6 @@ function parseRightmoveDetail(html: string): AgentInfo {
     // Try __NEXT_DATA__ first
     const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (match?.[1]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = JSON.parse(match[1]) as any;
       const pd   = data?.props?.pageProps?.propertyData ?? data?.props?.pageProps?.property;
 
@@ -109,7 +108,6 @@ function parseOnTheMarketDetail(html: string): AgentInfo {
   try {
     const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (match?.[1]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = JSON.parse(match[1]) as any;
       const pd   = data?.props?.pageProps?.propertyDetails ?? data?.props?.pageProps?.listing ?? data?.props?.pageProps?.property;
 
@@ -144,7 +142,6 @@ function parseZillowDetail(html: string): AgentInfo {
   try {
     const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (match?.[1]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = JSON.parse(match[1]) as any;
       // Zillow buries agent data deep in gdpClientCache
       const cache = data?.props?.pageProps?.componentProps?.gdpClientCache;
@@ -218,7 +215,6 @@ export async function GET(req: NextRequest) {
       else info = parseZillowDetail(html);
 
       // Build update payload — only set fields we got
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const update: Record<string, any> = { updated_at: new Date().toISOString() };
       if (info.agent_name)    update.agent_name    = info.agent_name;
       if (info.agent_company) update.agent_company = info.agent_company;

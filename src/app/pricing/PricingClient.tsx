@@ -40,13 +40,13 @@ const TIERS = [
     ],
   },
   {
-    id: "analyst",
-    name: "Analyst",
+    id: "professional",
+    name: "Professional",
     price: "$69.99",
     period: "/month",
     tagline: "Recommended",
     description: "For active investors who need full intelligence and unlimited deal access.",
-    cta: "Start Analyst",
+    cta: "Start Professional",
     highlight: true,
     features: [
       "Everything in Explorer",
@@ -75,7 +75,7 @@ const TIERS = [
     cta: "Start Institutional",
     highlight: false,
     features: [
-      "Everything in Analyst",
+      "Everything in Professional",
       "API data access",
       "Bulk CSV & Excel export",
       "Portfolio tracking (up to 50 properties)",
@@ -90,19 +90,19 @@ const TIERS = [
 type TierId = typeof TIERS[number]["id"];
 
 const COMPARISON_ROWS = [
-  { label: "USA + UK listings terminal",          explorer: true,   analyst: true,        institutional: true },
-  { label: "Macro & micro market analysis",        explorer: true,   analyst: true,        institutional: true },
-  { label: "Investment thesis per listing",        explorer: true,   analyst: true,        institutional: true },
-  { label: "Contact reveals",                      explorer: "10/mo", analyst: "Unlimited", institutional: "Unlimited" },
-  { label: "Exit projections",                     explorer: "3-yr", analyst: "3/5/10-yr", institutional: "3/5/10-yr" },
-  { label: "Comparables & transaction data",       explorer: false,  analyst: true,        institutional: true },
-  { label: "Saved searches & deal alerts",         explorer: false,  analyst: true,        institutional: true },
-  { label: "Advanced filters",                     explorer: false,  analyst: true,        institutional: true },
-  { label: "API data access",                      explorer: false,  analyst: false,       institutional: true },
-  { label: "Bulk CSV / Excel export",              explorer: false,  analyst: false,       institutional: true },
-  { label: "Portfolio tracking",                   explorer: false,  analyst: false,       institutional: true },
-  { label: "Team seats",                           explorer: false,  analyst: false,       institutional: "3 seats" },
-  { label: "Support",                              explorer: "Email", analyst: "Priority email", institutional: "Dedicated manager" },
+  { label: "USA + UK listings terminal",          explorer: true,   professional: true,        institutional: true },
+  { label: "Macro & micro market analysis",        explorer: true,   professional: true,        institutional: true },
+  { label: "Investment thesis per listing",        explorer: true,   professional: true,        institutional: true },
+  { label: "Contact reveals",                      explorer: "10/mo", professional: "Unlimited", institutional: "Unlimited" },
+  { label: "Exit projections",                     explorer: "3-yr", professional: "3/5/10-yr", institutional: "3/5/10-yr" },
+  { label: "Comparables & transaction data",       explorer: false,  professional: true,        institutional: true },
+  { label: "Saved searches & deal alerts",         explorer: false,  professional: true,        institutional: true },
+  { label: "Advanced filters",                     explorer: false,  professional: true,        institutional: true },
+  { label: "API data access",                      explorer: false,  professional: false,       institutional: true },
+  { label: "Bulk CSV / Excel export",              explorer: false,  professional: false,       institutional: true },
+  { label: "Portfolio tracking",                   explorer: false,  professional: false,       institutional: true },
+  { label: "Team seats",                           explorer: false,  professional: false,       institutional: "3 seats" },
+  { label: "Support",                              explorer: "Email", professional: "Priority email", institutional: "Dedicated manager" },
 ];
 
 function CheckIcon({ className }: { className?: string }) {
@@ -319,7 +319,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
                 <tr key={row.label} className={`border-b border-border/40 ${i % 2 === 0 ? "" : "bg-secondary/10"}`}>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{row.label}</td>
                   <td className="px-4 py-3 text-center"><CellValue val={row.explorer} /></td>
-                  <td className="px-4 py-3 text-center bg-pa-green/[0.02]"><CellValue val={row.analyst} /></td>
+                  <td className="px-4 py-3 text-center bg-pa-green/[0.02]"><CellValue val={row.professional} /></td>
                   <td className="px-4 py-3 text-center"><CellValue val={row.institutional} /></td>
                 </tr>
               ))}

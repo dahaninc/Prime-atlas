@@ -18,14 +18,13 @@ export default async function IntegrationsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let tier: "free" | "pro" | "investor" | "institutional" = "free";
+  let tier: "free" | "explorer" | "professional" | "institutional" = "free";
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("subscription_tier")
       .eq("id", user.id)
       .single();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tier = ((profile as any)?.subscription_tier ?? "free") as typeof tier;
   }
 

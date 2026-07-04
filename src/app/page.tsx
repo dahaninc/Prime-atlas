@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { scoreColor } from "@/lib/utils";
@@ -229,8 +229,7 @@ const IconBank = () => (
 /* ─────────────────────────── page ─────────────────────────── */
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = createPublicClient();
 
   const [{ data: topMunicipalities }, { data: recentSignals }, { data: recentOpps }] = await Promise.all([
     supabase
@@ -270,7 +269,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Navbar user={user} />
+      <Navbar />
 
       <main>
 

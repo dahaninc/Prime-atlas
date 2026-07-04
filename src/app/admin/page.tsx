@@ -14,7 +14,7 @@ const ADMIN_EMAILS = ["alpha.richie@outlook.com", "admin@prime-atlas.io"];
 
 const TIER_COLORS: Record<string, string> = {
   institutional: "text-green-700 bg-green-50 border-green-200",
-  analyst:       "text-blue-700 bg-blue-50 border-blue-200",
+  professional:  "text-blue-700 bg-blue-50 border-blue-200",
   explorer:      "text-purple-700 bg-purple-50 border-purple-200",
   free:          "text-gray-500 bg-gray-50 border-gray-200",
 };
@@ -60,7 +60,7 @@ export default async function AdminDashboardPage() {
   const members       = users.filter(u => u.tier !== "free").length;
   const confirmed     = users.filter(u => u.confirmed).length;
   const institutional = users.filter(u => u.tier === "institutional").length;
-  const analyst       = users.filter(u => u.tier === "analyst").length;
+  const professional  = users.filter(u => u.tier === "professional").length;
   const explorer      = users.filter(u => u.tier === "explorer").length;
 
   function fmt(iso: string | null) {
@@ -109,7 +109,7 @@ export default async function AdminDashboardPage() {
             { label: "Email confirmed",value: confirmed,     color: "text-[#4A9EFF]" },
             { label: "Members (paid)", value: members,       color: "text-emerald-400" },
             { label: "Institutional",  value: institutional, color: "text-emerald-400" },
-            { label: "Analyst",        value: analyst,       color: "text-blue-400" },
+            { label: "Professional",   value: professional,  color: "text-blue-400" },
             { label: "Explorer",       value: explorer,      color: "text-purple-400" },
           ].map(s => (
             <div key={s.label} className="border border-[#1E2D40] rounded-xl p-4 bg-[#0D1221] text-center">
@@ -178,7 +178,7 @@ export default async function AdminDashboardPage() {
             UPDATE profiles SET subscription_tier = &apos;institutional&apos; WHERE id = &apos;&lt;user-id&gt;&apos;;
           </p>
           <p className="text-[10px] text-gray-600 mt-2">
-            Valid tiers: <span className="text-emerald-400">institutional</span> · <span className="text-blue-400">analyst</span> · <span className="text-purple-400">explorer</span> · <span className="text-gray-400">free</span>
+            Valid tiers: <span className="text-emerald-400">institutional</span> · <span className="text-blue-400">professional</span> · <span className="text-purple-400">explorer</span> · <span className="text-gray-400">free</span>
           </p>
         </div>
 

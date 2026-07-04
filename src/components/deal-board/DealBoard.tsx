@@ -42,7 +42,7 @@ export interface LiveOpportunity {
 
 interface DealBoardProps {
   rows: DealRow[];
-  tier: "free" | "pro" | "investor" | "institutional";
+  tier: "free" | "explorer" | "professional" | "institutional";
   freshnessMap: Record<string, string>;
   userEmail?: string;
   opportunitiesMap?: Record<string, LiveOpportunity[]>;

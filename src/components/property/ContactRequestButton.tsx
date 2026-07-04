@@ -64,7 +64,6 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
         </p>
         <button
           onClick={handleRequest}
-          disabled={state === "loading"}
           className="text-[10px] font-bold text-[#1B4FE4] hover:text-[#1641C0] underline underline-offset-2"
         >
           Re-send report →

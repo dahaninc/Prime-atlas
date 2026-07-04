@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | prime-atlas",
@@ -15,13 +14,10 @@ const COMPANY = "prime-atlas Ltd.";
 const EMAIL = "privacy@prime-atlas.com";
 const DPA_EMAIL = "dpo@prime-atlas.com";
 
-export default async function PrivacyPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+export default function PrivacyPage() {
   return (
     <>
-      <Navbar user={user} />
+      <Navbar />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <nav className="text-xs text-muted-foreground mb-8">
           <Link href="/" className="hover:text-foreground">Home</Link>

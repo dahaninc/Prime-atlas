@@ -369,7 +369,7 @@ export default async function ListingDetailPage(
 
   // Member = any paid subscription tier
   const subscriptionTier = (profile as { subscription_tier?: string } | null)?.subscription_tier ?? "free";
-  const isMember = ["explorer", "analyst", "institutional"].includes(subscriptionTier);
+  const isMember = ["explorer", "professional", "institutional"].includes(subscriptionTier);
 
   type ComparableItem = {
     address: string; price: number; date: string; type?: string;

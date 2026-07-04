@@ -1,6 +1,6 @@
 // ─── Core domain types (mirror Supabase schema) ───────────────────────────────
 
-export type SubscriptionTier = "free" | "pro" | "investor" | "institutional";
+export type SubscriptionTier = "free" | "explorer" | "professional" | "institutional";
 
 export type RiskLevel = "low" | "medium" | "high" | "very_high";
 
@@ -98,7 +98,9 @@ export interface InfrastructureProject {
   impact_score: number; // 0–100
   municipality_id: string;
   municipality?: Municipality;
-  expected_completion: string;
+  expected_completion: string | null;
+  description: string | null;
+  source_url: string | null;
   created_at: string;
 }
 

@@ -14,13 +14,13 @@
  *    SLACK_WEBHOOK_URL         — optional Slack alert webhook
  *
  *  Invoke:
- *    GET /api/cron/scrape-listings?provider=zillow
+ *    GET /api/cron/scrape-listings?provider=zillow&batch=0
  *    Authorization: Bearer <CRON_SECRET>
  *
- *  Schedule (vercel.json):
- *    { "path": "/api/cron/scrape-listings?provider=zillow",      "schedule": "0 3 * * *" }
- *    { "path": "/api/cron/scrape-listings?provider=rightmove",   "schedule": "0 7 * * *" }
- *    { "path": "/api/cron/scrape-listings?provider=onthemarket", "schedule": "0 8 * * *" }
+ *  Batching: providers with many search targets are sliced into batches of
+ *  BATCH_SIZE URLs (?batch=N picks the Nth slice). Each batch fits inside the
+ *  Vercel Pro 300s window even in the worst case (all requests timing out
+ *  once and retrying). See vercel.json for the batch schedule.
  */
 
 import { NextResponse } from "next/server";
@@ -35,11 +35,18 @@ export const maxDuration = 300;
 export const dynamic     = "force-dynamic";
 
 const SCRAPEOPS_BASE      = "https://proxy.scrapeops.io/v1/";
-const REQUEST_TIMEOUT_MS  = 90_000;
+const REQUEST_TIMEOUT_MS  = 45_000;   // per attempt; 2 attempts max per URL
+const FETCH_RETRIES       = 1;        // 1 retry after the first failure
 const RETRY_BASE_DELAY_MS = 2_000;
 const INTER_URL_DELAY_MS  = 2_500;
 const SUPABASE_BATCH_SIZE = 100;
 const MIN_RECORDS_PER_URL = 3;
+const BATCH_SIZE          = 5;        // search targets per invocation
+// Stop launching new URLs after this much elapsed time. Worst case per URL
+// is 2 attempts × 45s + 2s backoff ≈ 92s, so 180s + 92s + upsert time still
+// finishes before Vercel kills the function at maxDuration (300s).
+const SOFT_DEADLINE_MS    = 180_000;
+const SLACK_TIMEOUT_MS    = 5_000;
 
 /* ─────────────────────────────────────────────────────────────────────────────
    PROPERTY TYPE TAXONOMY MAP
@@ -207,6 +214,7 @@ async function sendSlackAlert(text: string): Promise<void> {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ text }),
+      signal:  AbortSignal.timeout(SLACK_TIMEOUT_MS),
     });
   } catch (err) {
     console.error("[Slack] alert dispatch failed:", (err as Error).message);
@@ -284,14 +292,12 @@ function extractZillow(
       return results;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data       = JSON.parse(match[1]) as any;
     const sr         = data?.props?.pageProps?.searchPageState?.cat1?.searchResults;
     const listResults: unknown[] = sr?.listResults ?? sr?.mapResults ?? [];
 
     for (const item of listResults) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const r = item as any;
 
         const zpid = r.zpid ? String(r.zpid) : null;
@@ -363,11 +369,8 @@ function extractRightmove(
       return results;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = JSON.parse(match[1]) as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pp   = data?.props?.pageProps;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const properties: any[] =
       pp?.properties ??
       pp?.searchProductResponse?.properties ??
@@ -498,11 +501,9 @@ function extractOnTheMarket(
   try {
     const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (match?.[1]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = JSON.parse(match[1]) as any;
       const pp   = data?.props?.pageProps;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const listings: any[] =
         pp?.searchResults?.results ??
         pp?.searchResults?.listings ??
@@ -760,7 +761,6 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
    SUPABASE UPSERT
 ───────────────────────────────────────────────────────────────────────────── */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = any;
 
 async function upsertProperties(
@@ -776,7 +776,6 @@ async function upsertProperties(
       updated_at: new Date().toISOString(),
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await supabase
       .from("properties")
       .upsert(batch as any, {
@@ -803,7 +802,6 @@ async function upsertScraperRun(
       : report.upsertedCount > 0  ? "partial"
       :                             "failure";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from("scraper_runs") as any).insert({
       provider:         report.provider,
       started_at:       startedAt,
@@ -827,6 +825,7 @@ async function upsertScraperRun(
 async function scrapeProvider(
   config:   ProviderConfig,
   supabase: SupabaseClient,
+  targets:  SearchTarget[],
 ): Promise<ScrapeReport> {
   const t0          = Date.now();
   const startedAt   = new Date().toISOString();
@@ -834,13 +833,21 @@ async function scrapeProvider(
   const allParsed:  ParsedProperty[] = [];
   let   failedCount = 0;
 
-  for (let i = 0; i < config.searchTargets.length; i++) {
-    const target = config.searchTargets[i];
+  for (let i = 0; i < targets.length; i++) {
+    const target = targets[i];
+
+    // Deadline guard — leave headroom for the upsert + audit write.
+    if (Date.now() - t0 > SOFT_DEADLINE_MS) {
+      const skipped = targets.length - i;
+      errors.push(`Soft deadline reached — skipped ${skipped} remaining URL(s)`);
+      console.warn(`[${config.name}] ⏱ soft deadline hit, skipping ${skipped} URLs`);
+      break;
+    }
 
     try {
       console.log(`[${config.name}] ↗ ScrapeOps → ${target.url}`);
 
-      const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, 0, config.waitFor);
+      const html      = await fetchViaScrapeOps(target.url, config.proxyCountry, config.renderJs, FETCH_RETRIES, config.waitFor);
       const extracted = config.extract(html, config.baseUrl, target.listingType);
 
       const raw = extracted.map((p) => ({
@@ -860,9 +867,9 @@ async function scrapeProvider(
       console.log(`[${config.name}] ✓ ${valid.length} valid listings (${target.listingType})`);
 
       if (valid.length < MIN_RECORDS_PER_URL) {
-        const alertMsg = `⚠️ *Prime Atlas* — \`${config.name}\` returned only ${valid.length} records for ${target.url}`;
-        console.warn(`[${config.name}] ${alertMsg}`);
-        await sendSlackAlert(alertMsg);
+        // Record it; ONE summary Slack alert is sent at the end of the run
+        // instead of one per URL (each alert costs wall-clock time).
+        console.warn(`[${config.name}] ⚠ low record count for ${target.url}: ${valid.length}`);
         errors.push(`Low record count for ${target.url}: ${valid.length} < ${MIN_RECORDS_PER_URL}`);
       }
 
@@ -873,7 +880,7 @@ async function scrapeProvider(
       console.error(`[${config.name}] ✗ scrape failed for ${target.url}:`, msg);
     }
 
-    if (i < config.searchTargets.length - 1) await sleep(INTER_URL_DELAY_MS);
+    if (i < targets.length - 1) await sleep(INTER_URL_DELAY_MS);
   }
 
   const seen   = new Set<string>();
@@ -944,6 +951,21 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
+  // ── Batch slicing ─────────────────────────────────────────────────────────
+  const allTargets   = PROVIDERS[providerParam].searchTargets;
+  const totalBatches = Math.ceil(allTargets.length / BATCH_SIZE);
+  const batchRaw     = searchParams.get("batch");
+  const batch        = batchRaw === null ? 0 : Number.parseInt(batchRaw, 10);
+
+  if (!Number.isInteger(batch) || batch < 0 || batch >= totalBatches) {
+    return NextResponse.json(
+      { error: `Invalid ?batch= (provider "${providerParam}" has batches 0–${totalBatches - 1})` },
+      { status: 400 },
+    );
+  }
+
+  const targets = allTargets.slice(batch * BATCH_SIZE, (batch + 1) * BATCH_SIZE);
+
   // Debug mode — return raw HTML info for selector inspection
   const debug = searchParams.get("debug") === "1";
   if (debug) {
@@ -955,7 +977,6 @@ export async function GET(request: Request): Promise<Response> {
       let nextDataPreview: unknown = null;
       if (ndMatch?.[1]) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const parsed    = JSON.parse(ndMatch[1]) as any;
           const pp        = parsed?.props?.pageProps;
           nextDataPreview = { found: true, pagePropKeys: pp ? Object.keys(pp) : [] };
@@ -977,27 +998,31 @@ export async function GET(request: Request): Promise<Response> {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  console.log(`[cron/scrape-listings] ▶ provider=${providerParam}`);
+  console.log(`[cron/scrape-listings] ▶ provider=${providerParam} batch=${batch}/${totalBatches - 1} (${targets.length} URLs)`);
 
   try {
-    const report = await scrapeProvider(PROVIDERS[providerParam], supabase);
+    const report = await scrapeProvider(PROVIDERS[providerParam], supabase, targets);
 
     if (report.upsertedCount === 0 && report.errors.length > 0) {
       await sendSlackAlert(
-        `🚨 *Prime Atlas* — \`${providerParam}\` total failure. 0 records upserted.\n\`\`\`${report.errors.slice(0, 3).join("\n")}\`\`\``,
+        `🚨 *Prime Atlas* — \`${providerParam}\` batch ${batch} total failure. 0 records upserted.\n\`\`\`${report.errors.slice(0, 3).join("\n")}\`\`\``,
+      );
+    } else if (report.errors.length > 0) {
+      await sendSlackAlert(
+        `⚠️ *Prime Atlas* — \`${providerParam}\` batch ${batch} partial: ${report.upsertedCount} upserted, ${report.errors.length} issue(s).\n\`\`\`${report.errors.slice(0, 3).join("\n")}\`\`\``,
       );
     }
 
     const status = report.errors.length === 0 ? 200 : report.upsertedCount > 0 ? 207 : 500;
 
     return NextResponse.json(
-      { ok: status < 500, report, meta: { provider: providerParam, executedAt: new Date().toISOString() } },
+      { ok: status < 500, report, meta: { provider: providerParam, batch, totalBatches, executedAt: new Date().toISOString() } },
       { status },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unexpected error";
     console.error("[cron/scrape-listings] Fatal error:", err);
-    await sendSlackAlert(`🚨 *Prime Atlas* — \`${providerParam}\` crashed: ${message}`);
+    await sendSlackAlert(`🚨 *Prime Atlas* — \`${providerParam}\` batch ${batch} crashed: ${message}`);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

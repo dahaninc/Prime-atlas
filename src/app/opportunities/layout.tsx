@@ -1,13 +1,10 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { createClient } from "@/lib/supabase/server";
 
-export default async function OpportunitiesLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function OpportunitiesLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Navbar user={user} />
+      <Navbar />
       {children}
       <Footer />
     </>

@@ -13,6 +13,14 @@ interface InquireFormProps {
 
 export function InquireForm({ listingTitle, listingId, contactEmail, isMember = false, isLoggedIn = false }: InquireFormProps) {
 
+  const [name, setName]       = useState("");
+  const [email, setEmail]     = useState("");
+  const [phone, setPhone]     = useState("");
+  const [message, setMessage] = useState(
+    `I am interested in this listing and would like more information. Please send further details and let me know the next steps.\n\nListing: ${listingTitle}`
+  );
+  const [submitted, setSubmitted] = useState(false);
+
   // ── Locked state for non-members ──────────────────────────────────
   if (!isMember) {
     return (
@@ -66,19 +74,12 @@ export function InquireForm({ listingTitle, listingId, contactEmail, isMember = 
             )}
           </div>
           <p className="text-[9px] font-mono text-muted-foreground/30">
-            EXPLORER · ANALYST · INSTITUTIONAL PLANS
+            EXPLORER · PROFESSIONAL · INSTITUTIONAL PLANS
           </p>
         </div>
       </div>
     );
   }
-  const [name, setName]       = useState("");
-  const [email, setEmail]     = useState("");
-  const [phone, setPhone]     = useState("");
-  const [message, setMessage] = useState(
-    `I am interested in this listing and would like more information. Please send further details and let me know the next steps.\n\nListing: ${listingTitle}`
-  );
-  const [submitted, setSubmitted] = useState(false);
 
   const recipient = contactEmail ?? "deals@prime-atlas.com";
 

@@ -1,13 +1,10 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { createClient } from "@/lib/supabase/server";
 
-export default async function RankingsLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function RankingsLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Navbar user={user} />
+      <Navbar />
       {children}
       <Footer />
     </>

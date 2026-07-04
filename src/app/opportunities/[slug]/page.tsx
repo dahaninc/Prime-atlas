@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -12,14 +12,21 @@ import type { Signal, InfrastructureProject } from "@/types";
 
 // Skip static generation — municipalities require auth via RLS.
 // Pages render on-demand for authenticated users.
-export const dynamic = "force-dynamic";
+// Revalidate every 5 minutes — public data, served from the CDN in between.
+export const revalidate = 300;
+
+// Enable ISR: pages are rendered on first request, then cached at the CDN
+// until revalidation. No slugs are prebuilt at build time.
+export async function generateStaticParams() {
+  return [];
+}
 
 type PageProps = { params: Promise<{ slug: string }> };
 
 // Dynamic SEO metadata per municipality
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data: m } = await supabase
     .from("municipalities")
@@ -43,7 +50,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function MunicipalityPage({ params }: PageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data: municipality } = await supabase
     .from("municipalities")
@@ -315,7 +322,7 @@ export default async function MunicipalityPage({ params }: PageProps) {
               listings={listings as Listing[]}
               marketContext={{
                 name:              municipality.name,
-                slug:              municipality.slug,
+                slug:              municipality.slug ?? "",
                 country:           country,
                 opportunity_score: municipality.opportunity_score,
                 growth_score:      municipality.growth_score,

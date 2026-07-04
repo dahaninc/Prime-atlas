@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -60,7 +60,7 @@ const DATA_COVERAGE = [
 ];
 
 export default async function UndersuppliedMarketsReport() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data: municipalities } = await supabase
     .from("municipalities")

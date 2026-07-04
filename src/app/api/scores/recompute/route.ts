@@ -46,7 +46,6 @@ export async function POST(request: Request) {
   // Upsert scores in batch
   const { error: upsertError } = await supabase
     .from("municipalities")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .upsert(updates as any, { onConflict: "id" });
 
   if (upsertError) return NextResponse.json({ error: upsertError.message }, { status: 500 });
@@ -57,7 +56,6 @@ export async function POST(request: Request) {
     .select("id, scores");
 
   if (opps) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const oppUpdates = (opps as any[])
       .filter((o) => o.scores)
       .map((o) => {
@@ -78,7 +76,6 @@ export async function POST(request: Request) {
       });
 
     if (oppUpdates.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await supabase.from("opportunities").upsert(oppUpdates as any, { onConflict: "id" });
     }
   }

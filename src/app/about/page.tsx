@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "About Prime Atlas | USA + UK Investment Intelligence Platform",
@@ -10,13 +9,10 @@ export const metadata: Metadata = {
     "Prime Atlas is an institutional-grade property intelligence platform covering USA and UK markets. Investment theses, conviction scores, and live deal flow — built for investors, developers, and capital allocators.",
 };
 
-export default async function AboutPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
+export default function AboutPage() {
   return (
     <>
-      <Navbar user={user} />
+      <Navbar />
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <nav className="text-xs text-muted-foreground mb-8">
           <Link href="/" className="hover:text-foreground">Home</Link>

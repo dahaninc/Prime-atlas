@@ -18,7 +18,7 @@ type SortKey = "popular" | "newest" | "rating" | "alpha";
 
 type Market = "All" | "US" | "UK" | "ES" | "AU" | "CA" | "Global";
 
-type Tier = "free" | "pro" | "investor" | "institutional";
+type Tier = "free" | "explorer" | "professional" | "institutional";
 
 interface AppChangelog {
   version: string;
@@ -145,7 +145,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["UK", "Price History", "Signals", "Residential"],
     featured: false,
     price: "Pro",
-    requiredTier: "pro",
+    requiredTier: "explorer",
     metrics: { uptime: 97.4, coverage: 85, latency: "< 4s" },
     steps: [
       "Upgrade to Pro to enable Rightmove Tracker.",
@@ -178,7 +178,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["AI", "Memo", "Claude", "PDF", "Pro"],
     featured: true,
     price: "Pro",
-    requiredTier: "pro",
+    requiredTier: "explorer",
     metrics: { uptime: 99.9, coverage: 100, latency: "~8s generation" },
     steps: [
       "Open any municipality opportunity page.",
@@ -213,7 +213,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["AI", "Writing", "Claude", "Thesis"],
     featured: false,
     price: "Pro",
-    requiredTier: "pro",
+    requiredTier: "explorer",
     metrics: { uptime: 99.7, coverage: 100, latency: "~5s generation" },
     steps: [
       "Open Opportunity Finder → set your filters.",
@@ -279,7 +279,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["Map", "Visualisation", "Scores", "Interactive"],
     featured: false,
     price: "Pro",
-    requiredTier: "pro",
+    requiredTier: "explorer",
     metrics: { uptime: 98.9, coverage: 100, latency: "< 1.5s render" },
     steps: [
       "Navigate to Rankings → click 'Open Heat Map'.",
@@ -345,7 +345,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["Planning", "UK", "Signals", "Government"],
     featured: false,
     price: "Pro",
-    requiredTier: "pro",
+    requiredTier: "explorer",
     metrics: { uptime: 95.2, coverage: 88, latency: "< 24h" },
     steps: [
       "Enable in Settings → Integrations → Planning Portal Watch.",
@@ -411,7 +411,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["Export", "CSV", "Data", "Download"],
     featured: false,
     price: "Pro",
-    requiredTier: "pro",
+    requiredTier: "explorer",
     metrics: { uptime: 100, coverage: 100, latency: "< 2s" },
     steps: [
       "On Deal Board, Rankings, or Market Feed — click '↓ Export CSV'.",
@@ -444,7 +444,7 @@ const APPS: MarketplaceApp[] = [
     tags: ["PDF", "Portfolio", "Report", "Branding"],
     featured: false,
     price: "Investor",
-    requiredTier: "investor",
+    requiredTier: "professional",
     metrics: { uptime: 99.2, coverage: 100, latency: "~12s generation" },
     steps: [
       "Go to Dashboard → Watchlists → select a watchlist.",
@@ -484,7 +484,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 ];
 
 const TIER_ORDER: Record<Tier, number> = {
-  free: 0, pro: 1, investor: 2, institutional: 3,
+  free: 0, explorer: 1, professional: 2, institutional: 3,
 };
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
@@ -533,12 +533,12 @@ function AppIcon({ app }: { app: MarketplaceApp }) {
 function TierBadge({ tier }: { tier: Tier }) {
   if (tier === "free") return null;
   const labels: Record<Tier, string> = {
-    free: "", pro: "Pro", investor: "Investor", institutional: "Enterprise",
+    free: "", explorer: "Explorer", professional: "Professional", institutional: "Enterprise",
   };
   const colors: Record<Tier, string> = {
     free: "",
-    pro: "text-[#CCFF00]",
-    investor: "text-amber-400",
+    explorer: "text-[#CCFF00]",
+    professional: "text-amber-400",
     institutional: "text-purple-400",
   };
   return (

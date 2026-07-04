@@ -37,7 +37,6 @@ export default async function AdminScrapersPage() {
   }
 
   // Latest run per provider for the status card strip
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const latestByProvider: Record<string, any> = {};
   for (const run of (runs ?? [])) {
     if (!latestByProvider[run.provider]) {

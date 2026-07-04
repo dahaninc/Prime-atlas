@@ -39,7 +39,7 @@ export function NewsletterSignup({ source = "footer", className, compact = false
   if (state === "success") {
     return (
       <div className={cn("flex items-center gap-2", className)}>
-        <span className="text-pa-green text-sm font-medium">✓ You're in — check your inbox.</span>
+        <span className="text-pa-green text-sm font-medium">✓ You&apos;re in — check your inbox.</span>
       </div>
     );
   }

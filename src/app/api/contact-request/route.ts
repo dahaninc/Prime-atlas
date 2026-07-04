@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     const tier       = (profile as { subscription_tier?: string } | null)?.subscription_tier ?? "free";
-    const isMember   = ["explorer", "analyst", "institutional"].includes(tier);
+    const isMember   = ["explorer", "professional", "institutional"].includes(tier);
     if (!isMember) {
       return NextResponse.json({ error: "Membership required" }, { status: 403 });
     }
@@ -317,7 +317,7 @@ export async function POST(req: NextRequest) {
     const resend    = new Resend(process.env.RESEND_API_KEY!);
     const emailTo   = user.email!;
     const { error: sendErr } = await resend.emails.send({
-      from:    "Prime Atlas Research <research@prime-atlas.io>",
+      from:    process.env.RESEND_FROM_EMAIL ?? "Prime Atlas Research <research@prime-atlas.io>",
       to:      emailTo,
       subject,
       html,

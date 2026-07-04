@@ -88,6 +88,41 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          property_id: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          property_id: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          property_id?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       countries: {
         Row: {
           active: boolean
@@ -257,6 +292,131 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      listings: {
+        Row: {
+          address: string
+          agent_name: string | null
+          agent_url: string | null
+          annual_income: number | null
+          asking_price: number
+          bathrooms: number | null
+          bedrooms: number | null
+          comparables: Json | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          currency_code: string
+          date_listed: string | null
+          deal_type: string | null
+          description: string | null
+          featured: boolean | null
+          features: string[] | null
+          gdv_margin_pct: number | null
+          gross_yield_pct: number | null
+          highlights: string[] | null
+          id: string
+          images: string[] | null
+          investment_structure: string | null
+          investor_profile: string[] | null
+          listing_type: string
+          min_investment: number | null
+          municipality_id: string | null
+          planning_status: string | null
+          postcode: string | null
+          size_sqm: number | null
+          source_url: string | null
+          status: string
+          tenure: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          agent_name?: string | null
+          agent_url?: string | null
+          annual_income?: number | null
+          asking_price: number
+          bathrooms?: number | null
+          bedrooms?: number | null
+          comparables?: Json | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          currency_code?: string
+          date_listed?: string | null
+          deal_type?: string | null
+          description?: string | null
+          featured?: boolean | null
+          features?: string[] | null
+          gdv_margin_pct?: number | null
+          gross_yield_pct?: number | null
+          highlights?: string[] | null
+          id?: string
+          images?: string[] | null
+          investment_structure?: string | null
+          investor_profile?: string[] | null
+          listing_type: string
+          min_investment?: number | null
+          municipality_id?: string | null
+          planning_status?: string | null
+          postcode?: string | null
+          size_sqm?: number | null
+          source_url?: string | null
+          status?: string
+          tenure?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          agent_name?: string | null
+          agent_url?: string | null
+          annual_income?: number | null
+          asking_price?: number
+          bathrooms?: number | null
+          bedrooms?: number | null
+          comparables?: Json | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          currency_code?: string
+          date_listed?: string | null
+          deal_type?: string | null
+          description?: string | null
+          featured?: boolean | null
+          features?: string[] | null
+          gdv_margin_pct?: number | null
+          gross_yield_pct?: number | null
+          highlights?: string[] | null
+          id?: string
+          images?: string[] | null
+          investment_structure?: string | null
+          investor_profile?: string[] | null
+          listing_type?: string
+          min_investment?: number | null
+          municipality_id?: string | null
+          planning_status?: string | null
+          postcode?: string | null
+          size_sqm?: number | null
+          source_url?: string | null
+          status?: string
+          tenure?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       municipalities: {
         Row: {
@@ -538,6 +698,138 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          address: string | null
+          agent_company: string | null
+          agent_email: string | null
+          agent_name: string | null
+          agent_phone: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          city: string | null
+          country_iso2: string | null
+          created_at: string
+          currency_code: string
+          external_property_id: string
+          id: string
+          images: Json | null
+          listing_type: string
+          listing_url: string | null
+          postcode: string | null
+          price: number | null
+          property_type: string | null
+          property_type_raw: string | null
+          provider: string
+          scraped_at: string
+          size_sqm: number | null
+          state_region: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          agent_company?: string | null
+          agent_email?: string | null
+          agent_name?: string | null
+          agent_phone?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          country_iso2?: string | null
+          created_at?: string
+          currency_code?: string
+          external_property_id: string
+          id?: string
+          images?: Json | null
+          listing_type?: string
+          listing_url?: string | null
+          postcode?: string | null
+          price?: number | null
+          property_type?: string | null
+          property_type_raw?: string | null
+          provider: string
+          scraped_at?: string
+          size_sqm?: number | null
+          state_region?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          agent_company?: string | null
+          agent_email?: string | null
+          agent_name?: string | null
+          agent_phone?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          city?: string | null
+          country_iso2?: string | null
+          created_at?: string
+          currency_code?: string
+          external_property_id?: string
+          id?: string
+          images?: Json | null
+          listing_type?: string
+          listing_url?: string | null
+          postcode?: string | null
+          price?: number | null
+          property_type?: string | null
+          property_type_raw?: string | null
+          provider?: string
+          scraped_at?: string
+          size_sqm?: number | null
+          state_region?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      scraper_runs: {
+        Row: {
+          created_at: string
+          duration_ms: number
+          errors: Json
+          exit_status: string
+          finished_at: string
+          id: string
+          provider: string
+          records_failed: number
+          records_scraped: number
+          records_upserted: number
+          started_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number
+          errors?: Json
+          exit_status: string
+          finished_at: string
+          id?: string
+          provider: string
+          records_failed?: number
+          records_scraped?: number
+          records_upserted?: number
+          started_at: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number
+          errors?: Json
+          exit_status?: string
+          finished_at?: string
+          id?: string
+          provider?: string
+          records_failed?: number
+          records_scraped?: number
+          records_upserted?: number
+          started_at?: string
+        }
+        Relationships: []
+      }
       signals: {
         Row: {
           ai_summary: string | null
@@ -779,7 +1071,7 @@ export type Database = {
         | "transport_link"
         | "development_zone"
         | "government_investment"
-      subscription_tier: "free" | "pro" | "investor" | "institutional"
+      subscription_tier: "free" | "explorer" | "professional" | "institutional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -939,7 +1231,7 @@ export const Constants = {
         "development_zone",
         "government_investment",
       ],
-      subscription_tier: ["free", "pro", "investor", "institutional"],
+      subscription_tier: ["free", "explorer", "professional", "institutional"],
     },
   },
 } as const

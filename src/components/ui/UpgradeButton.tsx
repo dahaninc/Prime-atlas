@@ -18,9 +18,9 @@ interface Props {
 export function UpgradeButton({
   source,
   currentTier = "free",
-  targetTier = "pro",
+  targetTier = "professional",
   hasCustomer = false,
-  label = "Upgrade to Pro",
+  label = "Upgrade to Professional",
   className,
   variant = "primary",
 }: Props) {
