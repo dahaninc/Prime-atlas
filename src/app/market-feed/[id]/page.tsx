@@ -426,6 +426,37 @@ export default async function MarketFeedPropertyPage(
           ) : null;
         })()}
 
+        {/* Full photo gallery — every image captured from the source listing */}
+        {(() => {
+          const images = (Array.isArray(property.images) ? (property.images as string[]) : [])
+            .filter((img) => img && img.startsWith("http"));
+          if (images.length < 2) return null;
+          return (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Photo gallery
+                </p>
+                <span className="text-[10px] text-gray-400">{images.length} photos</span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                {images.slice(1).map((img, i) => (
+                  <a key={img} href={img} target="_blank" rel="noopener noreferrer"
+                     className="relative aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img}
+                      alt={`Property photo ${i + 2}`}
+                      loading="lazy"
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* ── Main column ── */}

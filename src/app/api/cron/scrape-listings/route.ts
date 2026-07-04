@@ -780,12 +780,29 @@ async function upsertProperties(
   if (!rows.length) return 0;
   let total = 0;
 
-  // Rows scraped WITHOUT images must not wipe images already stored on the
-  // row (e.g. backfilled by /api/cron/enrich-agents) — omit the column so
-  // the upsert leaves the existing value untouched.
+  // List pages only expose thumbnails; the full gallery comes from the
+  // detail-page pass in /api/cron/enrich-agents. Never let this upsert
+  // shrink a stored gallery: rows whose existing image set is at least as
+  // large as the newly scraped one keep their stored images (column omitted).
   const stamp = new Date().toISOString();
-  const withImages    = rows.filter((r) => r.images.length > 0).map((r) => ({ ...r, updated_at: stamp }));
-  const withoutImages = rows.filter((r) => r.images.length === 0).map(({ images: _images, ...r }) => ({ ...r, updated_at: stamp }));
+  const existingCounts = new Map<string, number>();
+  const ids = rows.map((r) => r.external_property_id);
+  for (let i = 0; i < ids.length; i += SUPABASE_BATCH_SIZE) {
+    const { data: existing } = await supabase
+      .from("properties")
+      .select("external_property_id, images")
+      .eq("provider", rows[0].provider)
+      .in("external_property_id", ids.slice(i, i + SUPABASE_BATCH_SIZE));
+    for (const e of existing ?? []) {
+      existingCounts.set(e.external_property_id, Array.isArray(e.images) ? e.images.length : 0);
+    }
+  }
+
+  const keepsStored = (r: ParsedProperty) =>
+    (existingCounts.get(r.external_property_id) ?? 0) >= r.images.length;
+
+  const withImages    = rows.filter((r) => r.images.length > 0 && !keepsStored(r)).map((r) => ({ ...r, updated_at: stamp }));
+  const withoutImages = rows.filter((r) => r.images.length === 0 || keepsStored(r)).map(({ images: _images, ...r }) => ({ ...r, updated_at: stamp }));
 
   for (const group of [withImages, withoutImages]) {
     for (let i = 0; i < group.length; i += SUPABASE_BATCH_SIZE) {

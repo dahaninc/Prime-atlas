@@ -712,6 +712,7 @@ export type Database = {
           created_at: string
           currency_code: string
           external_property_id: string
+          gallery_synced_at: string | null
           id: string
           images: Json | null
           listing_type: string
@@ -741,6 +742,7 @@ export type Database = {
           created_at?: string
           currency_code?: string
           external_property_id: string
+          gallery_synced_at?: string | null
           id?: string
           images?: Json | null
           listing_type?: string
@@ -770,6 +772,7 @@ export type Database = {
           created_at?: string
           currency_code?: string
           external_property_id?: string
+          gallery_synced_at?: string | null
           id?: string
           images?: Json | null
           listing_type?: string

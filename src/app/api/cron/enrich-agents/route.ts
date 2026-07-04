@@ -158,13 +158,19 @@ function parseZillowDetail(html: string): AgentInfo {
         if (phoneMatch)  info.agent_phone   = phoneMatch[1];
         if (brokerMatch) info.agent_company = brokerMatch[1];
       }
-      // Images
-      const photos = data?.props?.pageProps?.gdpClientCache;
-      if (typeof photos === "object") {
-        const photoMatch = JSON.stringify(photos).match(/"url"\s*:\s*"(https:\/\/photos\.zillowstatic[^"]+)"/g);
-        if (photoMatch) {
-          info.images = photoMatch.slice(0, 5).map(m => m.replace(/^"url"\s*:\s*"/, "").replace(/"$/, ""));
+      // Images — capture the FULL gallery. The cache holds many size variants
+      // per photo, so dedupe on the photo hash (path before the size suffix).
+      const photos = data?.props?.pageProps?.componentProps?.gdpClientCache ?? data?.props?.pageProps?.gdpClientCache;
+      if (photos && typeof photos === "object") {
+        const photoMatch = JSON.stringify(photos).match(/"url"\s*:\s*"(https:\/\/photos\.zillowstatic[^"]+)"/g) ?? [];
+        const byBase = new Map<string, string>();
+        for (const m of photoMatch) {
+          const url  = m.replace(/^"url"\s*:\s*"/, "").replace(/"$/, "");
+          const base = url.replace(/(-cc_ft_\d+|-p_[a-z])?\.(jpg|webp|png)$/i, "");
+          // Prefer jpg over webp for broadest <img> support
+          if (!byBase.has(base) || url.endsWith(".jpg")) byBase.set(base, url);
         }
+        info.images = Array.from(byBase.values());
       }
     }
   } catch { /* fall through */ }
@@ -199,7 +205,7 @@ export async function GET(req: NextRequest) {
   const { data: rows, error } = await supabase
     .from("properties")
     .select("id, provider, listing_url")
-    .or("agent_name.is.null,images.eq.[]")
+    .or("gallery_synced_at.is.null,agent_name.is.null")
     .not("listing_url", "is", null)
     .eq("status", "active")
     .order("updated_at", { ascending: true })
@@ -229,13 +235,18 @@ export async function GET(req: NextRequest) {
       else info = parseZillowDetail(html);
 
       // Build update payload — only set fields we got
-      const update: Record<string, any> = { updated_at: new Date().toISOString() };
+      const update: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+        // Detail page fetched + parsed → this row's full gallery is synced
+        // (even when the listing genuinely has no photos).
+        gallery_synced_at: new Date().toISOString(),
+      };
       if (info.agent_name)    update.agent_name    = info.agent_name;
       if (info.agent_company) update.agent_company = info.agent_company;
       if (info.agent_phone)   update.agent_phone   = info.agent_phone;
       if (info.agent_email)   update.agent_email   = info.agent_email;
-      // Overwrite images only when the detail page yielded any
-      if (info.images.length > 0) update.images = info.images.slice(0, 8);
+      // Full gallery from the detail page — uncapped (100% of source photos)
+      if (info.images.length > 0) update.images = info.images;
 
       await supabase.from("properties").update(update).eq("id", row.id);
       enriched++;
