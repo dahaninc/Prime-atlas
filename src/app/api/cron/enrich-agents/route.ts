@@ -175,12 +175,21 @@ function parseZillowDetail(html: string): AgentInfo {
       if (photos) {
         const photoStr = typeof photos === "string" ? photos : JSON.stringify(photos);
         const photoMatch = photoStr.match(/"url"\s*:\s*"(https:\\?\/\\?\/photos\.zillowstatic[^"]+)"/g) ?? [];
+        // The /fp/<hex> hash uniquely identifies a photo across all of
+        // Zillow's ~24 size-variant suffixes — key the dedupe on it, not on
+        // suffix patterns. Prefer jpg over webp, then the largest size.
+        const photoScore = (u: string): number => {
+          const suffix = u.match(/-([a-z0-9_]+)\.(jpg|webp|png)$/i)?.[1] ?? "";
+          const size = Number(suffix.match(/\d{3,4}/)?.[0] ?? 0);
+          return (u.toLowerCase().endsWith(".jpg") ? 10000 : 0) + size;
+        };
         const byBase = new Map<string, string>();
         for (const m of photoMatch) {
           const url  = m.replace(/^"url"\s*:\s*"/, "").replace(/"$/, "").replace(/\\\//g, "/");
-          const base = url.replace(/(-cc_ft_\d+|-p_[a-z])?\.(jpg|webp|png)$/i, "");
-          // Prefer jpg over webp for broadest <img> support
-          if (!byBase.has(base) || url.endsWith(".jpg")) byBase.set(base, url);
+          const base = url.match(/\/fp\/([0-9a-f]+)/i)?.[1]
+            ?? url.replace(/(-cc_ft_\d+|-p_[a-z])?\.(jpg|webp|png)$/i, "");
+          const prev = byBase.get(base);
+          if (!prev || photoScore(url) > photoScore(prev)) byBase.set(base, url);
         }
         info.images = Array.from(byBase.values());
       }
