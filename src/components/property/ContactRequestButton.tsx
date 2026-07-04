@@ -36,16 +36,16 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
   /* ── Sent ── */
   if (state === "sent") {
     return (
-      <div className="rounded-xl bg-green-50 border border-green-200 p-4">
+      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/25 p-4">
         <div className="flex items-start gap-3">
-          <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-7 h-7 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <div>
-            <p className="text-xs font-bold text-green-700 leading-tight">Report sent</p>
-            <p className="text-[10px] text-green-600 mt-0.5 leading-relaxed">
+            <p className="text-xs font-bold text-emerald-400 leading-tight">Report sent</p>
+            <p className="text-[10px] text-emerald-400 mt-0.5 leading-relaxed">
               Check <span className="font-semibold">{userEmail}</span> — includes agent contact, yield analysis & exit projections.
             </p>
           </div>
@@ -57,14 +57,14 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
   /* ── Already sent ── */
   if (state === "already") {
     return (
-      <div className="rounded-xl bg-[#EEF3FD] border border-[#1B4FE4]/20 p-4">
-        <p className="text-[10px] font-semibold text-[#1B4FE4] mb-0.5">Report already sent</p>
+      <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
+        <p className="text-[10px] font-semibold text-primary mb-0.5">Report already sent</p>
         <p className="text-[10px] text-blue-500 leading-relaxed mb-2">
           Check <span className="font-semibold">{userEmail}</span> for your property report.
         </p>
         <button
           onClick={handleRequest}
-          className="text-[10px] font-bold text-[#1B4FE4] hover:text-[#1641C0] underline underline-offset-2"
+          className="text-[10px] font-bold text-primary hover:text-primary/80 underline underline-offset-2"
         >
           Re-send report →
         </button>
@@ -75,8 +75,8 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
   /* ── Error ── */
   if (state === "error") {
     return (
-      <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-        <p className="text-xs font-bold text-red-600 mb-1">Failed to send</p>
+      <div className="rounded-xl bg-red-500/10 border border-red-500/25 p-4">
+        <p className="text-xs font-bold text-red-400 mb-1">Failed to send</p>
         <p className="text-[10px] text-red-500 mb-2 leading-relaxed">
           Something went wrong. Please try again.
         </p>
@@ -98,8 +98,8 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
         disabled={state === "loading"}
         className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
           state === "loading"
-            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-            : "bg-[#0A0E1A] text-white hover:bg-[#1B4FE4] active:scale-[0.98]"
+            ? "bg-secondary text-zinc-500 cursor-not-allowed"
+            : "bg-[#0A0E1A] text-white hover:bg-primary active:scale-[0.98]"
         }`}
       >
         {state === "loading" ? (
@@ -120,8 +120,8 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
           </>
         )}
       </button>
-      <p className="text-[10px] text-gray-400 text-center mt-1.5 leading-relaxed">
-        Sent instantly to <span className="font-semibold text-gray-500">{userEmail}</span>
+      <p className="text-[10px] text-zinc-500 text-center mt-1.5 leading-relaxed">
+        Sent instantly to <span className="font-semibold text-zinc-500">{userEmail}</span>
       </p>
     </div>
   );

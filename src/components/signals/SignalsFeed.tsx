@@ -78,9 +78,12 @@ export function SignalsFeed({ initialSignals, isPro, userId }: Props) {
           // Fetch municipality for the new signal
           const { data: muni } = await supabase
             .from("municipalities")
-            .select("id, name, region")
+            .select("id, name, region, country")
             .eq("id", (payload.new as Signal).municipality_id)
             .single();
+
+          // US + UK markets only
+          if (!muni || !["United Kingdom", "United States"].includes(muni.country ?? "")) return;
 
           const newSignal: Signal = {
             ...(payload.new as Signal),
@@ -230,7 +233,7 @@ export function SignalsFeed({ initialSignals, isPro, userId }: Props) {
                           </>
                         )}
                         {sig.isNew && (
-                          <span className="text-xs bg-pa-green text-pa-navy font-bold px-1.5 py-0.5 rounded font-mono animate-pulse">
+                          <span className="text-xs bg-primary text-white font-bold px-1.5 py-0.5 rounded font-mono animate-pulse">
                             NEW
                           </span>
                         )}
@@ -284,7 +287,7 @@ export function SignalsFeed({ initialSignals, isPro, userId }: Props) {
             Free tier shows signals with a 48-hour delay.
           </p>
           <Link href="/pricing?upgrade=pro"
-            className="inline-block bg-pa-green text-pa-navy font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors">
+            className="inline-block bg-primary text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-primary/85 transition-colors">
             Upgrade to Pro — €149/mo
           </Link>
         </div>

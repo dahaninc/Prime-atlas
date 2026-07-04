@@ -24,7 +24,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
         {/* Brand */}
         <div className="col-span-2 md:col-span-1">
-          <span className="text-pa-green font-mono font-bold text-base tracking-tight">prime-atlas</span>
+          <span className="text-primary font-mono font-bold text-base tracking-tight">prime-atlas</span>
           <p className="text-muted-foreground text-xs mt-3 leading-relaxed max-w-xs">
             Institutional investment intelligence for USA + UK property markets. Live deal flow,
             conviction scores, and exit projections — under one platform.

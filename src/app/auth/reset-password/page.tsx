@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link href="/" className="text-pa-green font-mono font-bold text-xl tracking-tight">
+          <Link href="/" className="text-primary font-mono font-bold text-xl tracking-tight">
             prime-atlas
           </Link>
         </div>
@@ -48,7 +48,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-muted-foreground mb-6">
                 We sent a password reset link to <strong>{email}</strong>.
               </p>
-              <Link href="/auth/login" className="text-sm text-pa-green hover:underline">
+              <Link href="/auth/login" className="text-sm text-primary hover:underline">
                 Back to sign in →
               </Link>
             </div>
@@ -84,10 +84,10 @@ export default function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading && (
-                    <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />
                   )}
                   Send reset link
                 </button>
@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
 
               <p className="mt-6 text-center text-xs text-muted-foreground">
                 Remembered it?{" "}
-                <Link href="/auth/login" className="text-pa-green hover:underline">
+                <Link href="/auth/login" className="text-primary hover:underline">
                   Sign in
                 </Link>
               </p>

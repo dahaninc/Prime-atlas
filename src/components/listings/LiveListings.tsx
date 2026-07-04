@@ -218,7 +218,7 @@ function ListingCard({ listing, market }: {
         <div className="flex gap-2 mt-auto">
           <Link
             href={`/listings/${listing.id}`}
-            className="flex-1 text-center text-xs font-semibold bg-pa-green text-pa-navy py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+            className="flex-1 text-center text-xs font-semibold bg-primary text-white py-2.5 rounded-lg hover:bg-primary/85 transition-colors"
           >
             View listing →
           </Link>

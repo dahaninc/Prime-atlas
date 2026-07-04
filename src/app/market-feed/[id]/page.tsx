@@ -115,22 +115,22 @@ function getMacro(state: string, country: "UK" | "US"): {
 } {
   if (country === "UK") return {
     sentiment: "bullish", label: "BULLISH",
-    color: "text-green-600 border-green-200 bg-green-50",
+    color: "text-emerald-400 border-emerald-500/25 bg-emerald-500/10",
     text: "Post-rate-peak UK market. Rental demand at historic highs as mortgage affordability constrains owner-occupation. Gross yields trending upward in regional cities. Housing supply pipeline well below historical averages, supporting price floors.",
   };
   if (SUNBELT.has(state)) return {
     sentiment: "bullish", label: "BULLISH",
-    color: "text-green-600 border-green-200 bg-green-50",
+    color: "text-emerald-400 border-emerald-500/25 bg-emerald-500/10",
     text: `Sunbelt state with strong inbound population migration and business-friendly tax environment. Above-average rent growth expected over a 5-year horizon. Entry cost remains accessible relative to coastal markets. Remote-work demographic continues to drive demand.`,
   };
   if (COASTAL.has(state)) return {
     sentiment: "cautious", label: "CAUTIOUS",
-    color: "text-amber-600 border-amber-200 bg-amber-50",
+    color: "text-amber-400 border-amber-500/25 bg-amber-500/10",
     text: `High-cost coastal market. Entry price compresses initial yield but long-term capital appreciation runs above national average. Supply constraints support rental demand. Rate sensitivity elevated at current price bands — stress-test financing assumptions.`,
   };
   return {
     sentiment: "neutral", label: "NEUTRAL",
-    color: "text-gray-500 border-gray-200 bg-gray-50",
+    color: "text-zinc-500 border-border bg-background",
     text: `Stable mid-market fundamentals. Cashflow-first strategy viable at current price levels. Capital appreciation more modest than growth markets, but defensive income profile offers downside protection in a softening rate environment.`,
   };
 }
@@ -236,7 +236,7 @@ function ConvictionRing({ score }: { score: number }) {
   const r = 38;
   const circ = 2 * Math.PI * r;
   const fill = (score / 100) * circ;
-  const color = score >= 75 ? "#16a34a" : score >= 55 ? "#1B4FE4" : "#d97706";
+  const color = score >= 75 ? "#16a34a" : score >= 55 ? "#2563eb" : "#d97706";
 
   return (
     <div className="flex flex-col items-center">
@@ -252,10 +252,10 @@ function ConvictionRing({ score }: { score: number }) {
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-2xl font-black font-mono" style={{ color }}>{score}</span>
-          <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider -mt-0.5">/ 100</span>
+          <span className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wider -mt-0.5">/ 100</span>
         </div>
       </div>
-      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2">
+      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-2">
         Conviction Score
       </p>
     </div>
@@ -266,26 +266,26 @@ function MetricBox({ label, value, sub, accent }: {
   label: string; value: string; sub?: string; accent?: "green" | "blue" | "amber" | "red";
 }) {
   const valueColor =
-    accent === "green" ? "text-green-600" :
-    accent === "blue"  ? "text-[#1B4FE4]" :
-    accent === "amber" ? "text-amber-600" :
+    accent === "green" ? "text-emerald-400" :
+    accent === "blue"  ? "text-primary" :
+    accent === "amber" ? "text-amber-400" :
     accent === "red"   ? "text-red-500"   :
-    "text-gray-900";
+    "text-foreground";
 
   return (
-    <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 text-center">
+    <div className="border border-border rounded-xl p-4 bg-background text-center">
       <p className={`text-xl font-black font-mono leading-none ${valueColor}`}>{value}</p>
-      {sub && <p className="text-[9px] text-gray-400 mt-0.5">{sub}</p>}
-      <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mt-2">{label}</p>
+      {sub && <p className="text-[9px] text-zinc-500 mt-0.5">{sub}</p>}
+      <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest mt-2">{label}</p>
     </div>
   );
 }
 
 function ThesisBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border border-gray-100 rounded-xl p-4 bg-[#F8FAFF]">
-      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">{title}</p>
-      <div className="text-sm text-gray-600 leading-relaxed">{children}</div>
+    <div className="border border-border rounded-xl p-4 bg-card">
+      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5">{title}</p>
+      <div className="text-sm text-zinc-400 leading-relaxed">{children}</div>
     </div>
   );
 }
@@ -392,12 +392,12 @@ export default async function MarketFeedPropertyPage(
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
 
         {/* Breadcrumb */}
-        <nav className="text-xs text-gray-400 mb-6 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-gray-700 transition-colors">Home</Link>
+        <nav className="text-xs text-zinc-500 mb-6 flex items-center gap-2 flex-wrap">
+          <Link href="/" className="hover:text-zinc-200 transition-colors">Home</Link>
           <span>/</span>
-          <Link href="/market-feed" className="hover:text-gray-700 transition-colors">Market Feed</Link>
+          <Link href="/market-feed" className="hover:text-zinc-200 transition-colors">Market Feed</Link>
           <span>/</span>
-          <span className="text-gray-700 line-clamp-1">{getLocationSummary(property.address, e.country)}</span>
+          <span className="text-zinc-300 line-clamp-1">{getLocationSummary(property.address, e.country)}</span>
         </nav>
 
         {/* Property image hero */}
@@ -405,7 +405,7 @@ export default async function MarketFeedPropertyPage(
           const images = Array.isArray(property.images) ? (property.images as string[]) : [];
           const heroImg = images.find(img => img && img.startsWith("http"));
           return heroImg ? (
-            <div className="relative w-full h-56 sm:h-72 rounded-2xl overflow-hidden mb-8 bg-gray-100">
+            <div className="relative w-full h-56 sm:h-72 rounded-2xl overflow-hidden mb-8 bg-secondary">
               <Image
                 src={heroImg}
                 alt={`Property in ${locationLabel}`}
@@ -417,7 +417,7 @@ export default async function MarketFeedPropertyPage(
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
               <div className="absolute bottom-4 left-5">
                 <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                  isSale ? "text-green-600 bg-green-50" : "text-blue-600 bg-blue-50"
+                  isSale ? "text-emerald-400 bg-emerald-500/10" : "text-primary bg-primary/10"
                 }`}>
                   {isSale ? "For Sale" : "For Rent"}
                 </span>
@@ -434,15 +434,15 @@ export default async function MarketFeedPropertyPage(
           return (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                   Photo gallery
                 </p>
-                <span className="text-[10px] text-gray-400">{images.length} photos</span>
+                <span className="text-[10px] text-zinc-500">{images.length} photos</span>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
                 {images.slice(1).map((img, i) => (
                   <a key={img} href={img} target="_blank" rel="noopener noreferrer"
-                     className="relative aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 group">
+                     className="relative aspect-[4/3] rounded-lg overflow-hidden bg-secondary group">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={img}
@@ -463,40 +463,40 @@ export default async function MarketFeedPropertyPage(
           <div className="lg:col-span-2 space-y-8">
 
             {/* Hero */}
-            <div className="border border-gray-200 rounded-2xl p-6 bg-white">
+            <div className="border border-border rounded-2xl p-6 bg-card">
               <div className="flex items-center gap-2 mb-4 flex-wrap">
                 <span className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                  isSale ? "text-green-600 bg-green-50" : "text-blue-600 bg-blue-50"
+                  isSale ? "text-emerald-400 bg-emerald-500/10" : "text-primary bg-primary/10"
                 }`}>
                   {isSale ? "For Sale" : "For Rent"}
                 </span>
-                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-gray-500 bg-gray-100">
+                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-zinc-500 bg-secondary">
                   {e.country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
                 </span>
                 {property.property_type && (
-                  <span className="text-[9px] text-gray-400 capitalize border border-gray-200 rounded px-2 py-0.5">
+                  <span className="text-[9px] text-zinc-500 capitalize border border-border rounded px-2 py-0.5">
                     {property.property_type}
                   </span>
                 )}
-                <span className="text-[9px] text-gray-400 ml-auto">{timeAgo(property.scraped_at)}</span>
+                <span className="text-[9px] text-zinc-500 ml-auto">{timeAgo(property.scraped_at)}</span>
               </div>
 
-              <p className="text-4xl sm:text-5xl font-black text-gray-900 leading-none tabular-nums mb-3">
+              <p className="text-4xl sm:text-5xl font-black text-foreground leading-none tabular-nums mb-3">
                 {fmtPrice(property.price ?? 0, property.currency_code)}
-                {!isSale && <span className="text-base font-semibold text-gray-400 ml-2">/mo</span>}
+                {!isSale && <span className="text-base font-semibold text-zinc-500 ml-2">/mo</span>}
               </p>
 
               {/* Address — full street address gated behind membership */}
               {isMember ? (
-                <p className="text-base font-semibold text-gray-800 mb-1">
+                <p className="text-base font-semibold text-zinc-200 mb-1">
                   {property.address ?? "Address unavailable"}
                 </p>
               ) : (
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-base font-semibold text-gray-800 blur-sm select-none">
+                  <p className="text-base font-semibold text-zinc-200 blur-sm select-none">
                     {property.address ?? "123 Example Street"}
                   </p>
-                  <span className="shrink-0 inline-flex items-center gap-1 text-[9px] font-bold text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/20 px-2 py-0.5 rounded-full">
+                  <span className="shrink-0 inline-flex items-center gap-1 text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
                     <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -505,28 +505,28 @@ export default async function MarketFeedPropertyPage(
                   </span>
                 </div>
               )}
-              <p className="text-xs text-gray-400 uppercase tracking-widest">{locationLabel}</p>
+              <p className="text-xs text-zinc-500 uppercase tracking-widest">{locationLabel}</p>
 
               {/* Specs */}
-              <div className="flex flex-wrap gap-5 mt-5 pt-5 border-t border-gray-100">
+              <div className="flex flex-wrap gap-5 mt-5 pt-5 border-t border-border">
                 {property.bedrooms  != null && (
                   <div className="text-center">
-                    <p className="text-2xl font-black font-mono text-gray-900">{property.bedrooms}</p>
-                    <p className="text-[9px] text-gray-400 uppercase tracking-widest">Bedrooms</p>
+                    <p className="text-2xl font-black font-mono text-foreground">{property.bedrooms}</p>
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Bedrooms</p>
                   </div>
                 )}
                 {property.bathrooms != null && (
                   <div className="text-center">
-                    <p className="text-2xl font-black font-mono text-gray-900">{property.bathrooms}</p>
-                    <p className="text-[9px] text-gray-400 uppercase tracking-widest">Bathrooms</p>
+                    <p className="text-2xl font-black font-mono text-foreground">{property.bathrooms}</p>
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Bathrooms</p>
                   </div>
                 )}
                 {property.size_sqm  != null && (
                   <div className="text-center">
-                    <p className="text-2xl font-black font-mono text-gray-900">
+                    <p className="text-2xl font-black font-mono text-foreground">
                       {Number(property.size_sqm).toLocaleString()}
                     </p>
-                    <p className="text-[9px] text-gray-400 uppercase tracking-widest">sqm</p>
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-widest">sqm</p>
                   </div>
                 )}
                 {property.size_sqm != null && property.price != null && isSale && (() => {
@@ -538,16 +538,16 @@ export default async function MarketFeedPropertyPage(
                   return (
                     <>
                       <div className="text-center">
-                        <p className="text-2xl font-black font-mono text-[#1B4FE4]">
+                        <p className="text-2xl font-black font-mono text-primary">
                           {sym}{perSqm.toLocaleString()}
                         </p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-widest">per sqm</p>
+                        <p className="text-[9px] text-zinc-500 uppercase tracking-widest">per sqm</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-2xl font-black font-mono text-[#1B4FE4]">
+                        <p className="text-2xl font-black font-mono text-primary">
                           {sym}{perSqft.toLocaleString()}
                         </p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-widest">per sq ft</p>
+                        <p className="text-[9px] text-zinc-500 uppercase tracking-widest">per sq ft</p>
                       </div>
                     </>
                   );
@@ -561,47 +561,47 @@ export default async function MarketFeedPropertyPage(
               <div className="space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[9px] font-bold text-[#1B4FE4] uppercase tracking-widest mb-0.5">
+                    <p className="text-[9px] font-bold text-primary uppercase tracking-widest mb-0.5">
                       Prime Atlas Intelligence
                     </p>
-                    <h2 className="text-xl font-bold text-gray-900">Investment Analysis</h2>
+                    <h2 className="text-xl font-bold text-foreground">Investment Analysis</h2>
                   </div>
-                  <span className="text-[9px] font-bold px-3 py-1 rounded-full border text-gray-400 border-gray-200 bg-gray-50">
+                  <span className="text-[9px] font-bold px-3 py-1 rounded-full border text-zinc-500 border-border bg-background">
                     MEMBERS ONLY
                   </span>
                 </div>
 
-                <div className="relative rounded-2xl overflow-hidden border border-gray-200">
+                <div className="relative rounded-2xl overflow-hidden border border-border">
                   {/* Blurred preview */}
                   <div className="blur-sm select-none pointer-events-none p-6 space-y-4">
                     <div className="grid grid-cols-3 gap-3">
                       {["Est. Gross Yield", "Net Yield", "5-Yr IRR (Est.)"].map(l => (
-                        <div key={l} className="border border-gray-100 rounded-xl p-4 bg-gray-50 text-center">
-                          <p className="text-xl font-black font-mono text-green-600">—.—%</p>
-                          <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mt-2">{l}</p>
+                        <div key={l} className="border border-border rounded-xl p-4 bg-background text-center">
+                          <p className="text-xl font-black font-mono text-emerald-400">—.—%</p>
+                          <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest mt-2">{l}</p>
                         </div>
                       ))}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="border border-gray-100 rounded-xl p-4 bg-[#F8FAFF]">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Macro Outlook</p>
-                        <p className="text-sm text-gray-600 leading-relaxed">Sunbelt state with strong inbound population migration and business-friendly tax environment. Above-average rent growth expected over a 5-year horizon.</p>
+                      <div className="border border-border rounded-xl p-4 bg-card">
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Macro Outlook</p>
+                        <p className="text-sm text-zinc-400 leading-relaxed">Sunbelt state with strong inbound population migration and business-friendly tax environment. Above-average rent growth expected over a 5-year horizon.</p>
                       </div>
-                      <div className="border border-gray-100 rounded-xl p-4 bg-[#F8FAFF]">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Micro Outlook</p>
-                        <p className="text-sm text-gray-600 leading-relaxed">Gross yield above 7% indicates strong day-one cashflow. Multi-bed configuration supports family rental demand with lower void rates.</p>
+                      <div className="border border-border rounded-xl p-4 bg-card">
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Micro Outlook</p>
+                        <p className="text-sm text-zinc-400 leading-relaxed">Gross yield above 7% indicates strong day-one cashflow. Multi-bed configuration supports family rental demand with lower void rates.</p>
                       </div>
                     </div>
-                    <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                      <div className="px-5 py-3 bg-[#F8FAFF] border-b border-gray-100">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Predictive Exit Architecture</p>
+                    <div className="border border-border rounded-2xl overflow-hidden">
+                      <div className="px-5 py-3 bg-card border-b border-border">
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Predictive Exit Architecture</p>
                       </div>
-                      <div className="grid grid-cols-3 divide-x divide-gray-100">
+                      <div className="grid grid-cols-3 divide-x divide-border">
                         {[{ y: 3, irr: "+11.2" }, { y: 5, irr: "+14.8" }, { y: 10, irr: "+17.6" }].map(({ y, irr }) => (
                           <div key={y} className="px-4 py-5 text-center">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">{y}-YR EXIT</p>
-                            <p className="text-xl font-black font-mono text-green-600">{irr}%</p>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1">IRR (EST.)</p>
+                            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-3">{y}-YR EXIT</p>
+                            <p className="text-xl font-black font-mono text-emerald-400">{irr}%</p>
+                            <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">IRR (EST.)</p>
                           </div>
                         ))}
                       </div>
@@ -610,33 +610,33 @@ export default async function MarketFeedPropertyPage(
 
                   {/* Gradient unlock overlay */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white flex flex-col items-center justify-end pb-10 px-6">
-                    <div className="bg-white border border-gray-200 rounded-2xl shadow-xl px-8 py-7 text-center max-w-sm w-full">
-                      <div className="w-12 h-12 bg-[#EEF3FD] rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-6 h-6 text-[#1B4FE4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-card border border-border rounded-2xl shadow-xl px-8 py-7 text-center max-w-sm w-full">
+                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                       </div>
-                      <p className="text-base font-bold text-gray-900 mb-1">Prime Atlas Intelligence</p>
-                      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                      <p className="text-base font-bold text-foreground mb-1">Prime Atlas Intelligence</p>
+                      <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
                         Every property is fully underwritten by Prime Atlas. Members unlock:
                       </p>
-                      <ul className="text-xs text-left space-y-1.5 mb-5 text-gray-600">
+                      <ul className="text-xs text-left space-y-1.5 mb-5 text-zinc-400">
                         {["Gross & net yield estimates", "3yr, 5yr & 10yr IRR projections", "Macro & micro market outlook", "Predictive exit architecture", "Comparable property analysis", "Full property address & agent contact"].map(item => (
                           <li key={item} className="flex items-center gap-2">
-                            <span className="text-[#1B4FE4] font-bold flex-shrink-0">→</span>{item}
+                            <span className="text-primary font-bold flex-shrink-0">→</span>{item}
                           </li>
                         ))}
                       </ul>
                       <Link
                         href="/pricing"
-                        className="block w-full bg-[#1B4FE4] text-white text-sm font-bold py-2.5 rounded-xl hover:bg-[#1641C0] transition-colors text-center"
+                        className="block w-full bg-primary text-white text-sm font-bold py-2.5 rounded-xl hover:bg-primary/85 transition-colors text-center"
                       >
                         Become a Member
                       </Link>
                       <Link
                         href="/auth/signup"
-                        className="mt-2.5 block text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                        className="mt-2.5 block text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
                       >
                         Create free account →
                       </Link>
@@ -648,10 +648,10 @@ export default async function MarketFeedPropertyPage(
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-bold text-[#1B4FE4] uppercase tracking-widest mb-0.5">
+                  <p className="text-[9px] font-bold text-primary uppercase tracking-widest mb-0.5">
                     Prime Atlas Intelligence
                   </p>
-                  <h2 className="text-xl font-bold text-gray-900">Investment Analysis</h2>
+                  <h2 className="text-xl font-bold text-foreground">Investment Analysis</h2>
                 </div>
                 <span className={`text-[9px] font-bold px-3 py-1 rounded-full border ${e.macro.color}`}>
                   {e.macro.label}
@@ -726,10 +726,10 @@ export default async function MarketFeedPropertyPage(
                   {isSale ? (
                     <>
                       {property.property_type
-                        ? <><span className="capitalize font-semibold text-gray-800">{property.property_type}</span> in </>
+                        ? <><span className="capitalize font-semibold text-zinc-200">{property.property_type}</span> in </>
                         : "Residential asset in "
                       }
-                      <span className="font-semibold text-gray-800">{locationLabel}</span>.{" "}
+                      <span className="font-semibold text-zinc-200">{locationLabel}</span>.{" "}
                       {e.grossYield >= 7
                         ? "Gross yield above 7% indicates strong day-one cashflow. BTL fundamentals are compelling at this price point."
                         : e.grossYield >= 5
@@ -744,7 +744,7 @@ export default async function MarketFeedPropertyPage(
                   ) : (
                     <>
                       Rental asset{property.bedrooms ? ` with ${property.bedrooms} bedrooms` : ""} in{" "}
-                      <span className="font-semibold text-gray-800">{locationLabel}</span>.{" "}
+                      <span className="font-semibold text-zinc-200">{locationLabel}</span>.{" "}
                       {e.country === "UK"
                         ? "UK rental market operating near record tightness. Tenant demand significantly outpaces available stock in most regions."
                         : SUNBELT.has(e.stateCode)
@@ -758,69 +758,69 @@ export default async function MarketFeedPropertyPage(
 
               {/* Exit Architecture — sale only */}
               {isSale && (
-                <div className="border border-gray-200 rounded-2xl overflow-hidden">
-                  <div className="px-5 py-3 bg-[#F8FAFF] border-b border-gray-100 flex items-center justify-between">
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                <div className="border border-border rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3 bg-card border-b border-border flex items-center justify-between">
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
                       Predictive Exit Architecture
                     </p>
-                    <p className="text-[9px] text-gray-300 font-mono">
+                    <p className="text-[9px] text-zinc-600 font-mono">
                       70% LTV · 5% IR · 3% p.a. appreciation
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-3 divide-x divide-gray-100">
+                  <div className="grid grid-cols-3 divide-x divide-border">
                     {([
                       { yrs: 3,  irr: e.irr3yr,  coc: e.cashOnCash, exit: e.exit3yr,  gated: false },
                       { yrs: 5,  irr: e.irr5yr,  coc: e.cashOnCash, exit: e.exit5yr,  gated: !isMember },
                       { yrs: 10, irr: e.irr10yr, coc: e.cashOnCash, exit: e.exit10yr, gated: !isMember },
                     ] as const).map(({ yrs, irr, coc, exit, gated }) => (
                       <div key={yrs} className="px-4 py-5 text-center relative">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-4">
                           {yrs}-YR EXIT
                         </p>
 
                         {/* Overlay for gated columns */}
                         {gated && (
-                          <div className="absolute inset-x-0 bottom-0 top-8 flex flex-col items-center justify-center bg-white/70 backdrop-blur-[3px] z-10 rounded-b-xl gap-1.5">
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="absolute inset-x-0 bottom-0 top-8 flex flex-col items-center justify-center bg-card/70 backdrop-blur-[3px] z-10 rounded-b-xl gap-1.5">
+                            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                             </svg>
-                            <p className="text-[9px] font-bold text-gray-500">Members only</p>
-                            <Link href="/pricing" className="text-[9px] font-bold text-[#1B4FE4] hover:underline">Unlock →</Link>
+                            <p className="text-[9px] font-bold text-zinc-500">Members only</p>
+                            <Link href="/pricing" className="text-[9px] font-bold text-primary hover:underline">Unlock →</Link>
                           </div>
                         )}
 
                         <div className={`space-y-4 ${gated ? "blur-sm select-none pointer-events-none" : ""}`}>
                           <div>
                             <p className={`text-xl font-black font-mono leading-none ${
-                              irr >= 12 ? "text-green-600" : irr >= 8 ? "text-[#1B4FE4]" : "text-amber-600"
+                              irr >= 12 ? "text-emerald-400" : irr >= 8 ? "text-primary" : "text-amber-400"
                             }`}>
                               {irr > 0 ? `+${irr}%` : `${irr}%`}
                             </p>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1">IRR (EST.)</p>
+                            <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">IRR (EST.)</p>
                           </div>
                           <div>
                             <p className={`text-base font-bold font-mono leading-none ${
-                              coc >= 8 ? "text-green-600" : coc >= 4 ? "text-[#1B4FE4]" : coc >= 0 ? "text-amber-600" : "text-red-500"
+                              coc >= 8 ? "text-emerald-400" : coc >= 4 ? "text-primary" : coc >= 0 ? "text-amber-400" : "text-red-500"
                             }`}>
                               {coc > 0 ? `+${coc}%` : `${coc}%`}
                             </p>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1">CASH-ON-CASH</p>
+                            <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">CASH-ON-CASH</p>
                           </div>
                           <div>
-                            <p className="text-sm font-bold font-mono text-gray-600 leading-none">
+                            <p className="text-sm font-bold font-mono text-zinc-400 leading-none">
                               {fmtPrice(Math.round(exit * 100), property.currency_code)}
                             </p>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-1">EXIT VALUE</p>
+                            <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">EXIT VALUE</p>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-100">
-                    <p className="text-[8px] text-gray-300 font-mono">
+                  <div className="px-5 py-2.5 bg-background border-t border-border">
+                    <p className="text-[8px] text-zinc-600 font-mono">
                       DISCLAIMER: Projections are illustrative estimates only. Not financial advice.
                       Actual returns depend on market conditions, financing terms, and exit timing.
                     </p>
@@ -835,15 +835,15 @@ export default async function MarketFeedPropertyPage(
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
                       Comparable Properties · {locationLabel}
                     </p>
-                    <p className="text-[9px] text-gray-300 mt-0.5">
+                    <p className="text-[9px] text-zinc-600 mt-0.5">
                       {comps.length} properties within ±40% price band
                     </p>
                   </div>
                   {!isMember && (
-                    <span className="text-[9px] font-bold text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/20 px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-full flex items-center gap-1">
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
                           d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -862,34 +862,34 @@ export default async function MarketFeedPropertyPage(
                         <Link
                           key={c.id}
                           href={`/market-feed/${c.id}`}
-                          className="border border-gray-200 rounded-xl p-4 hover:border-[#1B4FE4]/30 hover:shadow-sm transition-all group bg-white"
+                          className="border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm transition-all group bg-card"
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-base font-black font-mono text-gray-900">
+                            <p className="text-base font-black font-mono text-foreground">
                               {fmtPrice(c.price ?? 0, c.currency_code)}
                             </p>
                             {compEnriched.grossYield > 0 && (
                               <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${
-                                compEnriched.grossYield >= 8 ? "text-green-700 bg-green-50 border-green-200" :
-                                compEnriched.grossYield >= 6 ? "text-[#1B4FE4] bg-[#EEF3FD] border-[#1B4FE4]/20" :
-                                "text-amber-700 bg-amber-50 border-amber-200"
+                                compEnriched.grossYield >= 8 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" :
+                                compEnriched.grossYield >= 6 ? "text-primary bg-primary/10 border-primary/20" :
+                                "text-amber-400 bg-amber-500/10 border-amber-500/25"
                               }`}>
                                 ~{compEnriched.grossYield}%
                               </span>
                             )}
                           </div>
-                          <p className="text-xs font-semibold text-gray-800 line-clamp-1 mb-0.5">
+                          <p className="text-xs font-semibold text-zinc-200 line-clamp-1 mb-0.5">
                             {c.address ?? getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
                           </p>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest mb-2">
+                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-2">
                             {getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
                           </p>
-                          <div className="flex gap-3 text-[10px] text-gray-400 pt-2 border-t border-gray-100">
-                            {c.bedrooms  != null && <span><span className="text-gray-700 font-bold">{c.bedrooms}</span> bd</span>}
-                            {c.bathrooms != null && <span><span className="text-gray-700 font-bold">{c.bathrooms}</span> ba</span>}
-                            {c.size_sqm  != null && <span><span className="text-gray-700 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
-                            <span className="text-[9px] text-gray-300 ml-auto">{timeAgo(c.scraped_at)}</span>
-                            <span className="text-[#1B4FE4] opacity-0 group-hover:opacity-100 transition-opacity font-semibold text-[10px]">
+                          <div className="flex gap-3 text-[10px] text-zinc-500 pt-2 border-t border-border">
+                            {c.bedrooms  != null && <span><span className="text-zinc-300 font-bold">{c.bedrooms}</span> bd</span>}
+                            {c.bathrooms != null && <span><span className="text-zinc-300 font-bold">{c.bathrooms}</span> ba</span>}
+                            {c.size_sqm  != null && <span><span className="text-zinc-300 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
+                            <span className="text-[9px] text-zinc-600 ml-auto">{timeAgo(c.scraped_at)}</span>
+                            <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity font-semibold text-[10px]">
                               Analyse →
                             </span>
                           </div>
@@ -905,24 +905,24 @@ export default async function MarketFeedPropertyPage(
                       {comps.slice(0, 4).map((c, i) => (
                         <div
                           key={c.id}
-                          className={`border border-gray-200 rounded-xl p-4 bg-white ${i >= 2 ? "hidden sm:block" : ""}`}
+                          className={`border border-border rounded-xl p-4 bg-card ${i >= 2 ? "hidden sm:block" : ""}`}
                           style={{ filter: `blur(${i === 0 ? 2 : 4}px)`, opacity: i === 0 ? 0.85 : 0.6 }}
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
-                            <p className="text-base font-black font-mono text-gray-900">
+                            <p className="text-base font-black font-mono text-foreground">
                               {fmtPrice(c.price ?? 0, c.currency_code)}
                             </p>
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded border text-[#1B4FE4] bg-[#EEF3FD] border-[#1B4FE4]/20">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded border text-primary bg-primary/10 border-primary/20">
                               ~{enrichProperty(c).grossYield}%
                             </span>
                           </div>
-                          <p className="text-xs font-semibold text-gray-800 mb-0.5">
+                          <p className="text-xs font-semibold text-zinc-200 mb-0.5">
                             {getLocationSummary(c.address, c.currency_code === "GBP" ? "UK" : "US")}
                           </p>
-                          <div className="flex gap-3 text-[10px] text-gray-400 pt-2 border-t border-gray-100">
-                            {c.bedrooms  != null && <span><span className="text-gray-700 font-bold">{c.bedrooms}</span> bd</span>}
-                            {c.bathrooms != null && <span><span className="text-gray-700 font-bold">{c.bathrooms}</span> ba</span>}
-                            {c.size_sqm  != null && <span><span className="text-gray-700 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
+                          <div className="flex gap-3 text-[10px] text-zinc-500 pt-2 border-t border-border">
+                            {c.bedrooms  != null && <span><span className="text-zinc-300 font-bold">{c.bedrooms}</span> bd</span>}
+                            {c.bathrooms != null && <span><span className="text-zinc-300 font-bold">{c.bathrooms}</span> ba</span>}
+                            {c.size_sqm  != null && <span><span className="text-zinc-300 font-bold">{Number(c.size_sqm).toLocaleString()}</span> sqm</span>}
                           </div>
                         </div>
                       ))}
@@ -930,28 +930,28 @@ export default async function MarketFeedPropertyPage(
 
                     {/* Unlock overlay */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-white via-white/90 to-transparent rounded-2xl z-10 px-6 pt-16 pb-8">
-                      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg px-8 py-7 flex flex-col items-center text-center max-w-xs w-full">
-                        <div className="w-10 h-10 rounded-full bg-[#EEF3FD] flex items-center justify-center mb-3">
-                          <svg className="w-5 h-5 text-[#1B4FE4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="bg-card border border-border rounded-2xl shadow-lg px-8 py-7 flex flex-col items-center text-center max-w-xs w-full">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                           </svg>
                         </div>
-                        <p className="text-sm font-bold text-gray-900 mb-1">
+                        <p className="text-sm font-bold text-foreground mb-1">
                           {comps.length} Comparable{comps.length !== 1 ? "s" : ""} Found
                         </p>
-                        <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                        <p className="text-xs text-zinc-500 mb-5 leading-relaxed">
                           See full comparable analysis — prices, yields, specs, and direct links — available to Prime Atlas members.
                         </p>
                         <Link
                           href="/pricing"
-                          className="w-full bg-[#1B4FE4] text-white text-sm font-bold py-2.5 rounded-xl hover:bg-[#1641C0] transition-colors text-center"
+                          className="w-full bg-primary text-white text-sm font-bold py-2.5 rounded-xl hover:bg-primary/85 transition-colors text-center"
                         >
                           Become a Member
                         </Link>
                         <Link
                           href="/sign-up"
-                          className="mt-2 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                          className="mt-2 text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
                         >
                           Create free account →
                         </Link>
@@ -967,10 +967,10 @@ export default async function MarketFeedPropertyPage(
           <div className="space-y-5">
 
             {/* Conviction panel */}
-            <div className="border border-gray-200 rounded-2xl p-6 bg-white sticky top-6">
+            <div className="border border-border rounded-2xl p-6 bg-card sticky top-6">
               <div className="flex items-center gap-2 mb-5">
-                <span className="w-2 h-2 rounded-full bg-[#1B4FE4] animate-pulse flex-shrink-0" />
-                <p className="text-[10px] font-bold text-[#1B4FE4] uppercase tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0" />
+                <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
                   Prime Atlas Score
                 </p>
               </div>
@@ -981,63 +981,63 @@ export default async function MarketFeedPropertyPage(
 
               {isMember ? (
                 <div className="space-y-3 mb-5">
-                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                    <span className="text-xs text-gray-500">Strategy</span>
-                    <span className="text-xs font-bold text-gray-900">{e.strategy}</span>
+                  <div className="flex items-center justify-between py-2 border-b border-border">
+                    <span className="text-xs text-zinc-500">Strategy</span>
+                    <span className="text-xs font-bold text-foreground">{e.strategy}</span>
                   </div>
                   {isSale && (
                     <>
-                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                        <span className="text-xs text-gray-500">Est. Gross Yield</span>
+                      <div className="flex items-center justify-between py-2 border-b border-border">
+                        <span className="text-xs text-zinc-500">Est. Gross Yield</span>
                         <span className={`text-xs font-bold ${
-                          e.grossYield >= 7 ? "text-green-600" : e.grossYield >= 5 ? "text-[#1B4FE4]" : "text-amber-600"
+                          e.grossYield >= 7 ? "text-emerald-400" : e.grossYield >= 5 ? "text-primary" : "text-amber-400"
                         }`}>{e.grossYield}%</span>
                       </div>
-                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
-                        <span className="text-xs text-gray-500">5-Yr IRR (Est.)</span>
+                      <div className="flex items-center justify-between py-2 border-b border-border">
+                        <span className="text-xs text-zinc-500">5-Yr IRR (Est.)</span>
                         <span className={`text-xs font-bold ${
-                          e.irr5yr >= 12 ? "text-green-600" : e.irr5yr >= 8 ? "text-[#1B4FE4]" : "text-amber-600"
+                          e.irr5yr >= 12 ? "text-emerald-400" : e.irr5yr >= 8 ? "text-primary" : "text-amber-400"
                         }`}>{e.irr5yr > 0 ? "+" : ""}{e.irr5yr}%</span>
                       </div>
                     </>
                   )}
                   <div className="flex items-center justify-between py-2">
-                    <span className="text-xs text-gray-500">Macro</span>
+                    <span className="text-xs text-zinc-500">Macro</span>
                     <span className={`text-xs font-bold ${
-                      e.macro.sentiment === "bullish" ? "text-green-600" :
-                      e.macro.sentiment === "cautious" ? "text-amber-600" : "text-gray-500"
+                      e.macro.sentiment === "bullish" ? "text-emerald-400" :
+                      e.macro.sentiment === "cautious" ? "text-amber-400" : "text-zinc-500"
                     }`}>{e.macro.label}</span>
                   </div>
                 </div>
               ) : (
-                <div className="border border-dashed border-[#1B4FE4]/20 rounded-xl p-4 mb-5 bg-[#EEF3FD]/30 text-center">
-                  <p className="text-[10px] font-semibold text-gray-500 mb-2 leading-relaxed">
+                <div className="border border-dashed border-primary/20 rounded-xl p-4 mb-5 bg-primary/10/30 text-center">
+                  <p className="text-[10px] font-semibold text-zinc-500 mb-2 leading-relaxed">
                     Yield, IRR, macro outlook & exit projections — members only
                   </p>
-                  <Link href="/pricing" className="text-xs font-bold text-[#1B4FE4] hover:underline">
+                  <Link href="/pricing" className="text-xs font-bold text-primary hover:underline">
                     Unlock full intelligence →
                   </Link>
                 </div>
               )}
 
               {/* Agent details / contact request */}
-              <div className="border border-dashed border-gray-200 rounded-xl p-4 relative overflow-hidden">
+              <div className="border border-dashed border-border rounded-xl p-4 relative overflow-hidden">
                 {!isMember ? (
                   /* Non-member gate */
                   <div className="flex flex-col items-center text-center py-2">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mb-3">
+                      <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
-                    <p className="text-xs font-bold text-gray-700 mb-1">Members Only</p>
-                    <p className="text-[10px] text-gray-400 text-center mb-3 leading-relaxed">
+                    <p className="text-xs font-bold text-zinc-300 mb-1">Members Only</p>
+                    <p className="text-[10px] text-zinc-500 text-center mb-3 leading-relaxed">
                       Members receive the full property research report including agent contact details, investment analysis and exit projections — delivered to your inbox.
                     </p>
                     <Link
                       href="/pricing"
-                      className="bg-[#1B4FE4] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#1641C0] transition-colors"
+                      className="bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-primary/85 transition-colors"
                     >
                       Become a Member
                     </Link>
@@ -1045,10 +1045,10 @@ export default async function MarketFeedPropertyPage(
                 ) : (
                   /* Member: button + description */
                   <div>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-3">
                       Agent Details & Research Report
                     </p>
-                    <p className="text-[10px] text-gray-500 leading-relaxed mb-4">
+                    <p className="text-[10px] text-zinc-500 leading-relaxed mb-4">
                       Receive a full research report delivered to your email, including agent contact, yield analysis, exit projections, and investment thesis.
                     </p>
                     <ContactRequestButton
@@ -1062,7 +1062,7 @@ export default async function MarketFeedPropertyPage(
 
               <Link
                 href="/market-feed"
-                className="block text-center text-xs text-gray-400 hover:text-gray-700 transition-colors mt-4"
+                className="block text-center text-xs text-zinc-500 hover:text-zinc-200 transition-colors mt-4"
               >
                 ← Back to Market Feed
               </Link>

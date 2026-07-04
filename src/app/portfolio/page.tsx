@@ -52,7 +52,7 @@ export default async function PortfolioPage() {
           </p>
           <Link
             href="/pricing"
-            className="inline-block bg-pa-green text-pa-navy font-semibold text-sm px-6 py-3 rounded-lg hover:bg-pa-green/90 transition-colors"
+            className="inline-block bg-primary text-white font-semibold text-sm px-6 py-3 rounded-lg hover:bg-primary/85 transition-colors"
           >
             Upgrade to Institutional →
           </Link>
@@ -162,7 +162,7 @@ export default async function PortfolioPage() {
           </select>
           <button
             type="submit"
-            className="bg-pa-green text-pa-navy font-semibold text-sm rounded-lg px-4 py-2 hover:bg-pa-green/90 transition-colors"
+            className="bg-primary text-white font-semibold text-sm rounded-lg px-4 py-2 hover:bg-primary/85 transition-colors"
           >
             Add asset
           </button>

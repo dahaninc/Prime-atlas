@@ -5,6 +5,7 @@ import "./globals.css";
 import { PostHogProvider, PostHogPageView } from "@/components/analytics/PostHogProvider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { Toaster } from "@/components/ui/Toaster";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const newsreader = Newsreader({
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | prime-atlas",
   },
   description:
-    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 80+ markets, live underwrite, IC memo in one click. UK · US · AU · CA · ES.",
+    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 80+ markets, live underwrite, IC memo in one click. USA · UK.",
   keywords: [
     "real estate investment conviction",
     "IC memo generator real estate",
@@ -46,12 +47,12 @@ export const metadata: Metadata = {
     siteName: "prime-atlas",
     title: "prime-atlas | Real estate conviction — for every investor, at every scale.",
     description:
-      "Pre-screened pipeline across 80+ markets, live preliminary underwrite, IC memo in one click. For retail investors, developers, and institutional funds. UK · US · AU · CA · ES.",
+      "Pre-screened pipeline across 80+ markets, live preliminary underwrite, IC memo in one click. For retail investors, developers, and institutional funds. USA · UK.",
   },
   twitter: {
     card: "summary_large_image",
     title: "prime-atlas",
-    description: "Real estate conviction for every investor. Pre-screened pipeline, live underwrite, IC memo same day. 80+ markets across UK, US, AU, CA, ES.",
+    description: "Real estate conviction for every investor. Pre-screened pipeline, live underwrite, IC memo same day. 80+ markets across the USA and UK.",
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -63,7 +64,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0E1A",
+  themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -88,6 +89,7 @@ export default function RootLayout({
             {children}
           </div>
           <BottomNav />
+          <Toaster />
           <script
             dangerouslySetInnerHTML={{
               __html: `

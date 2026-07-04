@@ -59,6 +59,7 @@ export default async function MunicipalityPage({ params }: PageProps) {
     .single();
 
   if (!municipality) notFound();
+  if (!["United Kingdom", "United States"].includes(municipality.country ?? "")) notFound();
 
   const country      = municipality.country      ?? "Unknown";
   const currencyCode = municipality.currency_code ?? "EUR";
@@ -300,7 +301,7 @@ export default async function MunicipalityPage({ params }: PageProps) {
             <div className="border border-pa-green/20 rounded-xl p-4 bg-pa-green/5">
               <p className="text-sm font-semibold mb-1">Watch {municipality.name}</p>
               <p className="text-xs text-muted-foreground mb-3">Get alerts when new signals, planning applications, or infrastructure projects are detected.</p>
-              <Link href="/auth/signup" className="block text-center bg-pa-green text-pa-navy font-semibold text-xs py-2 rounded-lg hover:bg-pa-green/90 transition-colors">
+              <Link href="/auth/signup" className="block text-center bg-primary text-white font-semibold text-xs py-2 rounded-lg hover:bg-primary/85 transition-colors">
                 Start free — add to Watchlist
               </Link>
             </div>

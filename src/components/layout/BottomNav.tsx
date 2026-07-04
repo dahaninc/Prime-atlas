@@ -69,7 +69,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-border"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex items-stretch">
@@ -82,12 +82,12 @@ export function BottomNav() {
               className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[60px] transition-colors"
             >
               {active && (
-                <span className="absolute top-0 w-8 h-[2px] rounded-full bg-[#1B4FE4]" style={{ marginTop: 0 }} />
+                <span className="absolute top-0 w-8 h-[2px] rounded-full bg-primary" style={{ marginTop: 0 }} />
               )}
-              <span className={active ? "text-[#1B4FE4]" : "text-gray-400"}>
+              <span className={active ? "text-primary" : "text-zinc-500"}>
                 <Icon active={active} />
               </span>
-              <span className={`text-[9px] font-semibold tracking-wide ${active ? "text-[#1B4FE4]" : "text-gray-400"}`}>
+              <span className={`text-[9px] font-semibold tracking-wide ${active ? "text-primary" : "text-zinc-500"}`}>
                 {label}
               </span>
             </Link>

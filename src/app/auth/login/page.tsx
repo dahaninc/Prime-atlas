@@ -23,7 +23,7 @@ export default async function LoginPage({
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <span className="text-pa-green font-mono font-bold text-xl tracking-tight">prime-atlas</span>
+            <span className="text-primary font-mono font-bold text-xl tracking-tight">prime-atlas</span>
           </Link>
           <p className="text-muted-foreground text-sm mt-2">Sign in to your account</p>
         </div>
@@ -38,7 +38,7 @@ export default async function LoginPage({
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/signup" className="text-pa-green hover:underline">
+          <Link href="/auth/signup" className="text-primary hover:underline">
             Get started free
           </Link>
         </p>

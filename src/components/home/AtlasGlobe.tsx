@@ -82,13 +82,13 @@ export function AtlasGlobe({ marketCount = 80 }: AtlasGlobeProps) {
             <circle cx="250" cy="250" r="218" />
           </clipPath>
           <radialGradient id="gg" cx="38%" cy="32%" r="68%">
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="100%" stopColor="#EAEAE0" />
+            <stop offset="0%" stopColor="#1c1c1f" />
+            <stop offset="100%" stopColor="#0f0f11" />
           </radialGradient>
         </defs>
 
         {/* Drop shadow */}
-        <ellipse cx="253" cy="258" rx="214" ry="214" fill="rgba(0,0,0,0.07)" />
+        <ellipse cx="253" cy="258" rx="214" ry="214" fill="rgba(0,0,0,0.5)" />
 
         {/* Globe sphere */}
         <circle cx="250" cy="250" r="218" fill="url(#gg)" />
@@ -97,7 +97,7 @@ export function AtlasGlobe({ marketCount = 80 }: AtlasGlobeProps) {
         <g clipPath="url(#gc)">
 
           {/* Graticule */}
-          <g stroke="#C5C6B8" strokeWidth="0.7" fill="none" opacity="0.6">
+          <g stroke="#2a2a30" strokeWidth="0.7" fill="none" opacity="0.6">
             <line x1="32"  y1="130" x2="468" y2="130" />
             <line x1="32"  y1="178" x2="468" y2="178" />
             <line x1="32"  y1="250" x2="468" y2="250" />
@@ -111,7 +111,7 @@ export function AtlasGlobe({ marketCount = 80 }: AtlasGlobeProps) {
           </g>
 
           {/* Neutral landmasses */}
-          <g fill="#D2D1C1" opacity="0.75">
+          <g fill="#26262c" opacity="0.75">
             {NEUTRAL_LAND.map((d, i) => (
               <path key={i} d={d} />
             ))}
@@ -122,16 +122,16 @@ export function AtlasGlobe({ marketCount = 80 }: AtlasGlobeProps) {
           <path d={UK_PATH}  fill="#00C805" opacity="0.22" stroke="#00A804" strokeWidth="1.3" />
 
           {/* Country labels */}
-          <text x="122" y="182" fontSize="13" fontWeight="800" letterSpacing="2.5" fill="#3E4A3E" opacity="0.85" fontFamily="ui-sans-serif, system-ui">USA</text>
-          <text x="274" y="134" fontSize="11" fontWeight="800" letterSpacing="2" fill="#3E4A3E" opacity="0.85" fontFamily="ui-sans-serif, system-ui">UK</text>
-          <line x1="271" y1="139" x2="265" y2="142" stroke="#3E4A3E" strokeWidth="0.8" opacity="0.5" />
+          <text x="122" y="182" fontSize="13" fontWeight="800" letterSpacing="2.5" fill="#a1a1aa" opacity="0.85" fontFamily="ui-sans-serif, system-ui">USA</text>
+          <text x="274" y="134" fontSize="11" fontWeight="800" letterSpacing="2" fill="#a1a1aa" opacity="0.85" fontFamily="ui-sans-serif, system-ui">UK</text>
+          <line x1="271" y1="139" x2="265" y2="142" stroke="#a1a1aa" strokeWidth="0.8" opacity="0.5" />
 
           {/* Subtle sphere highlight */}
           <circle cx="200" cy="180" r="120" fill="white" opacity="0.07" />
         </g>
 
         {/* Globe border */}
-        <circle cx="250" cy="250" r="218" fill="none" stroke="#D5D6CA" strokeWidth="1.5" />
+        <circle cx="250" cy="250" r="218" fill="none" stroke="#2f2f36" strokeWidth="1.5" />
 
         {/* ── Secondary market dots ── */}
         {DOT_CITIES.map((c) => (
@@ -158,28 +158,28 @@ export function AtlasGlobe({ marketCount = 80 }: AtlasGlobeProps) {
       {/* ── Floating score cards ── */}
 
       {/* London — upper right */}
-      <div className="absolute top-[14%] right-[2%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">LONDON · UK</p>
-        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">87</p>
+      <div className="absolute top-[14%] right-[2%] glass-panel rounded-2xl px-4 py-3 shadow-md">
+        <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest">LONDON · UK</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-foreground leading-none mt-0.5">87</p>
         <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ High conviction</p>
       </div>
 
       {/* New York — left middle */}
-      <div className="absolute top-[38%] -left-[4%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">NEW YORK · US</p>
-        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">83</p>
+      <div className="absolute top-[38%] -left-[4%] glass-panel rounded-2xl px-4 py-3 shadow-md">
+        <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest">NEW YORK · US</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-foreground leading-none mt-0.5">83</p>
         <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ Growing fast</p>
       </div>
 
       {/* Manchester — lower right */}
-      <div className="absolute bottom-[18%] right-[4%] bg-white/96 border border-black/[0.07] rounded-2xl px-4 py-3 shadow-md">
-        <p className="text-[9px] font-semibold text-black/40 uppercase tracking-widest">MANCHESTER · UK</p>
-        <p className="text-3xl font-black tracking-tight tabular-nums text-black leading-none mt-0.5">78</p>
+      <div className="absolute bottom-[18%] right-[4%] glass-panel rounded-2xl px-4 py-3 shadow-md">
+        <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-widest">MANCHESTER · UK</p>
+        <p className="text-3xl font-black tracking-tight tabular-nums text-foreground leading-none mt-0.5">78</p>
         <p className="text-[9px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#00C805" }}>↑ BTR pipeline</p>
       </div>
 
       {/* Market count badge — live from DB */}
-      <div className="absolute bottom-[5%] left-[12%] bg-black text-white rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wide flex items-center gap-2 font-sans shadow-lg">
+      <div className="absolute bottom-[5%] left-[12%] bg-secondary border border-border text-foreground rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wide flex items-center gap-2 font-sans shadow-lg">
         <span className="w-1.5 h-1.5 rounded-full bg-[#00C805] animate-pulse flex-shrink-0" />
         {marketCount} markets · 🇺🇸 USA &amp; 🇬🇧 UK
       </div>

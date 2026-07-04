@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 const ADMIN_EMAILS = ["alpha.richie@outlook.com", "admin@prime-atlas.io"];
 
 const TIER_COLORS: Record<string, string> = {
-  institutional: "text-green-700 bg-green-50 border-green-200",
-  professional:  "text-blue-700 bg-blue-50 border-blue-200",
-  explorer:      "text-purple-700 bg-purple-50 border-purple-200",
-  free:          "text-gray-500 bg-gray-50 border-gray-200",
+  institutional: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
+  professional:  "text-primary bg-primary/10 border-primary/25",
+  explorer:      "text-purple-400 bg-purple-500/10 border-purple-500/25",
+  free:          "text-zinc-500 bg-background border-border",
 };
 
 export default async function AdminDashboardPage() {
@@ -71,23 +71,23 @@ export default async function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F1A] text-gray-200">
+    <div className="min-h-screen bg-background text-zinc-700">
 
       {/* Nav */}
-      <nav className="border-b border-[#1E2D40] bg-[#0B0F1A]/95 backdrop-blur sticky top-0 z-20">
+      <nav className="border-b border-[#1E2D40] bg-background/95 backdrop-blur sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="font-mono text-xs text-[#4A9EFF] tracking-widest uppercase font-bold">
               PRIME ATLAS
             </Link>
             <span className="text-[#1E2D40]">|</span>
-            <span className="text-xs text-gray-400 font-mono uppercase tracking-widest">Admin</span>
+            <span className="text-xs text-zinc-500 font-mono uppercase tracking-widest">Admin</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/admin/scrapers" className="text-xs text-gray-400 hover:text-[#4A9EFF] transition-colors">
+            <Link href="/admin/scrapers" className="text-xs text-zinc-500 hover:text-[#4A9EFF] transition-colors">
               Scraper Health →
             </Link>
-            <span className="text-[9px] text-gray-600 font-mono">{user.email}</span>
+            <span className="text-[9px] text-zinc-400 font-mono">{user.email}</span>
           </div>
         </div>
       </nav>
@@ -114,7 +114,7 @@ export default async function AdminDashboardPage() {
           ].map(s => (
             <div key={s.label} className="border border-[#1E2D40] rounded-xl p-4 bg-[#0D1221] text-center">
               <p className={`text-2xl font-bold font-mono ${s.color}`}>{s.value}</p>
-              <p className="text-[9px] text-gray-500 mt-1 uppercase tracking-widest">{s.label}</p>
+              <p className="text-[9px] text-zinc-500 mt-1 uppercase tracking-widest">{s.label}</p>
             </div>
           ))}
         </div>
@@ -125,7 +125,7 @@ export default async function AdminDashboardPage() {
           {/* Table header */}
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] px-4 py-3 border-b border-[#1E2D40] bg-[#0D1221]">
             {["Email", "Tier", "Joined", "Last sign-in", "Status"].map(h => (
-              <span key={h} className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{h}</span>
+              <span key={h} className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{h}</span>
             ))}
           </div>
 
@@ -134,13 +134,13 @@ export default async function AdminDashboardPage() {
             <div
               key={u.id}
               className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr] px-4 py-3 border-b border-[#1A2535] items-center ${
-                i % 2 === 0 ? "bg-[#0B0F1A]" : "bg-[#0D1221]/50"
+                i % 2 === 0 ? "bg-background" : "bg-[#0D1221]/50"
               }`}
             >
               {/* Email */}
               <div>
                 <p className="text-sm text-white font-mono">{u.email}</p>
-                <p className="text-[9px] text-gray-600 mt-0.5 font-mono">{u.id.slice(0, 8)}…</p>
+                <p className="text-[9px] text-zinc-400 mt-0.5 font-mono">{u.id.slice(0, 8)}…</p>
               </div>
 
               {/* Tier badge */}
@@ -151,34 +151,34 @@ export default async function AdminDashboardPage() {
               </div>
 
               {/* Joined */}
-              <span className="text-xs text-gray-400 font-mono">{fmt(u.created_at)}</span>
+              <span className="text-xs text-zinc-500 font-mono">{fmt(u.created_at)}</span>
 
               {/* Last sign-in */}
-              <span className="text-xs text-gray-400 font-mono">{fmt(u.last_sign_in)}</span>
+              <span className="text-xs text-zinc-500 font-mono">{fmt(u.last_sign_in)}</span>
 
               {/* Status */}
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${u.confirmed ? "bg-emerald-400" : "bg-amber-400"}`} />
-                <span className="text-[10px] text-gray-500">{u.confirmed ? "Confirmed" : "Pending"}</span>
+                <span className="text-[10px] text-zinc-500">{u.confirmed ? "Confirmed" : "Pending"}</span>
               </div>
             </div>
           ))}
 
           {users.length === 0 && (
-            <div className="px-4 py-10 text-center text-gray-500 text-sm">No users found</div>
+            <div className="px-4 py-10 text-center text-zinc-500 text-sm">No users found</div>
           )}
         </div>
 
         {/* Tier upgrade note */}
         <div className="mt-6 border border-[#1E2D40] rounded-xl p-4 bg-[#0D1221]">
-          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
             To change a user&apos;s subscription tier
           </p>
-          <p className="text-xs text-gray-400 font-mono">
+          <p className="text-xs text-zinc-500 font-mono">
             UPDATE profiles SET subscription_tier = &apos;institutional&apos; WHERE id = &apos;&lt;user-id&gt;&apos;;
           </p>
-          <p className="text-[10px] text-gray-600 mt-2">
-            Valid tiers: <span className="text-emerald-400">institutional</span> · <span className="text-blue-400">professional</span> · <span className="text-purple-400">explorer</span> · <span className="text-gray-400">free</span>
+          <p className="text-[10px] text-zinc-400 mt-2">
+            Valid tiers: <span className="text-emerald-400">institutional</span> · <span className="text-blue-400">professional</span> · <span className="text-purple-400">explorer</span> · <span className="text-zinc-500">free</span>
           </p>
         </div>
 

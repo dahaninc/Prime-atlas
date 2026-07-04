@@ -88,7 +88,7 @@ export function ThesisStream({
         )}
         <button
           onClick={() => { setStarted(true); generate(); }}
-          className="flex items-center gap-2 text-xs border border-pa-green/30 bg-pa-green/5 text-pa-green px-4 py-2 rounded-lg hover:bg-pa-green/10 transition-colors"
+          className="flex items-center gap-2 text-xs border border-primary/30 bg-primary/5 text-primary px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -103,13 +103,11 @@ export function ThesisStream({
     <div>
       {/* Loading state */}
       {loading && !thesis && (
-        <div className="flex items-center gap-3 py-4">
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="w-1.5 h-1.5 rounded-full bg-pa-green animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-            ))}
-          </div>
-          <span className="text-xs text-muted-foreground">Claude is analysing the opportunity…</span>
+        <div className="py-2 space-y-2.5" role="status" aria-label="Generating thesis">
+          <div className="skeleton h-3.5 w-full" />
+          <div className="skeleton h-3.5 w-11/12" />
+          <div className="skeleton h-3.5 w-4/5" />
+          <p className="text-xs text-muted-foreground pt-1.5">Claude is analysing the opportunity…</p>
         </div>
       )}
 
@@ -134,7 +132,7 @@ export function ThesisStream({
             return <p key={i} className="text-sm text-muted-foreground leading-relaxed mb-3">{para}</p>;
           })}
           {loading && (
-            <span className="inline-block w-0.5 h-4 bg-pa-green animate-pulse ml-0.5" />
+            <span className="inline-block w-0.5 h-4 bg-primary animate-pulse ml-0.5" />
           )}
         </div>
       )}

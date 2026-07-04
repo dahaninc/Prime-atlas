@@ -60,9 +60,9 @@ const config: Config = {
         "rh-hover":  "#27272A",   // hover surface
         // Text
         "rh-muted":  "#A1A1AA",   // secondary text / fine print
-        // Legacy aliases (backward compat)
-        "pa-blue":   "#1B4FE4",
-        "pa-blue-50":"#EEF3FD",
+        // Legacy aliases (backward compat) — pa-blue now tracks Prime Blue
+        "pa-blue":   "#2563eb",
+        "pa-blue-50":"#101a33",   // dark-canvas blue tint (was light #EEF3FD)
         "pa-navy":   "#0F172A",
         "pa-navy-800":"#1E293B",
         "pa-navy-700":"#334155",

@@ -105,7 +105,7 @@ export default function UpdatePasswordPage() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
           <div className="mb-8">
-            <Link href="/" className="text-pa-green font-mono font-bold text-xl tracking-tight">
+            <Link href="/" className="text-primary font-mono font-bold text-xl tracking-tight">
               prime-atlas
             </Link>
           </div>
@@ -121,7 +121,7 @@ export default function UpdatePasswordPage() {
             </p>
             <Link
               href="/auth/reset-password"
-              className="inline-block bg-pa-green text-pa-navy font-semibold px-5 py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors text-sm"
+              className="inline-block bg-primary text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-primary/85 transition-colors text-sm"
             >
               Request new reset link
             </Link>
@@ -137,7 +137,7 @@ export default function UpdatePasswordPage() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-sm text-center">
           <div className="mb-8">
-            <Link href="/" className="text-pa-green font-mono font-bold text-xl tracking-tight">
+            <Link href="/" className="text-primary font-mono font-bold text-xl tracking-tight">
               prime-atlas
             </Link>
           </div>
@@ -162,7 +162,7 @@ export default function UpdatePasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link href="/" className="text-pa-green font-mono font-bold text-xl tracking-tight">
+          <Link href="/" className="text-primary font-mono font-bold text-xl tracking-tight">
             prime-atlas
           </Link>
         </div>
@@ -228,9 +228,9 @@ export default function UpdatePasswordPage() {
             <button
               type="submit"
               disabled={loading || pwStrength < 2}
-              className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading && <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
+              {loading && <span className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />}
               Update password
             </button>
           </form>

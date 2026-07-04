@@ -160,7 +160,7 @@ export function WatchlistsClient({ initialWatchlists, municipalities, preAddMuni
             className="flex-1 bg-secondary border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pa-green/50"
           />
           <button onClick={handleCreate} disabled={isPending}
-            className="bg-pa-green text-pa-navy font-semibold text-sm px-4 py-2 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60">
+            className="bg-primary text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60">
             Create
           </button>
           <button onClick={() => setShowCreate(false)}
@@ -182,7 +182,7 @@ export function WatchlistsClient({ initialWatchlists, municipalities, preAddMuni
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAddMuni(true)}
-                className="text-xs bg-pa-green text-pa-navy font-semibold px-3 py-1.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+                className="text-xs bg-primary text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-primary/85 transition-colors"
               >
                 + Add municipality
               </button>

@@ -72,7 +72,7 @@ export function CapitalClient() {
           </p>
           <div className="flex items-center gap-4">
             <a href="#enquiry"
-              className="bg-pa-green text-pa-navy font-bold px-6 py-3 rounded-lg hover:bg-pa-green/90 transition-colors">
+              className="bg-primary text-white font-bold px-6 py-3 rounded-lg hover:bg-primary/85 transition-colors">
               Submit investment mandate →
             </a>
             <Link href="/opportunities/finder"
@@ -219,9 +219,9 @@ export function CapitalClient() {
               )}
 
               <button type="submit" disabled={state === "loading"}
-                className="w-full bg-pa-green text-pa-navy font-bold py-3 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
                 {state === "loading" && (
-                  <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />
                 )}
                 Submit mandate
               </button>

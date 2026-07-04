@@ -52,6 +52,7 @@ interface NavbarProps {
 // ─── Left sidebar ─────────────────────────────────────────────────────────────
 
 function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const pathname = usePathname();
   return (
     <>
       {/* Backdrop */}
@@ -64,16 +65,16 @@ function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) 
 
       {/* Panel */}
       <div
-        className={`fixed top-0 left-0 bottom-0 z-[56] w-72 bg-white border-r border-gray-200 flex flex-col
+        className={`fixed top-0 left-0 bottom-0 z-[56] w-72 bg-card border-r border-border flex flex-col
           transition-transform duration-200 ease-out
           ${open ? "translate-x-0" : "-translate-x-full"}
         `}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 h-14 border-b border-gray-200 shrink-0">
-          <span className="text-[#1B4FE4] font-bold text-sm tracking-tight">prime-atlas</span>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors p-1">
+        <div className="flex items-center justify-between px-5 h-14 border-b border-border shrink-0">
+          <span className="text-primary font-bold text-sm tracking-tight">prime-atlas</span>
+          <button onClick={onClose} className="text-zinc-500 hover:text-foreground transition-colors p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -85,17 +86,17 @@ function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) 
 
           {/* Markets */}
           <section>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">Markets</p>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">Markets</p>
             {MARKETS.map((mkt) => (
               <Link
                 key={mkt.code}
                 href={`/opportunities/${mkt.cities[0].slug}`}
                 onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-foreground hover:bg-secondary transition-colors"
               >
                 <span className="text-base w-6 text-center">{mkt.flag}</span>
                 {mkt.label}
-                <svg className="w-3.5 h-3.5 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-zinc-500 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
@@ -104,9 +105,9 @@ function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) 
 
           {/* Platform */}
           <section>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">Platform</p>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">Platform</p>
             {[
-              { label: "Live Listings",  href: "/listings",    dot: "#1B4FE4" },
+              { label: "Live Listings",  href: "/listings",    dot: "#2563eb" },
               { label: "Market Feed",    href: "/market-feed", dot: "#3b82f6" },
               { label: "Deal Board",     href: "/deal-board",  dot: null      },
             ].map(({ label, href, dot }) => (
@@ -114,12 +115,17 @@ function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) 
                 key={href}
                 href={href}
                 onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                  pathname.startsWith(href)
+                    ? "text-foreground bg-secondary active-glow"
+                    : "text-zinc-400 hover:text-foreground hover:bg-secondary"
+                )}
               >
                 {dot ? (
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dot }} />
                 ) : (
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-700 shrink-0" />
                 )}
                 {label}
               </Link>
@@ -128,15 +134,15 @@ function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) 
 
           {/* Opportunities */}
           <section>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest px-3 mb-2">By Category</p>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">By Category</p>
             {CATEGORIES.map((cat) => (
               <Link
                 key={cat.href}
                 href={cat.href}
                 onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-[#1B4FE4] hover:bg-[#EEF3FD] transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-primary hover:bg-primary/10 transition-colors"
               >
-                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-zinc-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
                 {cat.label}
@@ -169,11 +175,11 @@ function MarketsDropdown({ open, onClose }: { open: boolean; onClose: () => void
   return (
     <div
       ref={ref}
-      className="absolute top-full left-0 mt-2 w-[820px] bg-white rounded-2xl shadow-xl border border-gray-200 p-6 grid grid-cols-5 gap-4 z-50"
+      className="absolute top-full left-0 mt-2 w-[820px] glass-panel rounded-2xl p-6 grid grid-cols-5 gap-4 z-50"
     >
       {MARKETS.map((mkt) => (
         <div key={mkt.code}>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
             <span>{mkt.flag}</span>{mkt.label}
           </p>
           <div className="space-y-0.5">
@@ -182,7 +188,7 @@ function MarketsDropdown({ open, onClose }: { open: boolean; onClose: () => void
                 key={c.slug}
                 href={`/opportunities/${c.slug}`}
                 onClick={onClose}
-                className="block text-xs text-gray-600 hover:text-[#1B4FE4] px-2 py-1.5 rounded-lg hover:bg-[#EEF3FD] transition-all duration-100"
+                className="block text-xs text-zinc-400 hover:text-primary px-2 py-1.5 rounded-lg hover:bg-primary/10 transition-all duration-100"
               >
                 {c.name}
               </Link>
@@ -224,19 +230,19 @@ function AccountMenu({ email }: { email?: string }) {
         className="flex items-center gap-2 group"
         aria-label="Account menu"
       >
-        <span className="w-8 h-8 rounded-full bg-[#1B4FE4] text-white text-sm font-bold flex items-center justify-center">
+        <span className="w-8 h-8 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">
           {initial}
         </span>
-        <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Signed in</p>
-            <p className="text-sm text-gray-900 font-medium truncate">{email}</p>
+        <div className="absolute right-0 mt-2 w-64 glass-panel rounded-xl overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Signed in</p>
+            <p className="text-sm text-foreground font-medium truncate">{email}</p>
           </div>
           <div className="py-1">
             {ACCOUNT_LINKS.map((l) => (
@@ -244,15 +250,15 @@ function AccountMenu({ email }: { email?: string }) {
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="flex flex-col px-4 py-2 hover:bg-gray-50 transition-colors"
+                className="flex flex-col px-4 py-2 hover:bg-secondary transition-colors"
               >
-                <span className="text-sm font-medium text-gray-900">{l.label}</span>
-                <span className="text-[11px] text-gray-400">{l.desc}</span>
+                <span className="text-sm font-medium text-foreground">{l.label}</span>
+                <span className="text-[11px] text-zinc-500">{l.desc}</span>
               </Link>
             ))}
           </div>
-          <form action="/auth/signout" method="post" className="border-t border-gray-100">
-            <button type="submit" className="w-full text-left px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+          <form action="/auth/signout" method="post" className="border-t border-border">
+            <button type="submit" className="w-full text-left px-4 py-2.5 text-sm text-zinc-500 hover:bg-secondary hover:text-foreground transition-colors">
               Sign out
             </button>
           </form>
@@ -291,7 +297,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
       href={href}
       className={cn(
         "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-100",
-        pathname.startsWith(href) ? "text-[#1B4FE4] bg-[#EEF3FD]" : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+        pathname.startsWith(href) ? "text-primary bg-primary/10" : "text-zinc-400 hover:text-foreground hover:bg-secondary"
       )}
     >
       {label}
@@ -301,13 +307,13 @@ export function Navbar({ user: initialUser }: NavbarProps) {
   return (
     <>
       {/* ── Nav bar ── */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <nav className="sticky top-0 z-50 glass border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-3">
 
           {/* LEFT: Hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 -ml-1 text-gray-500 hover:text-gray-900 transition-colors shrink-0"
+            className="p-1.5 -ml-1 text-zinc-500 hover:text-foreground transition-colors shrink-0"
             aria-label="Open navigation"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,7 +323,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="text-[#1B4FE4] font-bold text-[15px] tracking-tight">prime-atlas</span>
+            <span className="text-primary font-bold text-[15px] tracking-tight">prime-atlas</span>
           </Link>
 
           {/* ── Desktop center links ── */}
@@ -328,8 +334,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 className={cn(
                   "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-100",
                   marketsOpen || pathname.startsWith("/opportunities")
-                    ? "text-[#1B4FE4] bg-[#EEF3FD]"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    ? "text-primary bg-primary/10"
+                    : "text-zinc-400 hover:text-foreground hover:bg-secondary"
                 )}
               >
                 Markets
@@ -351,8 +357,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               <AccountMenu email={user.email} />
             ) : (
               <>
-                <Link href="/auth/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Log in</Link>
-                <Link href="/auth/signup" className="bg-[#1B4FE4] text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-[#1641C0] transition-colors">
+                <Link href="/auth/login" className="text-sm text-zinc-400 hover:text-foreground transition-colors">Log in</Link>
+                <Link href="/auth/signup" className="bg-primary text-white text-sm font-semibold px-4 py-1.5 rounded-lg hover:bg-primary/85 transition-colors">
                   Get started
                 </Link>
               </>
@@ -362,11 +368,11 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           {/* ── Mobile right ── */}
           <div className="md:hidden flex items-center gap-2 ml-auto">
             {!user && (
-              <Link href="/auth/signup" className="text-xs font-semibold bg-[#1B4FE4] text-white px-3 py-1.5 rounded-lg">
+              <Link href="/auth/signup" className="text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg">
                 Get started
               </Link>
             )}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-1.5 text-gray-500 hover:text-gray-900 transition-colors" aria-label="Menu">
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-1.5 text-zinc-500 hover:text-foreground transition-colors" aria-label="Menu">
               {mobileMenuOpen ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               ) : (
@@ -383,7 +389,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
       {/* ── Mobile full-screen menu ── */}
       <div
         className={cn(
-          "md:hidden fixed inset-0 z-40 bg-white transition-opacity duration-200",
+          "md:hidden fixed inset-0 z-40 bg-background transition-opacity duration-200",
           mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
         style={{ top: "56px" }}
@@ -391,7 +397,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
         <div className="overflow-y-auto h-full pb-36 px-5 pt-8 space-y-10">
 
           <section>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Navigate</p>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Navigate</p>
             <div className="space-y-1">
               {[
                 { href: "/",            label: "Home"      },
@@ -405,11 +411,11 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                   onClick={closeMobile}
                   className={cn(
                     "flex items-center justify-between px-4 py-4 rounded-2xl text-base font-semibold transition-colors",
-                    pathname === href ? "text-[#1B4FE4] bg-[#EEF3FD]" : "text-gray-900 hover:bg-gray-100"
+                    pathname === href ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary"
                   )}
                 >
                   {label}
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                   </svg>
                 </Link>
@@ -418,20 +424,20 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           </section>
 
           <section>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Markets</p>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Markets</p>
             <div className="space-y-1">
               {MARKETS.map((mkt) => (
                 <div key={mkt.code}>
                   <button
                     onClick={() => setOpenCountry(openCountry === mkt.code ? null : mkt.code)}
-                    className="w-full flex items-center justify-between px-4 py-4 rounded-2xl text-base font-medium text-gray-900 hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-4 rounded-2xl text-base font-medium text-foreground hover:bg-secondary transition-colors"
                   >
                     <span className="flex items-center gap-3">
                       <span className="text-lg">{mkt.flag}</span>
                       {mkt.label}
                     </span>
                     <svg
-                      className={cn("w-4 h-4 text-gray-400 transition-transform duration-150", openCountry === mkt.code && "rotate-180")}
+                      className={cn("w-4 h-4 text-zinc-500 transition-transform duration-150", openCountry === mkt.code && "rotate-180")}
                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -444,7 +450,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                           key={c.slug}
                           href={`/opportunities/${c.slug}`}
                           onClick={closeMobile}
-                          className="px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-[#1B4FE4] hover:bg-[#EEF3FD] transition-colors"
+                          className="px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-primary hover:bg-primary/10 transition-colors"
                         >
                           {c.name}
                         </Link>
@@ -457,14 +463,14 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           </section>
 
           <section>
-            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">By Category</p>
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-4">By Category</p>
             <div className="grid grid-cols-2 gap-1">
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.href}
                   href={cat.href}
                   onClick={closeMobile}
-                  className="px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:text-[#1B4FE4] hover:bg-[#EEF3FD] transition-colors"
+                  className="px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:text-primary hover:bg-primary/10 transition-colors"
                 >
                   {cat.label}
                 </Link>
@@ -474,7 +480,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
           {user ? (
             <section className="pt-2">
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Your workspace</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Your workspace</p>
               <div className="space-y-1 mb-4">
                 {ACCOUNT_LINKS.map((l) => (
                   <Link
@@ -483,29 +489,29 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                     onClick={closeMobile}
                     className={cn(
                       "flex items-center justify-between px-4 py-3.5 rounded-2xl text-base font-semibold transition-colors",
-                      pathname === l.href ? "text-[#1B4FE4] bg-[#EEF3FD]" : "text-gray-900 hover:bg-gray-100"
+                      pathname === l.href ? "text-primary bg-primary/10" : "text-foreground hover:bg-secondary"
                     )}
                   >
                     {l.label}
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 px-1 mb-3">{user.email}</p>
+              <p className="text-xs text-zinc-500 px-1 mb-3">{user.email}</p>
               <form action="/auth/signout" method="post">
-                <button type="submit" className="w-full text-left px-4 py-4 rounded-2xl text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors">
+                <button type="submit" className="w-full text-left px-4 py-4 rounded-2xl text-sm font-medium text-zinc-500 hover:bg-secondary transition-colors">
                   Sign out
                 </button>
               </form>
             </section>
           ) : (
             <section className="flex flex-col gap-3">
-              <Link href="/auth/login" onClick={closeMobile} className="px-4 py-4 rounded-2xl text-base font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+              <Link href="/auth/login" onClick={closeMobile} className="px-4 py-4 rounded-2xl text-base font-medium text-zinc-400 hover:bg-secondary transition-colors">
                 Log in
               </Link>
-              <Link href="/auth/signup" onClick={closeMobile} className="px-4 py-4 rounded-lg text-base font-semibold bg-[#1B4FE4] text-white text-center hover:bg-[#1641C0] transition-colors">
+              <Link href="/auth/signup" onClick={closeMobile} className="px-4 py-4 rounded-lg text-base font-semibold bg-primary text-white text-center hover:bg-primary/85 transition-colors">
                 Get started — free
               </Link>
             </section>

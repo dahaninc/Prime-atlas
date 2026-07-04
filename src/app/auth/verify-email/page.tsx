@@ -22,7 +22,7 @@ export default function VerifyEmailPage({
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <Link href="/" className="text-pa-green font-mono font-bold text-xl tracking-tight">
+          <Link href="/" className="text-primary font-mono font-bold text-xl tracking-tight">
             prime-atlas
           </Link>
         </div>
@@ -62,7 +62,7 @@ export default function VerifyEmailPage({
           <div className="space-y-3">
             <Link
               href="/auth/login"
-              className="block w-full text-center bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors text-sm"
+              className="block w-full text-center bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary/85 transition-colors text-sm"
             >
               Back to sign in
             </Link>

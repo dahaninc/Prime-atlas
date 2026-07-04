@@ -36,36 +36,36 @@ const OUTCOMES = [
     statSub: "avg. gross yield",
     body: "Prime Atlas-screened deals averaged 6.8% gross yield — 1.4× the national residential average across USA and UK markets.",
     tag: "Returns",
-    color: "text-green-600",
-    bg: "bg-green-50",
-    border: "border-green-100",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/25",
   },
   {
     stat: "3×",
     statSub: "more deals closed",
     body: "Investors who screened with Prime Atlas first closed 3× more deals in the same quarter — same markets, same capital, faster conviction.",
     tag: "Deal volume",
-    color: "text-[#1B4FE4]",
-    bg: "bg-[#EEF3FD]",
-    border: "border-[#1B4FE4]/10",
+    color: "text-primary",
+    bg: "bg-primary/10",
+    border: "border-primary/10",
   },
   {
     stat: "$430K",
     statSub: "avg. deal value",
     body: "Average deal value across the Prime Atlas platform — from single-unit BTR to multi-site commercial acquisitions.",
     tag: "Deal size",
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    border: "border-purple-100",
+    color: "text-purple-400",
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/25",
   },
   {
     stat: "92%",
     statSub: "market outperformance",
     body: "92% of markets given a High Conviction score by Prime Atlas outperformed the benchmark index over the subsequent 12 months.",
     tag: "Accuracy",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-100",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/25",
   },
 ];
 
@@ -97,8 +97,8 @@ const AUDIENCES = [
       "Go/no-go conviction before the $70K diligence commitment",
     ],
     cta: { label: "Open Deal Board", href: "/deal-board" },
-    tagColor: "text-blue-600",
-    checkColor: "text-blue-600",
+    tagColor: "text-primary",
+    checkColor: "text-primary",
   },
   {
     tag: "Funds & institutions",
@@ -112,8 +112,8 @@ const AUDIENCES = [
       "Multi-market pipeline ranked by ROI index for allocation decisions",
     ],
     cta: { label: "Book institutional access", href: "/auth/signup?tier=institutional" },
-    tagColor: "text-purple-600",
-    checkColor: "text-purple-600",
+    tagColor: "text-purple-400",
+    checkColor: "text-purple-400",
   },
 ] as const;
 
@@ -240,12 +240,14 @@ export default async function HomePage() {
       .limit(6),
     supabase
       .from("signals")
-      .select("id, title, signal_type, opportunity_impact, detected_at, municipalities(name, country)")
+      .select("id, title, signal_type, opportunity_impact, detected_at, municipalities!inner(name, country)")
+      .in("municipalities.country", ["United Kingdom", "United States"])
       .order("detected_at", { ascending: false })
       .limit(3),
     supabase
       .from("opportunities")
-      .select("id, title, category, opportunity_score, risk_level, municipalities(name, country, slug)")
+      .select("id, title, category, opportunity_score, risk_level, municipalities!inner(name, country, slug)")
+      .in("municipalities.country", ["United Kingdom", "United States"])
       .eq("status", "active")
       .order("opportunity_score", { ascending: false })
       .limit(4),
@@ -279,13 +281,13 @@ export default async function HomePage() {
 
         {/* ══ HERO ══ */}
         <section
-          className="relative overflow-hidden"
-          style={{ background: "#F5F5EF", minHeight: "calc(100vh - 64px)" }}
+          className="relative overflow-hidden bg-background"
+          style={{ minHeight: "calc(100vh - 64px)" }}
         >
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.025]"
+            className="pointer-events-none absolute inset-0 opacity-[0.05]"
             style={{
-              backgroundImage: "radial-gradient(circle, #5A5A4A 1px, transparent 1px)",
+              backgroundImage: "radial-gradient(circle, #71717a 1px, transparent 1px)",
               backgroundSize: "32px 32px",
             }}
           />
@@ -293,24 +295,24 @@ export default async function HomePage() {
             <div className="order-2 lg:order-1 z-10">
               {/* Kicker */}
               <div className="flex items-center gap-2 mb-7">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#1B4FE4] animate-pulse flex-shrink-0" />
-                <span className="text-[11px] font-bold text-black/40 uppercase tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
+                <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
                   Investment Intelligence · USA + UK
                 </span>
               </div>
 
               {/* Headline */}
-              <h1 className="font-serif text-[clamp(2.6rem,5.5vw,4.2rem)] font-bold leading-[1.04] tracking-[-0.02em] text-black mb-6 max-w-[540px] text-balance">
+              <h1 className="font-serif text-[clamp(2.6rem,5.5vw,4.2rem)] font-bold leading-[1.04] tracking-[-0.02em] text-foreground mb-6 max-w-[540px] text-balance">
                 Investment conviction.{" "}
                 <span className="italic font-semibold">Before the window closes.</span>
               </h1>
 
               {/* Subtext */}
-              <p className="text-base sm:text-lg text-black/55 max-w-[480px] mb-3 leading-relaxed text-pretty">
+              <p className="text-base sm:text-lg text-zinc-400 max-w-[480px] mb-3 leading-relaxed text-pretty">
                 80+ pre-screened markets across USA and UK, ranked by ROI Feasibility Index.
                 Run a live underwrite and export a committee-ready IC memo — on the day the deal arrives.
               </p>
-              <p className="text-sm text-black/40 max-w-[420px] mb-8 leading-relaxed">
+              <p className="text-sm text-zinc-500 max-w-[420px] mb-8 leading-relaxed">
                 Prime Atlas proprietary intelligence — built to hold up in your investment committee.
               </p>
 
@@ -318,13 +320,13 @@ export default async function HomePage() {
               <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <Link
                   href="/deal-board"
-                  className="inline-flex items-center justify-center bg-[#1B4FE4] text-white font-bold px-8 py-3.5 rounded-full hover:bg-[#1641C0] active:scale-[0.98] transition-all text-sm shadow-[0_4px_20px_rgba(27,79,228,0.30)]"
+                  className="inline-flex items-center justify-center bg-primary text-white font-bold px-8 py-3.5 rounded-full hover:bg-primary/85 active:scale-[0.98] transition-all text-sm shadow-[0_4px_20px_rgba(27,79,228,0.30)]"
                 >
                   Open the Deal Board
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="inline-flex items-center justify-center border border-black/20 text-black px-8 py-3.5 rounded-full hover:bg-black/5 transition-colors text-sm"
+                  className="inline-flex items-center justify-center border border-zinc-600 text-foreground px-8 py-3.5 rounded-full hover:bg-white/5 transition-colors text-sm"
                 >
                   Start free — no card
                 </Link>
@@ -337,7 +339,7 @@ export default async function HomePage() {
                   { icon: "⚡", text: "IC memo in 20 min" },
                   { icon: "🔒", text: "Prime Atlas verified data" },
                 ].map(({ icon, text }) => (
-                  <span key={text} className="flex items-center gap-1.5 text-xs text-black/40 font-medium">
+                  <span key={text} className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
                     <span className="text-sm">{icon}</span>
                     {text}
                   </span>
@@ -346,12 +348,12 @@ export default async function HomePage() {
 
               {/* Market flags */}
               <div className="flex items-center gap-4">
-                <span className="text-xs text-black/30 font-semibold uppercase tracking-widest">Markets</span>
+                <span className="text-xs text-zinc-600 font-semibold uppercase tracking-widest">Markets</span>
                 {[
                   { flag: "🇬🇧", label: "United Kingdom" },
                   { flag: "🇺🇸", label: "United States" },
                 ].map(({ flag, label }) => (
-                  <span key={label} className="flex items-center gap-1.5 text-xs text-black/45 font-medium">
+                  <span key={label} className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
                     {flag} {label}
                   </span>
                 ))}
@@ -364,13 +366,13 @@ export default async function HomePage() {
         </section>
 
         {/* ── Stat strip ── */}
-        <section className="py-20 bg-[#EEF3FD]">
+        <section className="py-20 bg-primary/10">
           <div className="max-w-4xl mx-auto px-8 sm:px-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 sm:gap-8">
               {STATS.map((s) => (
                 <div key={s.value} className="text-center">
-                  <p className="text-5xl font-black tabular-nums text-[#1B4FE4] leading-none tracking-tight">{s.value}</p>
-                  <p className="text-xs text-gray-500 mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[180px] mx-auto">{s.label}</p>
+                  <p className="text-5xl font-black tabular-nums text-primary leading-none tracking-tight">{s.value}</p>
+                  <p className="text-xs text-zinc-500 mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[180px] mx-auto">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -378,7 +380,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── Social proof strip ── */}
-        <section className="py-16 bg-[#0B1120]">
+        <section className="py-16 bg-card border-y border-border">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest text-center mb-10">
               Trusted by individual investors, developers, and fund analysts deploying capital across residential, BTR, and commercial markets
@@ -405,38 +407,38 @@ export default async function HomePage() {
         </section>
 
         {/* ── Who is Prime Atlas for? ── */}
-        <section className="py-20 bg-[#F5F5EF]">
+        <section className="py-20 bg-background">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Built for every scale of capital.</h2>
-            <p className="text-base text-gray-500 mb-12 max-w-xl mx-auto">
+            <h2 className="text-3xl font-black text-foreground tracking-tight mb-2">Built for every scale of capital.</h2>
+            <p className="text-base text-zinc-500 mb-12 max-w-xl mx-auto">
               From first-time BTR investors to institutional funds closing at speed — one platform, every deal size.
             </p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
               {[
                 {
                   Icon: IconHouse,
-                  bg: "bg-[#1B4FE4]",
+                  bg: "bg-primary",
                   label: "First-Time Investors",
                   desc: "Find your first BTR or development site with conviction, not guesswork.",
                   href: "/auth/signup",
                 },
                 {
                   Icon: IconChart,
-                  bg: "bg-blue-500",
+                  bg: "bg-primary",
                   label: "Experienced Investors",
                   desc: "Deploy faster across USA and UK markets with pre-scored pipeline and live underwrite.",
                   href: "/deal-board",
                 },
                 {
                   Icon: IconBuilding,
-                  bg: "bg-indigo-600",
+                  bg: "bg-primary",
                   label: "Property Developers",
                   desc: "DCF, planning velocity, and undersupply signals before you spend on surveys.",
                   href: "/listings",
                 },
                 {
                   Icon: IconBank,
-                  bg: "bg-[#0F172A]",
+                  bg: "bg-card",
                   label: "Institutional Funds",
                   desc: "IC-ready memos powered by Prime Atlas intelligence, on the day the deal arrives.",
                   href: "/capital",
@@ -446,15 +448,15 @@ export default async function HomePage() {
                   <div className={`w-24 h-24 rounded-full ${p.bg} text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform`}>
                     <p.Icon />
                   </div>
-                  <p className="font-bold text-gray-900 text-sm leading-snug">{p.label}</p>
-                  <p className="text-xs text-gray-500 leading-relaxed max-w-[180px]">{p.desc}</p>
+                  <p className="font-bold text-foreground text-sm leading-snug">{p.label}</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed max-w-[180px]">{p.desc}</p>
                 </Link>
               ))}
             </div>
             <div className="mt-12 flex flex-col items-center gap-2">
-              <p className="text-lg font-black text-gray-900">Your search for investment property — begins and ends here.</p>
-              <p className="text-sm text-gray-500">No more spreadsheets. No more stitching data across eight tabs.</p>
-              <Link href="/auth/signup" className="mt-4 inline-flex items-center gap-2 bg-[#1B4FE4] text-white font-bold px-8 py-3 rounded-full hover:bg-[#1641C0] transition-colors text-sm">
+              <p className="text-lg font-black text-foreground">Your search for investment property — begins and ends here.</p>
+              <p className="text-sm text-zinc-500">No more spreadsheets. No more stitching data across eight tabs.</p>
+              <Link href="/auth/signup" className="mt-4 inline-flex items-center gap-2 bg-primary text-white font-bold px-8 py-3 rounded-full hover:bg-primary/85 transition-colors text-sm">
                 Start analysing →
               </Link>
             </div>
@@ -464,7 +466,7 @@ export default async function HomePage() {
         {/* ── Audience cards ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2 text-center">
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-2 text-center">
               Built for every real estate investor
             </p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-10 text-balance">
@@ -479,10 +481,10 @@ export default async function HomePage() {
                     </span>
                   </div>
                   <p className="font-black text-lg tracking-tight mb-3 leading-snug text-balance">{a.headline}</p>
-                  <p className="text-sm text-gray-500 leading-relaxed mb-6 flex-1 text-pretty">{a.pain}</p>
+                  <p className="text-sm text-zinc-500 leading-relaxed mb-6 flex-1 text-pretty">{a.pain}</p>
                   <ul className="space-y-3 mb-6">
                     {a.value.map((v) => (
-                      <li key={v} className="flex items-start gap-2.5 text-sm text-gray-500">
+                      <li key={v} className="flex items-start gap-2.5 text-sm text-zinc-500">
                         <span className={`${a.checkColor} mt-0.5 flex-shrink-0 font-black text-xs`}>✓</span>
                         {v}
                       </li>
@@ -498,25 +500,25 @@ export default async function HomePage() {
         </section>
 
         {/* ── Timeline comparison ── */}
-        <section className="py-20 bg-[#F8FAFF]">
+        <section className="py-20 bg-card">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2 text-center">
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-2 text-center">
               The conviction gap
             </p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-2 text-balance">
               Three weeks compressed to twenty minutes
             </h2>
-            <p className="text-sm text-gray-500 text-center mb-10 max-w-xl mx-auto text-pretty">
+            <p className="text-sm text-zinc-500 text-center mb-10 max-w-xl mx-auto text-pretty">
               The analysis is the same. The data is the same. The difference is the infrastructure that assembles it for you.
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Without Prime Atlas</p>
-                <div className="border-l border-gray-200 pl-6 space-y-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-5">Without Prime Atlas</p>
+                <div className="border-l border-border pl-6 space-y-4">
                   {TIMELINE_WITHOUT.map((row, i) => (
                     <div key={i} className="flex gap-4 items-start">
-                      <span className="text-[10px] font-mono text-gray-400 flex-shrink-0 w-16 mt-0.5 tabular-nums">{row.marker}</span>
-                      <span className={`text-sm leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-red-500 font-semibold" : "text-gray-500"}`}>
+                      <span className="text-[10px] font-mono text-zinc-500 flex-shrink-0 w-16 mt-0.5 tabular-nums">{row.marker}</span>
+                      <span className={`text-sm leading-relaxed flex-1 ${"bad" in row && row.bad ? "text-red-500 font-semibold" : "text-zinc-500"}`}>
                         {row.action}
                       </span>
                     </div>
@@ -524,12 +526,12 @@ export default async function HomePage() {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#1B4FE4] mb-5">With Prime Atlas</p>
-                <div className="border-l-2 border-[#1B4FE4]/40 pl-6 space-y-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-primary mb-5">With Prime Atlas</p>
+                <div className="border-l-2 border-primary/40 pl-6 space-y-4">
                   {TIMELINE_WITH.map((row, i) => (
                     <div key={i} className="flex gap-4 items-start">
-                      <span className="text-[10px] font-mono text-[#1B4FE4] flex-shrink-0 w-16 mt-0.5 tabular-nums">{row.marker}</span>
-                      <span className={`text-sm leading-relaxed flex-1 ${"good" in row && row.good ? "text-[#1B4FE4] font-semibold" : "text-gray-800"}`}>
+                      <span className="text-[10px] font-mono text-primary flex-shrink-0 w-16 mt-0.5 tabular-nums">{row.marker}</span>
+                      <span className={`text-sm leading-relaxed flex-1 ${"good" in row && row.good ? "text-primary font-semibold" : "text-zinc-200"}`}>
                         {row.action}
                       </span>
                     </div>
@@ -539,7 +541,7 @@ export default async function HomePage() {
             </div>
 
             {/* Outcome callout */}
-            <div className="mt-12 rounded-2xl bg-[#1B4FE4] p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            <div className="mt-12 rounded-2xl bg-primary p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
               <div className="flex-shrink-0 text-center sm:text-left sm:border-r sm:border-white/20 sm:pr-8">
                 <p className="text-5xl font-black text-white tabular-nums leading-none tracking-tight">3×</p>
                 <p className="text-[10px] text-white/50 uppercase tracking-widest font-semibold mt-1.5">more deals<br/>closed</p>
@@ -560,22 +562,22 @@ export default async function HomePage() {
         {/* ── Investor outcomes ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">Platform outcomes</p>
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-2">Platform outcomes</p>
             <h2 className="text-2xl font-black tracking-tight mb-2 text-balance">
               What investors actually make more of.
             </h2>
-            <p className="text-sm text-gray-500 mb-10 max-w-xl text-pretty">
+            <p className="text-sm text-zinc-500 mb-10 max-w-xl text-pretty">
               Across 4,800+ registered users, Prime Atlas-screened deals consistently outperform solo-researched alternatives on every return metric.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {OUTCOMES.map((o) => (
                 <div key={o.stat} className={`rounded-2xl p-6 border ${o.bg} ${o.border}`}>
-                  <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${o.border} ${o.color} bg-white/60`}>
+                  <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${o.border} ${o.color} bg-card/60`}>
                     {o.tag}
                   </span>
                   <p className={`text-4xl font-black tabular-nums tracking-tight leading-none mt-4 mb-0.5 ${o.color}`}>{o.stat}</p>
-                  <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-4">{o.statSub}</p>
-                  <p className="text-xs text-gray-500 leading-relaxed">{o.body}</p>
+                  <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-4">{o.statSub}</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{o.body}</p>
                 </div>
               ))}
             </div>
@@ -585,7 +587,7 @@ export default async function HomePage() {
         {/* ── Pain points ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-2">
               The cost of slow conviction
             </p>
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
@@ -595,12 +597,12 @@ export default async function HomePage() {
               {PAIN_POINTS.map((p) => (
                 <div
                   key={p.label}
-                  className="rounded-3xl p-7 bg-[#F8FAFF] border border-[#1B4FE4]/10"
+                  className="rounded-3xl p-7 bg-card border border-primary/10"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-5">{p.label}</p>
-                  <p className="text-4xl font-black tracking-tight tabular-nums text-gray-900 leading-none mb-1">{p.stat}</p>
-                  <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-5">{p.statLabel}</p>
-                  <p className="text-sm text-gray-500 leading-relaxed text-pretty">{p.body}</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-5">{p.label}</p>
+                  <p className="text-4xl font-black tracking-tight tabular-nums text-foreground leading-none mb-1">{p.stat}</p>
+                  <p className="text-xs text-zinc-500 uppercase tracking-widest font-semibold mb-5">{p.statLabel}</p>
+                  <p className="text-sm text-zinc-500 leading-relaxed text-pretty">{p.body}</p>
                 </div>
               ))}
             </div>
@@ -608,9 +610,9 @@ export default async function HomePage() {
         </section>
 
         {/* ── Workflow ── */}
-        <section className="py-20 bg-[#F8FAFF]">
+        <section className="py-20 bg-card">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-2">How it works</p>
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-2">How it works</p>
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
               From deal board to IC memo — same day, defensible in writing
             </h2>
@@ -618,13 +620,13 @@ export default async function HomePage() {
               {WORKFLOW.map((step) => (
                 <div key={step.step} className="flex flex-col sm:flex-row gap-6 sm:gap-10">
                   <div className="flex-shrink-0">
-                    <span className="text-[11px] font-bold text-[#1B4FE4] uppercase tracking-widest tabular-nums">{step.step}</span>
+                    <span className="text-[11px] font-bold text-primary uppercase tracking-widest tabular-nums">{step.step}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-black tracking-tight text-base mb-2 text-balance">{step.title}</p>
-                    <p className="text-sm text-gray-500 leading-relaxed text-pretty">{step.body}</p>
+                    <p className="text-sm text-zinc-500 leading-relaxed text-pretty">{step.body}</p>
                     {step.cta && (
-                      <Link href={step.cta.href} className="inline-block mt-3 text-xs font-bold uppercase tracking-widest text-[#1B4FE4] hover:opacity-80 transition-opacity">
+                      <Link href={step.cta.href} className="inline-block mt-3 text-xs font-bold uppercase tracking-widest text-primary hover:opacity-80 transition-opacity">
                         {step.cta.label} →
                       </Link>
                     )}
@@ -632,8 +634,8 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
-            <div className="mt-16 text-xs text-gray-500 leading-relaxed max-w-2xl text-pretty">
-              <strong className="text-gray-900">Transparency.</strong>{" "}
+            <div className="mt-16 text-xs text-zinc-500 leading-relaxed max-w-2xl text-pretty">
+              <strong className="text-foreground">Transparency.</strong>{" "}
               Prime Atlas scores are composite indexes built from proprietary research across USA and UK markets.
               Not black-box ML. The pro-forma is a standard DCF — all inputs are set by you.
               Nothing in Prime Atlas constitutes investment advice.
@@ -647,19 +649,19 @@ export default async function HomePage() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-1">
+                  <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-1">
                     Prime Atlas · Pre-screened pipeline · USA + UK
                   </p>
                   <h2 className="text-2xl font-black tracking-tight">Highest-conviction markets right now</h2>
                 </div>
-                <Link href="/listings" className="text-sm text-[#1B4FE4] hover:underline whitespace-nowrap">
+                <Link href="/listings" className="text-sm text-primary hover:underline whitespace-nowrap">
                   Full listings terminal →
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {topMunicipalities.map((m, i) => {
                   const macro = m.opportunity_score >= 70 ? "BULLISH" : m.opportunity_score >= 55 ? "CAUTIOUS" : "NEUTRAL";
-                  const macroColor = macro === "BULLISH" ? "text-[#00C805] bg-[#00C805]/10" : macro === "CAUTIOUS" ? "text-amber-600 bg-amber-50" : "text-gray-500 bg-gray-100";
+                  const macroColor = macro === "BULLISH" ? "text-[#00C805] bg-[#00C805]/10" : macro === "CAUTIOUS" ? "text-amber-400 bg-amber-500/10" : "text-zinc-500 bg-secondary";
                   const capRate = (4 + (m.growth_score - 50) * 0.04).toFixed(1);
                   const irrLow  = (parseFloat(capRate) + (m.development_score - 50) * 0.05).toFixed(1);
                   const irrHigh = (parseFloat(irrLow) + 3).toFixed(1);
@@ -668,14 +670,14 @@ export default async function HomePage() {
                     <Link
                       key={m.id}
                       href={`/opportunities/${m.slug}`}
-                      className="group border border-gray-200 hover:border-[#1B4FE4]/40 rounded-2xl p-5 bg-white hover:bg-[#F8FAFF] transition-all shadow-sm"
+                      className="group border border-border hover:border-primary/40 rounded-2xl p-5 bg-card hover:bg-card transition-all shadow-sm"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest mb-1">
+                          <p className="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1">
                             {flag} {m.country === "United Kingdom" ? "UK" : "USA"} · {m.region}
                           </p>
-                          <p className="font-black text-lg tracking-tight group-hover:text-[#1B4FE4] transition-colors">
+                          <p className="font-black text-lg tracking-tight group-hover:text-primary transition-colors">
                             {m.name}
                           </p>
                         </div>
@@ -683,14 +685,14 @@ export default async function HomePage() {
                           <span className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(m.opportunity_score)}`}>
                             {m.opportunity_score}
                           </span>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">ROI index</p>
+                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">ROI index</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-4">
                         <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${macroColor}`}>
                           {macro === "BULLISH" ? "↑ BULLISH" : macro === "CAUTIOUS" ? "→ CAUTIOUS" : "— NEUTRAL"} MACRO
                         </span>
-                        <span className="text-[9px] text-gray-400 font-mono">#{i + 1} in pipeline</span>
+                        <span className="text-[9px] text-zinc-500 font-mono">#{i + 1} in pipeline</span>
                       </div>
                       <div className="grid grid-cols-4 gap-2 mb-3">
                         {[
@@ -699,24 +701,24 @@ export default async function HomePage() {
                           { label: "INFRA",  val: m.infrastructure_score ?? "—" },
                           { label: "RISK",   val: m.risk_score },
                         ].map(({ label, val }) => (
-                          <div key={label} className="text-center border border-gray-200 rounded-lg py-2">
-                            <p className="text-xs font-bold tabular-nums text-gray-900">{val}</p>
-                            <p className="text-[8px] text-gray-400 uppercase tracking-widest mt-0.5">{label}</p>
+                          <div key={label} className="text-center border border-border rounded-lg py-2">
+                            <p className="text-xs font-bold tabular-nums text-foreground">{val}</p>
+                            <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-0.5">{label}</p>
                           </div>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                      <div className="flex items-center justify-between pt-3 border-t border-border">
                         <div>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-0.5">Est. Cap Rate</p>
-                          <p className="text-sm font-bold font-mono text-gray-900">{capRate}%</p>
+                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-0.5">Est. Cap Rate</p>
+                          <p className="text-sm font-bold font-mono text-foreground">{capRate}%</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-0.5">IRR Range (5yr)</p>
+                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-0.5">IRR Range (5yr)</p>
                           <p className="text-sm font-bold font-mono text-[#00C805]">{irrLow}–{irrHigh}%</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mb-0.5">Micro view</p>
-                          <p className="text-xs text-[#1B4FE4] font-semibold group-hover:underline">Full analysis →</p>
+                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-0.5">Micro view</p>
+                          <p className="text-xs text-primary font-semibold group-hover:underline">Full analysis →</p>
                         </div>
                       </div>
                     </Link>
@@ -729,14 +731,14 @@ export default async function HomePage() {
 
         {/* ── Active opportunities ── */}
         {recentOpps && recentOpps.length > 0 && (
-          <section className="py-20 bg-[#F8FAFF]">
+          <section className="py-20 bg-card">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest mb-1">Underwrite-ready</p>
+                  <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-1">Underwrite-ready</p>
                   <h2 className="text-xl font-black tracking-tight">Active opportunities — sourced &amp; scored</h2>
                 </div>
-                <Link href="/opportunities" className="text-sm text-[#1B4FE4] hover:underline">All opportunities →</Link>
+                <Link href="/opportunities" className="text-sm text-primary hover:underline">All opportunities →</Link>
               </div>
               <div className="space-y-0 max-w-2xl">
                 {recentOpps.map((opp) => {
@@ -745,21 +747,21 @@ export default async function HomePage() {
                     <Link
                       key={opp.id}
                       href={muni ? `/opportunities/${muni.slug}` : "/opportunities"}
-                      className="flex items-center justify-between py-5 border-b border-gray-200 hover:border-[#1B4FE4]/30 transition-colors group"
+                      className="flex items-center justify-between py-5 border-b border-border hover:border-primary/30 transition-colors group"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                          <span className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 text-gray-500 font-mono">{opp.category}</span>
+                          <span className="text-[10px] border border-border rounded px-1.5 py-0.5 text-zinc-500 font-mono">{opp.category}</span>
                           <span className={`text-[10px] rounded px-1.5 py-0.5 font-medium ${
-                            opp.risk_level === "low" ? "text-[#00C805]" : opp.risk_level === "medium" ? "text-amber-600" : "text-red-500"
+                            opp.risk_level === "low" ? "text-[#00C805]" : opp.risk_level === "medium" ? "text-amber-400" : "text-red-500"
                           }`}>{opp.risk_level} risk</span>
-                          {muni && <span className="text-[10px] text-gray-400">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
+                          {muni && <span className="text-[10px] text-zinc-500">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
                         </div>
-                        <p className="text-sm font-medium leading-snug group-hover:text-[#1B4FE4] transition-colors truncate">{opp.title}</p>
+                        <p className="text-sm font-medium leading-snug group-hover:text-primary transition-colors truncate">{opp.title}</p>
                       </div>
                       <div className="flex-shrink-0 ml-4 text-right">
                         <p className={`text-2xl font-black tabular-nums tracking-tight ${scoreColor(opp.opportunity_score)}`}>{opp.opportunity_score}</p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">score</p>
+                        <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">score</p>
                       </div>
                     </Link>
                   );
@@ -774,10 +776,10 @@ export default async function HomePage() {
           <section className="py-20">
             <div className="max-w-5xl mx-auto px-4 sm:px-6">
               <div className="flex items-center gap-3 mb-6">
-                <span className="w-2 h-2 rounded-full bg-[#1B4FE4] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest">Conviction signals</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest">Conviction signals</p>
+                  <p className="text-xs text-zinc-500">
                     Employer moves, infrastructure approvals, and planning decisions that materially change a market&apos;s conviction score
                   </p>
                 </div>
@@ -786,19 +788,19 @@ export default async function HomePage() {
                 {recentSignals.map((sig) => {
                   const muni = sig.municipalities as { name: string; country: string } | null;
                   return (
-                    <div key={sig.id} className="flex items-center justify-between py-5 border-b border-gray-200">
+                    <div key={sig.id} className="flex items-center justify-between py-5 border-b border-border">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] font-mono text-gray-500 border border-gray-200 rounded px-1.5 py-0.5">
+                          <span className="text-[10px] font-mono text-zinc-500 border border-border rounded px-1.5 py-0.5">
                             {signalTypeLabel[sig.signal_type] ?? sig.signal_type}
                           </span>
-                          {muni && <span className="text-[10px] text-gray-400">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
+                          {muni && <span className="text-[10px] text-zinc-500">{countryFlag[muni.country] ?? ""} {muni.name}</span>}
                         </div>
                         <p className="text-sm font-medium leading-snug truncate">{sig.title}</p>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
                         <p className="text-[#00C805] font-black text-lg tabular-nums tracking-tight leading-none">+{sig.opportunity_impact}</p>
-                        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold mt-0.5">pts</p>
+                        <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mt-0.5">pts</p>
                       </div>
                     </div>
                   );
@@ -809,20 +811,20 @@ export default async function HomePage() {
         )}
 
         {/* ── Browse by category ── */}
-        <section className="py-20 bg-[#F8FAFF]">
+        <section className="py-20 bg-card">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-2">Browse by asset class</p>
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest text-center mb-2">Browse by asset class</p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-8 text-balance">Pre-screened by property category</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 max-w-2xl">
               {CATEGORIES.map((cat) => (
                 <Link
                   key={cat.href}
                   href={cat.href}
-                  className="flex items-center gap-4 py-5 border-b border-gray-200 hover:border-[#1B4FE4]/30 group transition-colors pr-8"
+                  className="flex items-center gap-4 py-5 border-b border-border hover:border-primary/30 group transition-colors pr-8"
                 >
                   <span className="text-xl flex-shrink-0">{cat.icon}</span>
-                  <span className="font-black tracking-tight group-hover:text-[#1B4FE4] transition-colors">{cat.label}</span>
-                  <span className="ml-auto text-gray-400 text-xs group-hover:text-[#1B4FE4] transition-colors">→</span>
+                  <span className="font-black tracking-tight group-hover:text-primary transition-colors">{cat.label}</span>
+                  <span className="ml-auto text-zinc-500 text-xs group-hover:text-primary transition-colors">→</span>
                 </Link>
               ))}
             </div>
@@ -832,20 +834,20 @@ export default async function HomePage() {
         {/* ── Market coverage ── */}
         <section className="py-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest text-center mb-2">Market coverage</p>
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest text-center mb-2">Market coverage</p>
             <h2 className="text-2xl font-black tracking-tight text-center mb-3 text-balance">
               Prime Atlas intelligence across USA and UK
             </h2>
-            <p className="text-sm text-gray-500 text-center mb-10 max-w-2xl mx-auto text-pretty">
+            <p className="text-sm text-zinc-500 text-center mb-10 max-w-2xl mx-auto text-pretty">
               Every score, signal, and conviction rating is built and maintained by Prime Atlas —
               proprietary intelligence you can present in committee with full confidence.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-xl mx-auto">
               {MARKET_COVERAGE.map((mc) => (
-                <div key={mc.label} className="text-center border border-gray-100 rounded-2xl p-6">
+                <div key={mc.label} className="text-center border border-border rounded-2xl p-6">
                   <p className="text-4xl mb-3">{mc.flag}</p>
                   <p className="text-sm font-bold mb-1">{mc.label}</p>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">{mc.desc}</p>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">{mc.desc}</p>
                 </div>
               ))}
             </div>
@@ -853,18 +855,18 @@ export default async function HomePage() {
         </section>
 
         {/* ── Free report ── */}
-        <section className="py-20 bg-[#EEF3FD]">
+        <section className="py-20 bg-primary/10">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest mb-3">Free quarterly report</p>
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-3">Free quarterly report</p>
             <h2 className="text-2xl font-bold mb-4">
               The 25 Most Undersupplied Multifamily Submarkets — Q2 2026
             </h2>
-            <p className="text-sm text-gray-500 mb-6 leading-relaxed max-w-xl mx-auto">
+            <p className="text-sm text-zinc-500 mb-6 leading-relaxed max-w-xl mx-auto">
               Ranked by ROI Feasibility Index. Covers UK and US markets. Free, ungated, sourced from official data.
             </p>
             <Link
               href="/reports/undersupplied-markets"
-              className="inline-block border border-[#1B4FE4]/40 text-[#1B4FE4] px-8 py-3 rounded-full hover:bg-[#1B4FE4]/10 transition-colors text-sm font-semibold"
+              className="inline-block border border-primary/40 text-primary px-8 py-3 rounded-full hover:bg-primary/10 transition-colors text-sm font-semibold"
             >
               Read the report →
             </Link>
@@ -875,10 +877,10 @@ export default async function HomePage() {
         <section className="py-20 px-4 sm:px-6">
           <div className="max-w-2xl mx-auto">
             <div
-              className="relative overflow-hidden rounded-[36px] px-8 sm:px-14 py-14 text-center bg-[#1B4FE4]"
+              className="relative overflow-hidden rounded-[36px] px-8 sm:px-14 py-14 text-center bg-primary"
               style={{ boxShadow: "0 20px 60px rgba(27,79,228,0.25)" }}
             >
-              <div className="absolute top-0 left-0 right-0 h-px bg-white/20" />
+              <div className="absolute top-0 left-0 right-0 h-px bg-card/20" />
               <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none opacity-20"
                 style={{ background: "radial-gradient(ellipse, #ffffff 0%, transparent 70%)" }} />
               <div className="relative text-center">
@@ -897,13 +899,13 @@ export default async function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                   <Link
                     href="/auth/signup"
-                    className="inline-block bg-white text-[#1B4FE4] font-bold px-8 py-3.5 rounded-full hover:bg-white/90 transition-all text-sm"
+                    className="inline-block bg-card text-primary font-bold px-8 py-3.5 rounded-full hover:bg-card/90 transition-all text-sm"
                   >
                     Get access — free
                   </Link>
                   <Link
                     href="/deal-board"
-                    className="inline-block border border-white/30 text-white px-8 py-3.5 rounded-full hover:bg-white/10 transition-colors text-sm"
+                    className="inline-block border border-white/30 text-white px-8 py-3.5 rounded-full hover:bg-card/10 transition-colors text-sm"
                   >
                     Open Deal Board →
                   </Link>

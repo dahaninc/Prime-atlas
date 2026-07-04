@@ -53,7 +53,7 @@ export function InquireForm({ listingTitle, listingId, contactEmail, isMember = 
               <>
                 <Link
                   href="/auth/signup"
-                  className="block w-full text-center text-sm font-semibold bg-pa-green text-pa-navy py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+                  className="block w-full text-center text-sm font-semibold bg-primary text-white py-2.5 rounded-lg hover:bg-primary/85 transition-colors"
                 >
                   Create account — from $29.99/mo
                 </Link>
@@ -67,7 +67,7 @@ export function InquireForm({ listingTitle, listingId, contactEmail, isMember = 
             ) : (
               <Link
                 href="/pricing"
-                className="block w-full text-center text-sm font-semibold bg-pa-green text-pa-navy py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+                className="block w-full text-center text-sm font-semibold bg-primary text-white py-2.5 rounded-lg hover:bg-primary/85 transition-colors"
               >
                 Upgrade to unlock contacts →
               </Link>
@@ -163,7 +163,7 @@ export function InquireForm({ listingTitle, listingId, contactEmail, isMember = 
 
       <button
         type="submit"
-        className="w-full bg-pa-green text-pa-navy font-semibold py-3 rounded-lg hover:bg-pa-green/90 transition-colors text-sm"
+        className="w-full bg-primary text-white font-semibold py-3 rounded-lg hover:bg-primary/85 transition-colors text-sm"
       >
         Send enquiry →
       </button>

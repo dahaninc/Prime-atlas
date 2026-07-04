@@ -173,17 +173,17 @@ const SORT_LABELS: Record<SortKey, string> = {
 /* ─── off-white palette ─────────────────────────────────────────── */
 // All colors using warm off-white tones (stone/cream palette)
 const C = {
-  pageBg:      "bg-[#F4F2EE]",
-  sidebarBg:   "bg-[#ECEAE5]",
-  cardBg:      "bg-[#FAFAF7]",
-  topbarBg:    "bg-[#F4F2EE]",
-  border:      "border-[#DDD9D2]",
-  borderLight: "border-[#E8E5DF]",
-  textPrimary: "text-stone-800",
-  textMuted:   "text-stone-400",
-  textSecond:  "text-stone-500",
-  pillActive:  "bg-[#1B4FE4] text-white border-[#1B4FE4]",
-  pillInactive:"bg-[#FAFAF7] border-[#DDD9D2] text-stone-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]",
+  pageBg:      "bg-background",
+  sidebarBg:   "bg-card",
+  cardBg:      "bg-card",
+  topbarBg:    "bg-background",
+  border:      "border-border",
+  borderLight: "border-border",
+  textPrimary: "text-zinc-200",
+  textMuted:   "text-zinc-500",
+  textSecond:  "text-zinc-500",
+  pillActive:  "bg-primary text-white border-primary",
+  pillInactive:"bg-card border-border text-zinc-400 hover:border-primary/40 hover:text-primary",
 };
 
 /* ─── component ─────────────────────────────────────────────────── */
@@ -293,7 +293,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
   /* ── sidebar section ── */
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className={`px-4 py-4 border-b ${C.border}`}>
-      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mb-3">{title}</p>
+      <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-3">{title}</p>
       {children}
     </div>
   );
@@ -336,7 +336,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
               className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                 yieldF === y
                   ? "bg-green-600 text-white border-green-600"
-                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-green-400 hover:text-green-700`
+                  : `${C.cardBg} ${C.border} text-zinc-400 hover:border-green-400 hover:text-emerald-300`
               }`}
             >
               {y === "all" ? "Any" : `${y}%+`}
@@ -359,8 +359,8 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
               onClick={() => setPriceF(val)}
               className={`text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
                 priceF === val
-                  ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
-                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]`
+                  ? "bg-primary text-white border-primary"
+                  : `${C.cardBg} ${C.border} text-zinc-400 hover:border-primary/40 hover:text-primary`
               }`}
             >
               {label}
@@ -378,7 +378,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                 minBeds === n
                   ? C.pillActive
-                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-[#1B4FE4]/40`
+                  : `${C.cardBg} ${C.border} text-zinc-400 hover:border-primary/40`
               }`}
             >
               {n === 0 ? "Any" : `${n}+`}
@@ -401,8 +401,8 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
               onClick={() => setSizeF(val)}
               className={`text-left px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
                 sizeF === val
-                  ? "bg-[#1B4FE4] text-white border-[#1B4FE4]"
-                  : `${C.cardBg} ${C.border} text-stone-600 hover:border-[#1B4FE4]/40 hover:text-[#1B4FE4]`
+                  ? "bg-primary text-white border-primary"
+                  : `${C.cardBg} ${C.border} text-zinc-400 hover:border-primary/40 hover:text-primary`
               }`}
             >
               {label}
@@ -424,7 +424,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
         <div className="px-4 py-4">
           <button
             onClick={clearAll}
-            className={`w-full text-center text-xs font-semibold text-[#1B4FE4] py-2 rounded-lg border border-[#1B4FE4]/30 hover:bg-[#1B4FE4]/5 transition-colors`}
+            className={`w-full text-center text-xs font-semibold text-primary py-2 rounded-lg border border-primary/30 hover:bg-primary/5 transition-colors`}
           >
             Clear all filters ({activeFilterCount})
           </button>
@@ -447,7 +447,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
         {/* Stats bar */}
         <div className={`${C.topbarBg} border-b ${C.border} px-5 py-3 flex flex-wrap items-center gap-0`}>
           <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
-            <span className="text-lg font-bold font-mono text-[#1B4FE4] tabular-nums leading-none">{filtered.length.toLocaleString()}</span>
+            <span className="text-lg font-bold font-mono text-primary tabular-nums leading-none">{filtered.length.toLocaleString()}</span>
             <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Listings</span>
           </div>
           <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
@@ -458,7 +458,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
           </div>
           {avgYield != null && (
             <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
-              <span className="text-lg font-bold font-mono text-green-600 tabular-nums leading-none">~{avgYield}%</span>
+              <span className="text-lg font-bold font-mono text-emerald-400 tabular-nums leading-none">~{avgYield}%</span>
               <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Avg est. yield</span>
             </div>
           )}
@@ -490,7 +490,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as SortKey)}
-              className={`text-xs rounded-lg px-3 py-1.5 border ${C.border} ${C.cardBg} ${C.textSecond} focus:outline-none focus:border-[#1B4FE4]/50`}
+              className={`text-xs rounded-lg px-3 py-1.5 border ${C.border} ${C.cardBg} ${C.textSecond} focus:outline-none focus:border-primary/50`}
             >
               {(Object.keys(SORT_LABELS) as SortKey[]).map(k => (
                 <option key={k} value={k}>{SORT_LABELS[k]}</option>
@@ -501,15 +501,15 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
 
         {/* Result summary */}
         <div className={`px-5 py-2 border-b ${C.borderLight} text-[10px] font-semibold ${C.textMuted} uppercase tracking-widest flex items-center gap-2`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           {filtered.length.toLocaleString()} listings
           {query.trim() && (
             <button
               onClick={() => setQuery("")}
-              className="inline-flex items-center gap-1.5 normal-case tracking-normal text-[10px] font-bold text-[#1B4FE4] bg-[#EEF3FD] border border-[#1B4FE4]/25 rounded-full px-2.5 py-0.5 hover:bg-[#1B4FE4]/10 transition-colors"
+              className="inline-flex items-center gap-1.5 normal-case tracking-normal text-[10px] font-bold text-primary bg-primary/10 border border-primary/25 rounded-full px-2.5 py-0.5 hover:bg-primary/10 transition-colors"
               title="Clear market filter"
             >
-              {query.trim()} <span className="text-[#1B4FE4]/60">✕</span>
+              {query.trim()} <span className="text-primary/60">✕</span>
             </button>
           )}
           {market !== "ALL" && ` · ${market === "USA" ? "United States" : "United Kingdom"}`}
@@ -529,7 +529,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                 d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>No listings match these filters</span>
-            <button onClick={clearAll} className="text-[#1B4FE4] text-xs font-semibold hover:underline">Clear all filters</button>
+            <button onClick={clearAll} className="text-primary text-xs font-semibold hover:underline">Clear all filters</button>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4">
@@ -544,7 +544,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                   <Link
                     key={p.id}
                     href={`/market-feed/${p.id}`}
-                    className={`group ${C.cardBg} border ${C.border} rounded-xl overflow-hidden flex flex-col hover:border-[#1B4FE4]/40 hover:shadow-sm transition-all`}
+                    className={`group ${C.cardBg} border ${C.border} rounded-xl overflow-hidden flex flex-col hover:border-primary/40 hover:shadow-sm transition-all`}
                   >
                     {/* Property photo */}
                     {(() => {
@@ -552,7 +552,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                         (img) => typeof img === "string" && img.startsWith("http")
                       );
                       return photo ? (
-                        <div className="relative h-36 w-full bg-stone-100 overflow-hidden">
+                        <div className="relative h-36 w-full bg-secondary overflow-hidden">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={photo}
@@ -571,15 +571,15 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                     {/* Top row: badges + time */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                        p.listing_type === "sale" ? "text-green-700 bg-green-100" : "text-blue-700 bg-blue-100"
+                        p.listing_type === "sale" ? "text-emerald-400 bg-emerald-500/15" : "text-primary bg-primary/15"
                       }`}>
                         {p.listing_type === "sale" ? "For sale" : "For rent"}
                       </span>
-                      <span className="text-[9px] font-semibold text-stone-400 bg-stone-200 px-2 py-0.5 rounded">
+                      <span className="text-[9px] font-semibold text-zinc-500 bg-secondary px-2 py-0.5 rounded">
                         {p.country === "UK" ? "🇬🇧 UK" : "🇺🇸 USA"}
                       </span>
                       {p.propBucket !== "other" && (
-                        <span className="text-[9px] capitalize text-stone-400 border border-stone-200 rounded px-1.5 py-0.5 bg-stone-100">
+                        <span className="text-[9px] capitalize text-zinc-500 border border-border rounded px-1.5 py-0.5 bg-secondary">
                           {p.propBucket}
                         </span>
                       )}
@@ -591,14 +591,14 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                       <p className={`text-[26px] font-bold ${C.textPrimary} leading-none tabular-nums tracking-tight`}>
                         {fmtPrice(p.price ?? 0, p.currency_code)}
                         {p.listing_type === "rent" && (
-                          <span className="text-sm font-normal text-stone-400 ml-1">/mo</span>
+                          <span className="text-sm font-normal text-zinc-500 ml-1">/mo</span>
                         )}
                       </p>
                       {p.estYield != null && (
                         <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border mb-0.5 ${
-                          p.estYield >= 8 ? "text-green-700 bg-green-50 border-green-200" :
-                          p.estYield >= 6 ? "text-[#1B4FE4] bg-[#EEF3FD] border-[#1B4FE4]/20" :
-                          "text-amber-700 bg-amber-50 border-amber-200"
+                          p.estYield >= 8 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" :
+                          p.estYield >= 6 ? "text-primary bg-primary/10 border-primary/20" :
+                          "text-amber-400 bg-amber-500/10 border-amber-500/25"
                         }`}>
                           ~{p.estYield}%
                         </span>
@@ -626,16 +626,16 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                       {p.size_sqm  != null && (
                         <span>
                           <span className={`font-semibold ${C.textPrimary}`}>{Number(p.size_sqm).toLocaleString()}</span> sqm
-                          <span className="text-stone-300 mx-1">·</span>
+                          <span className="text-zinc-600 mx-1">·</span>
                           <span className={`font-semibold ${C.textPrimary}`}>{p.sqft?.toLocaleString()}</span> sqft
                         </span>
                       )}
                       {p.price != null && p.size_sqm != null && p.listing_type === "sale" && (
-                        <span className="text-[#1B4FE4] font-semibold">
+                        <span className="text-primary font-semibold">
                           {sym}{Math.round((p.price / 100) / Number(p.size_sqm)).toLocaleString()}/sqm
                         </span>
                       )}
-                      <span className="ml-auto text-[#1B4FE4] font-semibold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="ml-auto text-primary font-semibold text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
                         Analyse →
                       </span>
                     </div>

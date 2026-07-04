@@ -99,9 +99,9 @@ export default async function UndersuppliedMarketsReport() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="min-h-screen bg-[#0B0F1A] text-gray-200">
+      <div className="min-h-screen bg-background text-zinc-700">
         {/* Nav strip */}
-        <nav className="border-b border-[#1E2D40] bg-[#0B0F1A]/95 backdrop-blur sticky top-0 z-20">
+        <nav className="border-b border-[#1E2D40] bg-background/95 backdrop-blur sticky top-0 z-20">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
             <Link href="/" className="font-mono text-xs text-[#4A9EFF] tracking-widest uppercase font-bold">
               PRIME ATLAS
@@ -124,7 +124,7 @@ export default async function UndersuppliedMarketsReport() {
             <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
               The 25 Most Undersupplied Multifamily Submarkets This Quarter
             </h1>
-            <p className="text-lg text-gray-400 leading-relaxed max-w-3xl">
+            <p className="text-lg text-zinc-500 leading-relaxed max-w-3xl">
               Ranked by ROI Feasibility Index — a composite of opportunity score, zoning velocity,
               demand pressure, and risk-adjusted yield potential. Prime Atlas proprietary intelligence
               across USA and UK markets.
@@ -135,7 +135,7 @@ export default async function UndersuppliedMarketsReport() {
               {DATA_COVERAGE.map((s) => (
                 <span
                   key={s.label}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#1E2D40] bg-[#0D1221] text-xs text-gray-400"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#1E2D40] bg-[#0D1221] text-xs text-zinc-500"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#4A9EFF]" />
                   {s.label}: {s.desc}
@@ -145,8 +145,8 @@ export default async function UndersuppliedMarketsReport() {
           </div>
 
           {/* Methodology box */}
-          <div className="border border-[#1E2D40] rounded-xl p-5 bg-[#0D1221] mb-8 text-sm text-gray-400 leading-relaxed">
-            <p className="font-semibold text-gray-200 mb-2 text-xs font-mono uppercase tracking-widest">Methodology</p>
+          <div className="border border-[#1E2D40] rounded-xl p-5 bg-[#0D1221] mb-8 text-sm text-zinc-500 leading-relaxed">
+            <p className="font-semibold text-zinc-700 mb-2 text-xs font-mono uppercase tracking-widest">Methodology</p>
             <p>
               The <strong className="text-white">ROI Feasibility Index</strong> is a composite score computed as:
               (Opportunity Score × 0.40) + (Development Score × 0.35) + (Demand Score × 0.25), multiplied by a
@@ -167,7 +167,7 @@ export default async function UndersuppliedMarketsReport() {
             ].map((s) => (
               <div key={s.label} className="border border-[#1E2D40] rounded-xl p-4 bg-[#0D1221] text-center">
                 <p className="text-2xl font-bold text-white font-mono">{s.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
@@ -176,12 +176,12 @@ export default async function UndersuppliedMarketsReport() {
           <div className="border border-[#1E2D40] rounded-xl overflow-hidden mb-12">
             {/* Table header */}
             <div className="grid grid-cols-[2rem_1fr_6rem_5rem_5rem_5rem] gap-3 px-4 py-2 bg-[#0D1221] border-b border-[#1E2D40]">
-              <div className="text-xs font-mono text-gray-500">#</div>
-              <div className="text-xs font-mono text-gray-500">MARKET</div>
-              <div className="text-xs font-mono text-gray-500 text-right">ROI FI</div>
-              <div className="text-xs font-mono text-gray-500 text-right">DEMAND</div>
-              <div className="text-xs font-mono text-gray-500 text-right">ZONE</div>
-              <div className="text-xs font-mono text-gray-500 text-right hidden sm:block">UNDERSUPPLY</div>
+              <div className="text-xs font-mono text-zinc-500">#</div>
+              <div className="text-xs font-mono text-zinc-500">MARKET</div>
+              <div className="text-xs font-mono text-zinc-500 text-right">ROI FI</div>
+              <div className="text-xs font-mono text-zinc-500 text-right">DEMAND</div>
+              <div className="text-xs font-mono text-zinc-500 text-right">ZONE</div>
+              <div className="text-xs font-mono text-zinc-500 text-right hidden sm:block">UNDERSUPPLY</div>
             </div>
 
             {ranked.map((m, i) => {
@@ -199,7 +199,7 @@ export default async function UndersuppliedMarketsReport() {
                   key={m.slug}
                   href={`/opportunities/${m.slug}`}
                   className={`grid grid-cols-[2rem_1fr_6rem_5rem_5rem_5rem] gap-3 px-4 py-3.5 border-b border-[#1E2D40] last:border-0 hover:bg-[#0D2040] transition-colors cursor-pointer group ${
-                    i === 0 ? "bg-[#0D2040]/60" : "bg-[#0B0F1A]"
+                    i === 0 ? "bg-[#0D2040]/60" : "bg-background"
                   }`}
                 >
                   {/* Rank */}
@@ -209,8 +209,8 @@ export default async function UndersuppliedMarketsReport() {
                         i === 0
                           ? "text-yellow-400"
                           : i < 3
-                          ? "text-gray-300"
-                          : "text-gray-600"
+                          ? "text-zinc-600"
+                          : "text-zinc-400"
                       }`}
                     >
                       {i + 1}
@@ -227,7 +227,7 @@ export default async function UndersuppliedMarketsReport() {
                           <span className="ml-2 text-xs font-normal text-yellow-400 font-mono">#1 THIS QUARTER</span>
                         )}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-zinc-500 truncate">
                         {m.region} · {m.country}
                         {m.population
                           ? ` · Pop. ${(m.population / 1_000_000).toFixed(1)}M`
@@ -245,12 +245,12 @@ export default async function UndersuppliedMarketsReport() {
 
                   {/* Demand */}
                   <div className="flex items-center justify-end">
-                    <span className="font-mono text-sm text-gray-300">{m.growth_score}</span>
+                    <span className="font-mono text-sm text-zinc-600">{m.growth_score}</span>
                   </div>
 
                   {/* Zone */}
                   <div className="flex items-center justify-end">
-                    <span className="font-mono text-sm text-gray-300">{m.development_score}</span>
+                    <span className="font-mono text-sm text-zinc-600">{m.development_score}</span>
                   </div>
 
                   {/* Undersupply */}
@@ -298,7 +298,7 @@ export default async function UndersuppliedMarketsReport() {
                 >
                   <p className="text-xs font-mono text-[#4A9EFF] mb-2">{insight.tag}</p>
                   <h3 className="font-semibold text-white text-sm mb-2">{insight.title}</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">{insight.body}</p>
+                  <p className="text-sm text-zinc-500 leading-relaxed">{insight.body}</p>
                 </div>
               ))}
             </div>
@@ -312,7 +312,7 @@ export default async function UndersuppliedMarketsReport() {
             <h2 className="text-2xl font-bold text-white mb-3">
               The Deal Board goes deeper.
             </h2>
-            <p className="text-gray-400 text-sm max-w-xl mx-auto mb-6 leading-relaxed">
+            <p className="text-zinc-500 text-sm max-w-xl mx-auto mb-6 leading-relaxed">
               Every market in this report has a full deal card in the Deal Board: clickable evidence layers, editable pro-forma with yield-on-cost and margin-on-cost, Bloomberg-style market tape, and one-click IC memo export. Free tier access — no credit card.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -324,7 +324,7 @@ export default async function UndersuppliedMarketsReport() {
               </Link>
               <Link
                 href="/deal-board"
-                className="inline-block px-6 py-3 rounded-lg border border-[#1E2D40] text-gray-400 font-semibold text-sm hover:border-[#1E4A7A] hover:text-white transition-all"
+                className="inline-block px-6 py-3 rounded-lg border border-[#1E2D40] text-zinc-500 font-semibold text-sm hover:border-[#1E4A7A] hover:text-white transition-all"
               >
                 View Live Rankings →
               </Link>
@@ -358,7 +358,7 @@ export default async function UndersuppliedMarketsReport() {
                 >
                   <p className="text-2xl mb-3 font-mono text-[#4A9EFF]">{f.icon}</p>
                   <p className="font-semibold text-white text-sm mb-2">{f.title}</p>
-                  <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{f.desc}</p>
                 </div>
               ))}
             </div>
@@ -369,15 +369,15 @@ export default async function UndersuppliedMarketsReport() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="font-mono text-xs text-[#4A9EFF] font-bold mb-1">PRIME ATLAS</p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-zinc-400">
                   Site-acquisition intelligence terminal. Data from public sources — see methodology above.
                   Not financial advice.
                 </p>
               </div>
               <div className="flex gap-4">
-                <Link href="/" className="text-xs text-gray-500 hover:text-[#4A9EFF] transition-colors">Home</Link>
-                <Link href="/deal-board" className="text-xs text-gray-500 hover:text-[#4A9EFF] transition-colors">Deal Board</Link>
-                <Link href="/auth/signup" className="text-xs text-gray-500 hover:text-[#4A9EFF] transition-colors">Sign Up</Link>
+                <Link href="/" className="text-xs text-zinc-500 hover:text-[#4A9EFF] transition-colors">Home</Link>
+                <Link href="/deal-board" className="text-xs text-zinc-500 hover:text-[#4A9EFF] transition-colors">Deal Board</Link>
+                <Link href="/auth/signup" className="text-xs text-zinc-500 hover:text-[#4A9EFF] transition-colors">Sign Up</Link>
               </div>
             </div>
           </footer>

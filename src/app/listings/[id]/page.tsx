@@ -645,7 +645,7 @@ export default async function ListingDetailPage(
                     </ul>
                     <Link
                       href="/pricing"
-                      className="block w-full bg-pa-green text-white text-sm font-bold py-2.5 rounded-xl hover:bg-pa-green/90 transition-colors text-center"
+                      className="block w-full bg-primary text-white text-sm font-bold py-2.5 rounded-xl hover:bg-primary/85 transition-colors text-center"
                     >
                       Become a Member
                     </Link>

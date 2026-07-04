@@ -17,7 +17,7 @@ export default async function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <span className="text-pa-green font-mono font-bold text-xl tracking-tight">prime-atlas</span>
+            <span className="text-primary font-mono font-bold text-xl tracking-tight">prime-atlas</span>
           </Link>
           <p className="text-muted-foreground text-sm mt-2">
             Find Tomorrow&apos;s Winners Before Everyone Else
@@ -37,7 +37,7 @@ export default async function SignupPage() {
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-pa-green hover:underline">
+          <Link href="/auth/login" className="text-primary hover:underline">
             Sign in
           </Link>
         </p>

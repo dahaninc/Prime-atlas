@@ -202,8 +202,8 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
           {InfoBanner}
           {ErrorBanner}
           <button type="submit" disabled={loading}
-            className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-            {loading && <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
+            className="w-full bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            {loading && <span className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />}
             Sign in
           </button>
         </form>
@@ -264,8 +264,8 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
       {InfoBanner}
       {ErrorBanner}
       <button type="submit" disabled={loading}
-        className="w-full bg-pa-green text-pa-navy font-semibold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-        {loading && <span className="w-4 h-4 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
+        className="w-full bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        {loading && <span className="w-4 h-4 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />}
         Create account
       </button>
       <div className="relative flex items-center gap-3 py-1">

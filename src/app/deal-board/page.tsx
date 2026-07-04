@@ -109,7 +109,7 @@ export default async function DealBoardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F1A]">
+    <div className="min-h-screen bg-background">
       <DealBoard
         rows={rows}
         tier={tier}

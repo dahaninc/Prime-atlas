@@ -282,7 +282,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
                   disabled={isLoading}
                   className={`w-full text-center text-sm font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${
                     tier.highlight
-                      ? "bg-pa-green text-pa-navy hover:bg-pa-green/90 shadow-[0_0_16px_rgba(0,200,100,0.2)]"
+                      ? "bg-primary text-white hover:bg-primary/85 shadow-[0_0_16px_rgba(0,200,100,0.2)]"
                       : "border border-border text-foreground hover:border-pa-green/40 hover:text-pa-green"
                   }`}
                 >

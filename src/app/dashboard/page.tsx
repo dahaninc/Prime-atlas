@@ -40,7 +40,8 @@ export default async function DashboardPage({
 
     supabase
       .from("signals")
-      .select("id, title, signal_type, opportunity_impact, detected_at, municipalities(name, region)")
+      .select("id, title, signal_type, opportunity_impact, detected_at, municipalities!inner(name, region, country)")
+      .in("municipalities.country", ["United Kingdom", "United States"])
       .order("detected_at", { ascending: false })
       .limit(8),
   ]);
@@ -217,7 +218,7 @@ export default async function DashboardPage({
               ) : (
                 <Link
                   href="/pricing"
-                  className="block w-full text-center text-xs bg-pa-green text-pa-navy font-bold py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors"
+                  className="block w-full text-center text-xs bg-primary text-white font-bold py-2.5 rounded-lg hover:bg-primary/85 transition-colors"
                 >
                   Upgrade to Pro →
                 </Link>

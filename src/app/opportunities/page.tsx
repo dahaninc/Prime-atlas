@@ -97,8 +97,8 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
             href={cat.key === "All" ? "/opportunities" : `/opportunities?category=${encodeURIComponent(cat.key)}`}
             className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
               activeCategory === cat.key
-                ? "border-pa-green/40 bg-pa-green/10 text-pa-green"
-                : "border-border text-muted-foreground hover:text-foreground hover:border-pa-green/20"
+                ? "border-primary/40 bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-primary/25"
             }`}
           >
             {cat.label}
@@ -113,7 +113,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
             const muni = opp.municipalities;
             const href = muni ? `/opportunities/${muni.slug}` : "/opportunities";
             return (
-              <Link key={opp.id} href={href} className="block border border-border rounded-xl p-5 bg-card hover:border-pa-green/30 transition-colors group">
+              <Link key={opp.id} href={href} className="block border border-border rounded-xl p-5 bg-card hover:border-primary/30 transition-colors group">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     {/* Tags */}
@@ -137,7 +137,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
                       )}
                     </div>
                     {/* Title */}
-                    <p className="font-semibold text-sm group-hover:text-pa-green transition-colors">{opp.title}</p>
+                    <p className="font-semibold text-sm group-hover:text-primary transition-colors">{opp.title}</p>
                   </div>
                   {/* Score */}
                   <div className="flex-shrink-0 text-center">
@@ -155,7 +155,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
         <div className="border border-dashed border-border rounded-xl p-12 text-center">
           <p className="text-sm font-medium mb-1">No opportunities in this category yet</p>
           <p className="text-xs text-muted-foreground mb-4">Try another category or browse all.</p>
-          <Link href="/opportunities" className="text-xs text-pa-green hover:underline">View all opportunities →</Link>
+          <Link href="/opportunities" className="text-xs text-primary hover:underline">View all opportunities →</Link>
         </div>
       )}
 
@@ -165,7 +165,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
         <p className="text-xs text-muted-foreground mb-4">
           The Deal Board ranks all 58 markets with editable pro-forma, evidence layers, and IC memo export.
         </p>
-        <Link href="/deal-board" className="inline-block bg-pa-green text-pa-navy font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors">
+        <Link href="/deal-board" className="inline-block bg-primary text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-primary/85 transition-colors">
           Open Deal Board →
         </Link>
       </div>

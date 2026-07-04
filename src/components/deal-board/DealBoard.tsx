@@ -400,7 +400,7 @@ export function DealBoard({
   }
 
   return (
-    <div className="font-mono text-sm text-white min-h-screen bg-[#0B0F1A]">
+    <div className="font-mono text-sm text-white min-h-screen bg-background">
 
       {/* ── Terminal header ── */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-[#1E2D40] bg-[#0D1221]">

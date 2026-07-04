@@ -57,7 +57,8 @@ export async function runOpportunityFinder(params: FinderParams): Promise<Finder
   let query = supabase
     .from("opportunities")
     .select("*, municipalities!inner(id, name, region, slug, country, growth_score, infrastructure_score, development_score, liquidity_score, risk_score)")
-    .eq("status", "active");
+    .eq("status", "active")
+    .in("municipalities.country", ["United Kingdom", "United States"]);
 
   if (params.categories.length > 0) {
     query = query.in("category", params.categories);

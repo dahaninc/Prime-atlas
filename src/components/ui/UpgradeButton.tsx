@@ -57,7 +57,7 @@ export function UpgradeButton({
       disabled={loading}
       className={cn(
         "inline-flex items-center gap-2 font-semibold text-sm rounded-lg px-4 py-2.5 transition-colors disabled:opacity-60",
-        variant === "primary" && "bg-pa-green text-pa-navy hover:bg-pa-green/90",
+        variant === "primary" && "bg-primary text-white hover:bg-primary/85",
         variant === "outline" && "border border-pa-green/40 text-pa-green hover:bg-pa-green/5",
         variant === "ghost"   && "text-pa-green hover:underline px-0 py-0",
         className

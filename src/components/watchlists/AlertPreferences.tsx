@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateAlertPreferences } from "@/app/watchlists/actions";
+import { toast } from "@/components/ui/Toaster";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -31,6 +32,7 @@ export function AlertPreferences({ initialPrefs, isPro }: Props) {
     startTransition(async () => {
       await updateAlertPreferences(prefs);
       setSaved(true);
+      toast("Alert preferences saved");
       setTimeout(() => setSaved(false), 2500);
     });
   }
@@ -66,13 +68,13 @@ export function AlertPreferences({ initialPrefs, isPro }: Props) {
             disabled={!isPro}
             className={cn(
               "relative w-11 h-6 rounded-full transition-colors disabled:opacity-40",
-              prefs.email_alerts ? "bg-pa-green" : "bg-secondary border border-border"
+              prefs.email_alerts ? "bg-primary" : "bg-secondary border border-border"
             )}
             aria-checked={prefs.email_alerts}
             role="switch"
           >
             <span className={cn(
-              "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
+              "absolute top-0.5 w-5 h-5 rounded-full bg-card shadow transition-transform",
               prefs.email_alerts ? "translate-x-5" : "translate-x-0.5"
             )} />
           </button>
@@ -128,9 +130,9 @@ export function AlertPreferences({ initialPrefs, isPro }: Props) {
         <button
           onClick={handleSave}
           disabled={!isPro || isPending}
-          className="w-full bg-pa-green text-pa-navy font-semibold text-sm py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+          className="w-full bg-primary text-white font-semibold text-sm py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
         >
-          {isPending && <span className="w-3.5 h-3.5 border-2 border-pa-navy border-t-transparent rounded-full animate-spin" />}
+          {isPending && <span className="w-3.5 h-3.5 border-2 border-zinc-600 border-t-transparent rounded-full animate-spin" />}
           {saved ? "✓ Saved" : isPending ? "Saving…" : "Save preferences"}
         </button>
       </div>

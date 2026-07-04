@@ -58,7 +58,7 @@ export function NewsletterSignup({ source = "footer", className, compact = false
         <button
           type="submit"
           disabled={state === "loading"}
-          className="bg-pa-green text-pa-navy font-semibold text-sm px-4 py-2 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60 whitespace-nowrap"
+          className="bg-primary text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 whitespace-nowrap"
         >
           {state === "loading" ? "…" : "Subscribe"}
         </button>
@@ -85,7 +85,7 @@ export function NewsletterSignup({ source = "footer", className, compact = false
         <button
           type="submit"
           disabled={state === "loading"}
-          className="bg-pa-green text-pa-navy font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-pa-green/90 transition-colors disabled:opacity-60"
+          className="bg-primary text-white font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60"
         >
           {state === "loading" ? "…" : "Subscribe free"}
         </button>

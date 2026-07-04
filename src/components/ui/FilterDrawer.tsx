@@ -36,7 +36,7 @@ export function FilterDrawer({ open, onClose, title, children }: FilterDrawerPro
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className={`fixed left-0 right-0 bottom-0 z-[61] bg-white rounded-t-[28px] border-t border-gray-200 shadow-2xl
+        className={`fixed left-0 right-0 bottom-0 z-[61] bg-card rounded-t-[28px] border-t border-border shadow-2xl
           transition-transform duration-[150ms] ease-out
           ${open ? "translate-y-0" : "translate-y-full"}
         `}
@@ -44,15 +44,15 @@ export function FilterDrawer({ open, onClose, title, children }: FilterDrawerPro
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
+          <div className="w-10 h-1 rounded-full bg-secondary" />
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pb-5 pt-1">
-          <h3 className="text-base font-bold text-gray-900 tracking-tight">{title}</h3>
+          <h3 className="text-base font-bold text-foreground tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors"
+            className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-zinc-500 hover:text-foreground transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
