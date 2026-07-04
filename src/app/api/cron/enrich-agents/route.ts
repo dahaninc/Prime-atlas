@@ -20,7 +20,11 @@ export const dynamic     = "force-dynamic";
 const SCRAPEOPS_BASE     = "https://proxy.scrapeops.io/v1/";
 const BATCH_SIZE         = 40;
 const DELAY_MS           = 2500;
-const TIMEOUT_MS         = 30_000;
+const TIMEOUT_MS         = 20_000;
+// Stop starting new fetches past this point so the function returns its
+// summary before Vercel kills it at maxDuration (300s). Worst case per row
+// is one 20s fetch + 2.5s delay, so 240s + 22.5s stays inside the window.
+const SOFT_DEADLINE_MS   = 240_000;
 
 function adminSupabase() {
   return createClient(
@@ -205,9 +209,16 @@ export async function GET(req: NextRequest) {
   if (!rows?.length) return NextResponse.json({ ok: true, enriched: 0, message: "Nothing to enrich" });
 
   let enriched = 0;
+  let skipped  = 0;
   const errors: string[] = [];
+  const t0 = Date.now();
 
   for (const row of rows as { id: string; provider: string; listing_url: string }[]) {
+    if (Date.now() - t0 > SOFT_DEADLINE_MS) {
+      skipped = rows.length - enriched - errors.length;
+      console.warn(`[enrich-agents] soft deadline hit — ${skipped} rows left for next run`);
+      break;
+    }
     try {
       const html = await fetchPage(row.listing_url);
       if (!html) { errors.push(`${row.id}: fetch failed`); continue; }
@@ -238,6 +249,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     enriched,
+    skipped,
     attempted: rows.length,
     errors: errors.slice(0, 10),
   });
