@@ -194,6 +194,74 @@ function MarketsDropdown({ open, onClose }: { open: boolean; onClose: () => void
   );
 }
 
+// ─── Account menu (signed-in workspace) ──────────────────────────────────────
+
+const ACCOUNT_LINKS = [
+  { href: "/dashboard",  label: "Dashboard",   desc: "Your overview & saved markets" },
+  { href: "/deal-board", label: "Deal Board",  desc: "Underwrite & export IC memos" },
+  { href: "/watchlists", label: "Watchlists",  desc: "Saved markets & deal alerts" },
+  { href: "/portfolio",  label: "Portfolio",   desc: "Monitor assets you own" },
+  { href: "/pricing",    label: "Plan & billing", desc: "Manage your subscription" },
+];
+
+function AccountMenu({ email }: { email?: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const initial = (email?.[0] ?? "?").toUpperCase();
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 group"
+        aria-label="Account menu"
+      >
+        <span className="w-8 h-8 rounded-full bg-[#1B4FE4] text-white text-sm font-bold flex items-center justify-center">
+          {initial}
+        </span>
+        <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Signed in</p>
+            <p className="text-sm text-gray-900 font-medium truncate">{email}</p>
+          </div>
+          <div className="py-1">
+            {ACCOUNT_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="flex flex-col px-4 py-2 hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-sm font-medium text-gray-900">{l.label}</span>
+                <span className="text-[11px] text-gray-400">{l.desc}</span>
+              </Link>
+            ))}
+          </div>
+          <form action="/auth/signout" method="post" className="border-t border-gray-100">
+            <button type="submit" className="w-full text-left px-4 py-2.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+              Sign out
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function Navbar({ user: initialUser }: NavbarProps) {
@@ -280,12 +348,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
           {/* ── Desktop auth ── */}
           <div className="hidden md:flex items-center gap-3 ml-auto">
             {user ? (
-              <>
-                <span className="text-sm text-gray-500">{user.email?.split("@")[0]}</span>
-                <form action="/auth/signout" method="post">
-                  <button type="submit" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Sign out</button>
-                </form>
-              </>
+              <AccountMenu email={user.email} />
             ) : (
               <>
                 <Link href="/auth/login" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">Log in</Link>
@@ -411,6 +474,25 @@ export function Navbar({ user: initialUser }: NavbarProps) {
 
           {user ? (
             <section className="pt-2">
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">Your workspace</p>
+              <div className="space-y-1 mb-4">
+                {ACCOUNT_LINKS.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={closeMobile}
+                    className={cn(
+                      "flex items-center justify-between px-4 py-3.5 rounded-2xl text-base font-semibold transition-colors",
+                      pathname === l.href ? "text-[#1B4FE4] bg-[#EEF3FD]" : "text-gray-900 hover:bg-gray-100"
+                    )}
+                  >
+                    {l.label}
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                ))}
+              </div>
               <p className="text-xs text-gray-500 px-1 mb-3">{user.email}</p>
               <form action="/auth/signout" method="post">
                 <button type="submit" className="w-full text-left px-4 py-4 rounded-2xl text-sm font-medium text-gray-500 hover:bg-gray-100 transition-colors">
