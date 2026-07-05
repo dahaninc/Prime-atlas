@@ -130,17 +130,23 @@ function parseOnTheMarketDetail(html: string): AgentInfo {
     const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
     if (match?.[1]) {
       const data = JSON.parse(match[1]) as any;
-      const pd   = data?.props?.pageProps?.propertyDetails ?? data?.props?.pageProps?.listing ?? data?.props?.pageProps?.property;
+      // OTM detail data lives in initialReduxState.property (camelCase);
+      // legacy pageProps shapes kept as fallback.
+      const pd   = data?.props?.initialReduxState?.property ??
+                   data?.props?.pageProps?.propertyDetails ?? data?.props?.pageProps?.listing ?? data?.props?.pageProps?.property;
 
       if (pd) {
         const agent = pd.agent ?? pd.branch ?? pd.contact;
         if (agent) {
           info.agent_name    = agent.name ?? agent.contactName ?? null;
-          info.agent_company = agent.branchName ?? agent.company ?? agent.name ?? null;
-          info.agent_phone   = agent.phone ?? agent.telephone ?? null;
+          info.agent_company = agent.branchName ?? agent.companyName ?? agent.company ?? agent.name ?? null;
+          info.agent_phone   = agent.telephone ?? agent.phone ?? null;
           info.agent_email   = agent.email ?? null;
         }
-        const imgs: string[] = (pd.images ?? pd.photos ?? []).map((i: { src?: string; url?: string }) => i.src ?? i.url).filter(Boolean);
+        const imgs: string[] = (pd.images ?? pd.photos ?? [])
+          .map((i: { largeUrl?: string; src?: string; url?: string; default?: string }) =>
+            i.largeUrl ?? i.src ?? i.url ?? i.default)
+          .filter(Boolean);
         if (imgs.length) info.images = imgs;
       }
     }

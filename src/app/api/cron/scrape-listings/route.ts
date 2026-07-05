@@ -511,8 +511,13 @@ function extractOnTheMarket(
     if (match?.[1]) {
       const data = JSON.parse(match[1]) as any;
       const pp   = data?.props?.pageProps;
+      const redux = data?.props?.initialReduxState;
 
+      // OTM search results live in initialReduxState.results.list — entries
+      // use kebab-case keys ("details-url", "humanised-property-type", …).
+      // Older pageProps shapes kept as fallback.
       const listings: any[] =
+        redux?.results?.list ??
         pp?.searchResults?.results ??
         pp?.searchResults?.listings ??
         pp?.searchResults?.properties ??
@@ -528,9 +533,12 @@ function extractOnTheMarket(
         for (const r of listings) {
           try {
             const id = String(r.id ?? r.listingId ?? "").trim();
-            if (!id) continue;
+            // Real OTM listing ids are numeric — location/filter objects
+            // (slugs like "glasgow-west-end") must never become properties.
+            if (!/^\d+$/.test(id)) continue;
 
-            const rawHref = r.detailUrl ?? r.propertyUrl ?? r.url ?? `/property/${id}`;
+            const rawHref = r["details-url"] ?? r.detailUrl ?? r.propertyUrl ?? r.url ?? `/details/${id}/`;
+            if (!/\/details\/\d+/.test(rawHref)) continue;
             const fullUrl = rawHref.startsWith("http")
               ? rawHref
               : `https://www.onthemarket.com${rawHref}`;
@@ -542,8 +550,8 @@ function extractOnTheMarket(
                 ? parsePrice(rawPrice)
                 : null;
 
-            const address = r.displayAddress ?? r.address?.displayAddress ?? r.address ?? null;
-            const typeRaw = (r.propertyType ?? r.type ?? "").toLowerCase().trim();
+            const address = (typeof r.address === "string" ? r.address : r.displayAddress ?? r.address?.displayAddress) ?? null;
+            const typeRaw = (r["humanised-property-type"] ?? r.propertyType ?? r.type ?? "").toLowerCase().trim();
             const sqm     = r.floorArea?.value != null ? Number(r.floorArea.value) : null;
 
             const otmImages: string[] = [];
@@ -559,7 +567,7 @@ function extractOnTheMarket(
             results.push({
               provider:             "onthemarket",
               external_property_id: id,
-              title:                address,
+              title:                r["property-title"] ?? address,
               address,
               price,
               currency_code:        "GBP",
@@ -593,13 +601,13 @@ function extractOnTheMarket(
   ).each((_, el) => {
     try {
       const card   = $(el);
-      const linkEl = card.find('a[href*="/property/"]').first();
+      const linkEl = card.find('a[href*="/details/"]').first();
       const href   = linkEl.attr("href") ?? "";
       if (!href) return;
 
       const fullUrl = href.startsWith("http") ? href : `https://www.onthemarket.com${href}`;
       const extId   = idFromUrl(href);
-      if (!extId) return;
+      if (!/^\d+$/.test(extId)) return; // listing ids are numeric — never location slugs
 
       const priceText  = card.find('[class*="price"], [class*="Price"]').first().text().trim();
       const address    = (
@@ -634,11 +642,11 @@ function extractOnTheMarket(
 
   if (results.length === 0) {
     const seen = new Set<string>();
-    $('a[href*="/property/"]').each((_, el) => {
+    $('a[href*="/details/"]').each((_, el) => {
       try {
         const href  = $(el).attr("href") ?? "";
         const extId = idFromUrl(href);
-        if (!extId || seen.has(extId) || extId.length < 4) return;
+        if (!/^\d+$/.test(extId) || seen.has(extId)) return;
         seen.add(extId);
 
         const fullUrl   = href.startsWith("http") ? href : `https://www.onthemarket.com${href}`;
