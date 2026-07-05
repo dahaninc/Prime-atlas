@@ -247,7 +247,12 @@ export async function GET(req: NextRequest) {
     .not("listing_url", "is", null)
     .eq("status", "active");
   if (providerFilter) query = query.eq("provider", providerFilter);
+  // Galleries are the product-critical asset: rows that have never synced a
+  // gallery ALWAYS outrank rows that only lack agent info — otherwise
+  // agent-less-but-synced rows (UK sources rarely expose agent names)
+  // rotate forever at the head and starve the unsynced backlog.
   const { data: rows, error } = await query
+    .order("gallery_synced_at", { ascending: true, nullsFirst: true })
     .order("updated_at", { ascending: true })
     .limit(BATCH_SIZE);
 

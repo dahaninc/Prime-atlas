@@ -113,6 +113,10 @@ def main() -> int:
         check(f"{path} gated for anonymous", code in (301, 302, 303, 307, 308) and "login" in loc,
               f"HTTP {code} -> {loc or '(no redirect)'}")
 
+    # IC memo export must refuse anonymous callers server-side
+    code, _, _ = http(base + "/api/export/ic-memo", "POST", {"market": {"name": "x"}})
+    check("/api/export/ic-memo blocks anonymous", code == 401, f"HTTP {code}")
+
     # ── 3. Signup lifecycle (@tycoon_operator) ───────────────────────────────
     print("\n[3] Signup lifecycle")
     if not (sb_url and anon):
