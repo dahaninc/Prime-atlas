@@ -149,6 +149,16 @@ def main() -> int:
                 check("RLS: member reads own profile", code == 200 and len(rows) <= 1,
                       f"HTTP {code}, rows={len(rows)}")
 
+    # ── 3b. IDOR / RLS: anon must not read user-owned tables ─────────────────
+    print("\n[3b] IDOR / tenant isolation")
+    if sb_url and anon:
+        for table in ("profiles", "portfolio_assets", "deal_alert_rules", "watchlists", "subscriptions"):
+            code, body, _ = http(f"{sb_url}/rest/v1/{table}?select=*&limit=50", headers=sb_headers)
+            rows = json.loads(body) if code == 200 else []
+            # RLS scopes these to auth.uid(); an anon caller must get zero rows.
+            check(f"anon cannot enumerate {table}", code in (200, 401, 403) and len(rows) == 0,
+                  f"HTTP {code}, rows={len(rows)}")
+
     # ── 4. Deal Board data engine ────────────────────────────────────────────
     print("\n[4] Deal Board data engine")
     if sb_url and anon:

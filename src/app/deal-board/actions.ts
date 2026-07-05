@@ -53,6 +53,12 @@ export async function deleteDealAlert(ruleId: string): Promise<{ ok: boolean }> 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false };
-  const { error } = await supabase.from("deal_alert_rules").delete().eq("id", ruleId);
+  // Scope to the caller even though RLS already enforces it — defense-in-depth
+  // so a future switch to a service-role client can't silently become an IDOR.
+  const { error } = await supabase
+    .from("deal_alert_rules")
+    .delete()
+    .eq("id", ruleId)
+    .eq("user_id", user.id);
   return { ok: !error };
 }

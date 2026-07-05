@@ -42,7 +42,12 @@ export async function removePortfolioAsset(formData: FormData): Promise<void> {
 
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  const { error } = await supabase.from("portfolio_assets").delete().eq("id", id);
+  // Scope to the caller even though RLS already enforces it — defense-in-depth.
+  const { error } = await supabase
+    .from("portfolio_assets")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) console.error("[removePortfolioAsset]", error.message);
   revalidatePath("/portfolio");
 }
