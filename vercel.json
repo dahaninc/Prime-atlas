@@ -41,6 +41,30 @@
       "schedule": "20 7 * * *"
     },
     {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=9",
+      "schedule": "25 7 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=10",
+      "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=11",
+      "schedule": "35 7 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=12",
+      "schedule": "40 7 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=13",
+      "schedule": "45 7 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-listings?provider=rightmove&batch=14",
+      "schedule": "50 7 * * *"
+    },
+    {
       "path": "/api/cron/scrape-listings?provider=onthemarket&batch=0",
       "schedule": "0 8 * * *"
     },

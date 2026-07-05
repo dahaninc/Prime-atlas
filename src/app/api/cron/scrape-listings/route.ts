@@ -696,9 +696,25 @@ const zillowTarget = (city: string, type: ListingType, page: number): SearchTarg
   listingType: type,
 });
 
-const RM_LONDON = "REGION%5E87490";
-const rightmoveTarget = (type: ListingType, index: number): SearchTarget => ({
-  url: `https://www.rightmove.co.uk/property-${type === "sale" ? "for-sale" : "to-rent"}/find.html?locationIdentifier=${RM_LONDON}&sortType=6&numberOfPropertiesPerPage=24&index=${index}`,
+// REGION codes harvested from rightmove.co.uk/property-for-sale/<City>.html
+const RM_LONDON = "87490";
+const RM_CITY_CODES = [
+  "904",  // Manchester
+  "162",  // Birmingham
+  "787",  // Leeds
+  "550",  // Glasgow
+  "1195", // Sheffield
+  "475",  // Edinburgh
+  "813",  // Liverpool
+  "219",  // Bristol
+  "789",  // Leicester
+  "281",  // Cardiff
+  "1019", // Nottingham
+  "1036", // Oxford
+  "274",  // Cambridge
+];
+const rightmoveTarget = (type: ListingType, index: number, region: string = RM_LONDON): SearchTarget => ({
+  url: `https://www.rightmove.co.uk/property-${type === "sale" ? "for-sale" : "to-rent"}/find.html?locationIdentifier=REGION%5E${region}&sortType=6&numberOfPropertiesPerPage=24&index=${index}`,
   listingType: type,
 });
 
@@ -750,6 +766,16 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
       // Deep London pagination — backfill coverage (sale to idx 744, rent to 360)
       ...Array.from({ length: 29 }, (_, i) => rightmoveTarget("sale", (i + 3) * 24)),
       ...Array.from({ length: 14 }, (_, i) => rightmoveTarget("rent", (i + 2) * 24)),
+      // 13 regional city markets — page 1s first (cron batches 9-14, daily)
+      ...RM_CITY_CODES.flatMap((code) => [
+        rightmoveTarget("sale", 0, code),
+        rightmoveTarget("rent", 0, code),
+      ]),
+      // City deep pagination — backfill coverage (sale pages 2-6, rent 2-3)
+      ...RM_CITY_CODES.flatMap((code) =>
+        Array.from({ length: 5 }, (_, i) => rightmoveTarget("sale", (i + 1) * 24, code))),
+      ...RM_CITY_CODES.flatMap((code) =>
+        Array.from({ length: 2 }, (_, i) => rightmoveTarget("rent", (i + 1) * 24, code))),
     ],
     extract: extractRightmove,
   },
