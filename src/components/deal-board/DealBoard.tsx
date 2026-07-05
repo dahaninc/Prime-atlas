@@ -214,6 +214,17 @@ export function DealBoard({
   const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
   const [time, setTime] = useState("");
 
+  // Screening rail
+  const [query,      setQuery]      = useState("");
+  const [minScore,   setMinScore]   = useState(0);           // conviction floor
+  const [withOpps,   setWithOpps]   = useState(false);       // live opportunities only
+  const [momentumUp, setMomentumUp] = useState(false);       // score rising vs last snapshot
+  const [lowRisk,    setLowRisk]    = useState(false);       // risk score ≤ 40
+  const hasActiveFilters = query !== "" || minScore > 0 || withOpps || momentumUp || lowRisk;
+  function resetFilters() {
+    setQuery(""); setMinScore(0); setWithOpps(false); setMomentumUp(false); setLowRisk(false);
+  }
+
   // Live clock
   useEffect(() => {
     const tick = () => setTime(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
@@ -225,10 +236,16 @@ export function DealBoard({
   // Filtered + sorted rows
   const sorted = useMemo(() => {
     const key: keyof DealRow = sortMode === "roi" ? "opportunity_score" : sortMode === "zoning" ? "development_score" : "growth_score";
+    const q = query.trim().toLowerCase();
     return [...rows]
       .filter((r) => r.country === country)
+      .filter((r) => !q || r.name.toLowerCase().includes(q) || r.region.toLowerCase().includes(q))
+      .filter((r) => r.opportunity_score >= minScore)
+      .filter((r) => !withOpps || (opportunitiesMap[r.id]?.length ?? 0) > 0)
+      .filter((r) => !momentumUp || r.opportunity_score > (prevScoreMap[r.id] ?? r.opportunity_score))
+      .filter((r) => !lowRisk || r.risk_score <= 40)
       .sort((a, b) => (b[key] as number) - (a[key] as number));
-  }, [rows, country, sortMode]);
+  }, [rows, country, sortMode, query, minScore, withOpps, momentumUp, lowRisk, opportunitiesMap, prevScoreMap]);
 
   const selectedRow = sorted.find((r) => r.id === selectedId) ?? null;
   useEffect(() => { setAlertState("idle"); }, [selectedId]);
@@ -437,7 +454,84 @@ export function DealBoard({
           </div>
         )}
 
-        {/* ── Deal board table ── */}
+        {/* ── Screening rail + deal board table ── */}
+        <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-4 lg:items-start">
+          <aside className="mb-4 lg:mb-0 lg:sticky lg:top-4">
+            <div className="bg-[#0E1E32] border border-[#1E3050]">
+              <div className="px-4 py-3 border-b border-[#1E2D40] flex items-baseline justify-between">
+                <span className="text-[10px] font-bold tracking-[0.2em] text-[#4A7090] uppercase">Screen</span>
+                {hasActiveFilters && (
+                  <button onClick={resetFilters} className="text-[9px] text-[#4A6080] hover:text-white uppercase tracking-wider transition-colors">
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div className="p-4 space-y-5">
+                {/* Market search */}
+                <div>
+                  <label className="block text-[9px] tracking-[0.15em] text-[#3A5068] uppercase mb-1.5">Market</label>
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Name or region…"
+                    className="w-full bg-[#0A1420] border border-[#1E2D40] px-3 py-2 text-xs text-white placeholder-[#3A5068] focus:outline-none focus:border-[#2A5C96] transition-colors"
+                  />
+                </div>
+
+                {/* Conviction floor */}
+                <div>
+                  <label className="block text-[9px] tracking-[0.15em] text-[#3A5068] uppercase mb-1.5">Conviction floor</label>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[0, 60, 70, 80].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setMinScore(v)}
+                        className={`py-1.5 text-[10px] border transition-all ${
+                          minScore === v
+                            ? "bg-[#163559] border-[#1E4A7A] text-white"
+                            : "border-[#1E2D40] text-[#4A6080] hover:text-white"
+                        }`}
+                      >
+                        {v === 0 ? "All" : `≥${v}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Signal toggles */}
+                <div>
+                  <label className="block text-[9px] tracking-[0.15em] text-[#3A5068] uppercase mb-1.5">Signals</label>
+                  <div className="space-y-1">
+                    {([
+                      ["Live opportunities only", withOpps, () => setWithOpps((v) => !v)],
+                      ["Momentum rising ▲", momentumUp, () => setMomentumUp((v) => !v)],
+                      ["Risk score ≤ 40", lowRisk, () => setLowRisk((v) => !v)],
+                    ] as [string, boolean, () => void][]).map(([label, on, toggle]) => (
+                      <button
+                        key={label}
+                        onClick={toggle}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] border transition-all text-left ${
+                          on
+                            ? "bg-[#0F2A44] border-[#1E4A7A] text-white"
+                            : "border-[#1A2535] text-[#4A6080] hover:text-white"
+                        }`}
+                      >
+                        <span className={`text-[10px] ${on ? "text-emerald-400" : "text-[#3A5068]"}`}>{on ? "◉" : "○"}</span>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-[9px] text-[#2E4560] border-t border-[#1A2535] pt-3">
+                  <span className="text-[#4A7090] font-bold">{sorted.length}</span> of{" "}
+                  {rows.filter((r) => r.country === country).length} markets pass the screen
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* ── Deal board table ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-bold text-white">
@@ -471,6 +565,16 @@ export function DealBoard({
               <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase text-center">Dem</span>
               <span className="text-[10px] tracking-[0.15em] text-[#3A5068] uppercase text-right">GDV est.*</span>
             </div>
+
+            {/* Empty screen state */}
+            {sorted.length === 0 && (
+              <div className="px-4 py-10 text-center">
+                <div className="text-xs text-[#4A6080] mb-2">No markets pass the current screen.</div>
+                <button onClick={resetFilters} className="text-[10px] text-[#7BBFFF] hover:text-white uppercase tracking-wider transition-colors">
+                  Reset filters
+                </button>
+              </div>
+            )}
 
             {/* Rows */}
             {sorted.map((row, i) => {
@@ -573,6 +677,7 @@ export function DealBoard({
           <div className="text-[9px] text-[#2E4560] mt-1 px-1">
             * GDV estimate based on notional 20–50 unit scheme × country median sale price. Illustrative only.
           </div>
+        </div>
         </div>
 
         {/* ── Selected row detail ── */}
@@ -911,17 +1016,31 @@ export function DealBoard({
                 <button
                   onClick={generateMemo}
                   disabled={memoPending}
-                  className="w-full py-4 bg-gradient-to-r from-[#163559] to-[#0E3070] border border-[#1E4A7A] text-white text-sm font-bold hover:from-[#1A4070] hover:to-[#1248A0] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="w-full border border-[#1E4A7A] bg-[#0E1E32] hover:bg-[#12294A] hover:border-[#2A5C96] transition-all disabled:opacity-60 text-left"
                 >
-                  <span className={checkedLayers.size > 0 ? "text-emerald-400" : "text-[#4A6080]"}>
-                    {checkedLayers.size > 0 ? "☑" : "☐"}
-                  </span>
-                  {memoPending ? "Compiling memo…" : "Export IC Memo (.doc) — defend this in committee ↗"}
+                  <div className="px-5 py-4 flex items-center justify-between gap-6">
+                    <div>
+                      <div className="text-[9px] tracking-[0.3em] text-[#4A7090] uppercase mb-1">
+                        Investment Committee
+                      </div>
+                      <div className="text-sm font-bold text-white tracking-tight">
+                        {memoPending ? "Preparing memorandum…" : "Prepare Committee Memorandum"}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[9px] text-[#4A6080] uppercase tracking-[0.15em]">Word · .doc</div>
+                      <div className={`text-[10px] font-mono mt-0.5 ${checkedLayers.size > 0 ? "text-emerald-400" : "text-[#3A5068]"}`}>
+                        {checkedLayers.size > 0
+                          ? `${checkedLayers.size} conviction dimension${checkedLayers.size > 1 ? "s" : ""}`
+                          : "base memorandum"}
+                      </div>
+                    </div>
+                  </div>
                 </button>
                 <div className="text-[9px] text-[#2E4560] mt-2 text-center">
                   {checkedLayers.size > 0
-                    ? `${checkedLayers.size} conviction dimension${checkedLayers.size > 1 ? "s" : ""} included · scores, sources, and pro-forma outputs`
-                    : "Tick conviction checklist dimensions above to include in the IC memo"}
+                    ? "Compiled from live market data, preliminary underwrite, and selected conviction dimensions — with scores and sources."
+                    : "Select conviction checklist dimensions above to annex them to the memorandum."}
                 </div>
 
                 {/* Link to full city deal page */}
