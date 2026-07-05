@@ -7,17 +7,18 @@ US/UK property-investment intelligence SaaS. Next.js 14 (App Router) + Supabase 
 - Deploy = push to `main` (Vercel git integration). No Actions-based deploys.
 
 ## Architecture
-- **Supabase** project `vcnpevcmnobpznikahku` (EU). Migrations in `supabase/migrations/` are the source of truth (001–006 match live). Regenerate `src/lib/supabase/database.types.ts` after schema changes.
-- **Auth**: `@supabase/ssr` v0.12 with getAll/setAll cookies everywhere (`src/lib/supabase/server.ts`, `src/middleware.ts`). Client login only via `AuthForm` (supabase-js in browser). Middleware: anonymous fast-path (skips Supabase when no `sb-` cookies), protects /dashboard /watchlists /signals /opportunities/finder /admin /portfolio /deal-board; /signals + /opportunities/finder also require paid tier.
+- **Supabase** project `vcnpevcmnobpznikahku` (EU). Migrations in `supabase/migrations/` are the source of truth (001–007 match live). Regenerate `src/lib/supabase/database.types.ts` after schema changes.
+- **Auth**: `@supabase/ssr` v0.12 with getAll/setAll cookies everywhere (`src/lib/supabase/server.ts`, `src/middleware.ts`). Client login only via `AuthForm` (supabase-js in browser). Middleware: anonymous fast-path (skips Supabase when no `sb-` cookies), protects /dashboard /watchlists /signals /opportunities/finder /admin /portfolio /deal-board /screener; /signals + /opportunities/finder also require paid tier.
 - **Tiers (canonical, everywhere)**: `free | explorer ($29.99) | professional ($69.99) | institutional ($89.99)`. DB enum matches. Stripe env: `STRIPE_PRICE_EXPLORER/PROFESSIONAL/INSTITUTIONAL` (legacy `_PRO/_INVESTOR` still fallback).
 - **Stripe**: webhook `/api/stripe/webhook` (returns 500 on DB failure so Stripe retries; resolves user via subscription metadata `user_id` first; all billing states handled — past_due/unpaid → free). Checkout seeds metadata. Portal config `bpc_...` is account default. Account: SabioAI (`acct_1ToUdM2Lj8cdtHlx`), live mode.
 - **Public pages are static/ISR** via `src/lib/supabase/public.ts` (cookie-less client): home (1h), opportunities/[slug] (5m, `●`), rankings/legal (static). Navbar resolves user client-side — never add `cookies()` back to public layouts.
 - **Design language (obsidian dark, July 2026 rebrand)**: whole app is dark-first via semantic tokens in `globals.css` — canvas `#09090b` (`bg-background`), panels `#141416` (`bg-card`), borders `#222226` (`border-border`). Prime Blue `#2563eb` (`bg-primary`, alias `pa-blue`) = ONLY action/brand/active-state color; green `pa-green/#00C805` = live/positive data only, never CTAs. Always use semantic token classes (`bg-card`, `text-foreground`, `text-zinc-400/500` for muted) — never raw light-theme classes (`bg-white`, `text-gray-*`) or brand hexes. Utilities in globals.css: `.glass`/`.glass-panel` (backdrop-blur chrome + dropdowns), `.active-glow` (nav left-accent), `.skeleton` (shimmer loaders), `.status-dot-live/busy/error`, `.kicker`. Toasts: `toast()` from `src/components/ui/Toaster.tsx` (mounted in root layout), bottom-right micro-toasts — no alert(). Kickers: mono uppercase tracking-widest.
 
 ## Scraping pipeline
-- `/api/cron/scrape-listings?provider=X&batch=N` — ScrapeOps proxy, 5 URLs/batch, 45s timeouts, 1 retry, 180s soft deadline. Batches scheduled in vercel.json. Upsert NEVER shrinks a stored image gallery.
-- `/api/cron/enrich-agents` (hourly) — detail-page pass: agent info + FULL photo gallery (uncapped, Zillow size-variants deduped; `gdpClientCache` is a JSON *string*). Sets `properties.gallery_synced_at` only when photos found; plain fetch → render_js+residential fallback (10× credits) on block. Backlog ~1,269 rows, ~2–3 days.
-- Properties auto-link to municipalities via DB trigger `match_property_municipality` (address ILIKE market name). 631/1269 matched as of 2026-07-04.
+- `/api/cron/scrape-listings?provider=X&batch=N` — ScrapeOps proxy, 5 URLs/batch (BATCH_SIZE=5), 45s timeouts, 180s soft deadline. Targets are GENERATED lists in the route (zillow 100 = pages 1-3 across 40 city feeds; rightmove 165 = London deep + 13 regional REGION codes; onthemarket 70 = 14 city slugs x pages 1-3, renderJs:false — render_js breaks ?page=N there). Fresh page-1 batches are cron-scheduled (vercel.json); deep batches are one-shot backfill (invoke manually with CRON_SECRET). Upsert NEVER shrinks a stored gallery. OTM ids MUST be numeric /details/<id> — location slugs were once scraped as fake properties (purged).
+- `/api/cron/enrich-agents` (hourly, accepts ?provider=) — detail pass: FULL gallery + agent info. Queue order: gallery_synced_at NULLS FIRST then updated_at ASC (agent-less synced rows must not starve unsynced). fetchPage requires per-provider marker (zillow gdpClientCache / RM PAGE_MODEL / OTM __NEXT_DATA__) so 200-OK bot pages fail instead of fake-succeeding. Zillow galleries dedupe on /fp/<hash>. Zillow blocking comes and goes — when galleries_synced:0 repeats, stop hammering (credits) and let the cron retry.
+- To fast-fill galleries: loop `curl -H "Authorization: Bearer " "/api/cron/enrich-agents?provider=rightmove"` (~2min/40 rows) per provider; stop on "nothing to enrich" or 3x zero-yield.
+- Inventory (2026-07-06): ~11k properties (UK 6.4k / US 4.6k), galleries ~25% synced and climbing via cron.
 
 ## Member features (deal-flow layer, migration 006)
 - `market_listing_stats` view: per-market sale/rent counts, median price, median /sqm, underpriced count (≥15% below median /sqm). Powers Deal Board "Live market pulse".
@@ -31,8 +32,12 @@ US/UK property-investment intelligence SaaS. Next.js 14 (App Router) + Supabase 
 Supabase trio · STRIPE_SECRET_KEY (restricted rk_live) · STRIPE_WEBHOOK_SECRET · 3 price IDs · STRIPE_PORTAL_CONFIG_ID · NEXT_PUBLIC_APP_URL · CRON_SECRET · SCRAPEOPS_API_KEY · SLACK_WEBHOOK_URL · RESEND_API_KEY (send-only) · RESEND_FROM_EMAIL (temp `onboarding@resend.dev` — only delivers to owner's inbox until a domain is bought + verified in Resend). Missing: ANTHROPIC_API_KEY (thesis generation off).
 
 ## Known gaps / next up
-- UX cohesion pass DONE (July 2026): obsidian dark rebrand shipped — all green CTAs → Prime Blue, light-theme classes eliminated, glass chrome, skeleton/toast primitives. Remaining polish: consistent page headers across member pages.
-- Marketing copy claims "80+ markets"; DB has 32 US/UK municipalities (badge shows live count). Owner to decide: add markets or soften copy.
+- Gallery backfill in progress (~25%); UK providers sync clean, Zillow intermittently bot-blocked (cron retries hourly). Re-run provider loops to accelerate.
+- ANTHROPIC_API_KEY missing -> blocks screener PDF parsing + thesis generation. Highest-leverage env var to add.
+- Domain purchase pending -> then: attach in Vercel, update NEXT_PUBLIC_APP_URL, Stripe webhook URL, verify in Resend, update RESEND_FROM_EMAIL. Blocks all real email (alerts, digests).
 - E2E live payment test never run (needs a real card; refund after).
-- Domain purchase pending → then: attach in Vercel, update NEXT_PUBLIC_APP_URL, Stripe webhook URL, verify domain in Resend, update RESEND_FROM_EMAIL.
+- QA: `python3 scripts/qa/e2e_smoke.py` — 30+ live checks vs prod (surface, auth walls, IDOR/RLS, data invariants, gallery dedupe). Run after every deploy.
+- Data sanity TODO: filter absurd price/size_sqm outliers (some -70%+ "discounts" on /underpriced are source-data noise).
+- Screener UK module (SDLT/initial yield) deliberately deferred until US validates with design partners; legal review of disclaimers before public launch.
+- Marketing copy says "80+ markets"; DB has 32. Owner to decide.
 - Admin gate = email list in `src/lib/auth/admins.ts` (override via ADMIN_EMAILS env).
