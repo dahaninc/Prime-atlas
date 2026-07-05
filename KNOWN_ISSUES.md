@@ -5,9 +5,10 @@ Shipped documented rather than delayed for polish. Last updated: 2026-07-05.
 
 ## Dormant until env vars / owner actions
 
-- **PDF parsing (screener) returns 503** until `ANTHROPIC_API_KEY` is set in
-  Vercel. Manual entry is a first-class path, not a degradation. Highest-leverage
-  env var to add.
+- ~~PDF parsing returns 503 until `ANTHROPIC_API_KEY` set~~ — **resolved
+  2026-07-05**: key added to Vercel prod+preview and .env.local; parsing and
+  thesis generation are live. Not yet exercised with a real OM PDF by a
+  logged-in user — do one manual upload as part of the launch walkthrough.
 - **All real email is limited** until a domain is bought and verified in Resend:
   `RESEND_FROM_EMAIL` is `onboarding@resend.dev`, which only delivers to the
   owner's inbox. Affects deal alerts and undervalued-waitlist notifications.

@@ -31,7 +31,7 @@ US/UK property-investment intelligence SaaS. Next.js 14 (App Router) + Supabase 
 - See KNOWN_ISSUES.md for documented limitations + pending owner decisions.
 
 ## Env vars (all in Vercel prod+preview and .env.local)
-Supabase trio · STRIPE_SECRET_KEY (restricted rk_live) · STRIPE_WEBHOOK_SECRET · 3 price IDs · STRIPE_PORTAL_CONFIG_ID · NEXT_PUBLIC_APP_URL · CRON_SECRET · SCRAPEOPS_API_KEY · SLACK_WEBHOOK_URL · RESEND_API_KEY (send-only) · RESEND_FROM_EMAIL (temp `onboarding@resend.dev` — only delivers to owner's inbox until a domain is bought + verified in Resend). Missing: ANTHROPIC_API_KEY (thesis generation off).
+Supabase trio · STRIPE_SECRET_KEY (restricted rk_live) · STRIPE_WEBHOOK_SECRET · 3 price IDs · STRIPE_PORTAL_CONFIG_ID · NEXT_PUBLIC_APP_URL · CRON_SECRET · SCRAPEOPS_API_KEY · SLACK_WEBHOOK_URL · RESEND_API_KEY (send-only) · RESEND_FROM_EMAIL (temp `onboarding@resend.dev` — only delivers to owner's inbox until a domain is bought + verified in Resend) · ANTHROPIC_API_KEY (added 2026-07-05 — screener PDF parsing + thesis generation live).
 
 ## Known gaps / next up
 - Gallery backfill in progress (~25%); UK providers sync clean, Zillow intermittently bot-blocked (cron retries hourly). Re-run provider loops to accelerate.
