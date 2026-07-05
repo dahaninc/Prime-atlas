@@ -94,7 +94,7 @@ def main() -> int:
 
     # ── 1. Public surface ────────────────────────────────────────────────────
     print("[1] Public surface")
-    for path in ("/", "/pricing", "/listings", "/market-feed"):
+    for path in ("/", "/pricing", "/listings", "/market-feed", "/underpriced"):
         code, html, _ = http(base + path)
         check(f"GET {path} renders", code == 200, f"HTTP {code}")
         if path == "/":

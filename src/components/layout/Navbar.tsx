@@ -349,6 +349,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
             {navLink("/listings",    "Listings")}
             {navLink("/market-feed", "Live Feed")}
             {navLink("/deal-board",  "Deal Board")}
+            {navLink("/underpriced", "Underpriced")}
           </div>
 
           {/* ── Desktop auth ── */}
@@ -404,6 +405,7 @@ export function Navbar({ user: initialUser }: NavbarProps) {
                 { href: "/listings",    label: "Listings"  },
                 { href: "/market-feed", label: "Live Feed" },
                 { href: "/deal-board",  label: "Deal Board"},
+                { href: "/underpriced", label: "Underpriced"},
               ].map(({ href, label }) => (
                 <Link
                   key={href}
