@@ -35,13 +35,16 @@ function adminSupabase() {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchPage(url: string, country: string): Promise<string | null> {
+async function fetchPage(url: string, country: string, marker?: string): Promise<string | null> {
   const apiKey = process.env.SCRAPEOPS_API_KEY;
   if (!apiKey) return null;
 
   // Cheap plain fetch first; when the target blocks it (Zillow especially),
   // retry once with JS rendering + residential IP — costs more ScrapeOps
   // credits but reliably gets through.
+  // `marker` guards against bot-challenge pages: they can be >2000 bytes and
+  // HTTP 200 but lack the data blob — without the check they'd be accepted
+  // from the cheap attempt and the rendered fallback would never fire.
   const attempts = [
     `${SCRAPEOPS_BASE}?api_key=${apiKey}&url=${encodeURIComponent(url)}&render_js=false`,
     `${SCRAPEOPS_BASE}?api_key=${apiKey}&url=${encodeURIComponent(url)}&render_js=true&residential=true&country=${country}`,
@@ -55,7 +58,7 @@ async function fetchPage(url: string, country: string): Promise<string | null> {
       });
       if (!res.ok) continue;
       const html = await res.text();
-      if (html.length > 2000) return html;
+      if (html.length > 2000 && (!marker || html.includes(marker))) return html;
     } catch {
       // fall through to the rendered attempt / give up
     }
@@ -77,19 +80,23 @@ function parseRightmoveDetail(html: string): AgentInfo {
   const info: AgentInfo = { agent_name: null, agent_company: null, agent_phone: null, agent_email: null, images: [] };
 
   try {
-    // Try __NEXT_DATA__ first
-    const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-    if (match?.[1]) {
-      const data = JSON.parse(match[1]) as any;
-      const pd   = data?.props?.pageProps?.propertyData ?? data?.props?.pageProps?.property;
+    // Rightmove embeds detail data in window.PAGE_MODEL (not __NEXT_DATA__)
+    const pmMatch = html.match(/window\.PAGE_MODEL\s*=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/);
+    const nextMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+    const raw = pmMatch?.[1] ?? nextMatch?.[1];
+    if (raw) {
+      const data = JSON.parse(raw) as any;
+      const pd   = data?.propertyData ??
+                   data?.props?.pageProps?.propertyData ?? data?.props?.pageProps?.property;
 
       if (pd) {
-        info.agent_company = pd.customerAvmDetails?.branchDisplayName ??
-                             pd.customer?.branchDisplayName ??
+        info.agent_company = pd.customer?.branchDisplayName ??
+                             pd.customerAvmDetails?.branchDisplayName ??
+                             pd.customer?.companyName ??
                              pd.contactInfo?.agencyName ?? null;
         info.agent_phone   = pd.contactInfo?.telephoneNumbers?.localNumber ??
                              pd.contactInfo?.telephoneNumbers?.internationalNumber ?? null;
-        // Images
+        // Images — full gallery, canonical (non-resized) URLs
         const imgs: string[] = pd.images?.map((i: { url?: string; src?: string }) => i.url ?? i.src).filter(Boolean) ?? [];
         if (imgs.length) info.images = imgs;
       }
@@ -219,24 +226,33 @@ export async function GET(req: NextRequest) {
 
   const supabase = adminSupabase();
 
+  // Optional ?provider= scope — lets a backfill drive one provider without
+  // being starved by another provider's blocked rows at the queue head.
+  const providerFilter = req.nextUrl.searchParams.get("provider");
+
   // Fetch properties needing enrichment: missing agent info OR photos.
   // Ordered by updated_at ASC and always touched on processing, so the cron
   // cycles through the whole backlog over successive runs instead of
   // re-fetching the same rows forever.
-  const { data: rows, error } = await supabase
+  let query = supabase
     .from("properties")
     .select("id, provider, listing_url")
     .or("gallery_synced_at.is.null,agent_name.is.null")
     .not("listing_url", "is", null)
-    .eq("status", "active")
+    .eq("status", "active");
+  if (providerFilter) query = query.eq("provider", providerFilter);
+  const { data: rows, error } = await query
     .order("updated_at", { ascending: true })
     .limit(BATCH_SIZE);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!rows?.length) return NextResponse.json({ ok: true, enriched: 0, message: "Nothing to enrich" });
 
-  let enriched = 0;
-  let skipped  = 0;
+  let enriched  = 0;
+  let galleries = 0;
+  let agents    = 0;
+  let empty     = 0;
+  let skipped   = 0;
   const errors: string[] = [];
   const t0 = Date.now();
 
@@ -248,7 +264,10 @@ export async function GET(req: NextRequest) {
     }
     try {
       const country = row.provider === "zillow" ? "us" : "gb";
-      const html = await fetchPage(row.listing_url, country);
+      const marker  = row.provider === "zillow"    ? "gdpClientCache"
+                    : row.provider === "rightmove" ? "PAGE_MODEL"
+                    :                                "__NEXT_DATA__";
+      const html = await fetchPage(row.listing_url, country, marker);
       if (!html) {
         errors.push(`${row.id}: fetch failed`);
         // Send permanently-blocked rows to the back of the queue so they
@@ -278,7 +297,10 @@ export async function GET(req: NextRequest) {
       if (info.images.length > 0) update.images = info.images;
 
       await supabase.from("properties").update(update).eq("id", row.id);
-      enriched++;
+      const gotData = info.images.length > 0 || info.agent_name || info.agent_company || info.agent_phone;
+      if (info.images.length > 0) galleries++;
+      if (info.agent_name || info.agent_company) agents++;
+      if (gotData) enriched++; else empty++;
     } catch (err) {
       errors.push(`${row.id}: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -289,6 +311,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     enriched,
+    galleries_synced: galleries,
+    agents_found: agents,
+    parse_empty: empty,
     skipped,
     attempted: rows.length,
     errors: errors.slice(0, 10),
