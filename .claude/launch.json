@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "prime-atlas-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "cd /Users/yos/Desktop/prime-atlas && exec npm run dev"],
       "port": 3000
     }
   ]

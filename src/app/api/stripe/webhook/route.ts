@@ -107,6 +107,9 @@ async function syncSubscription(admin: Admin, sub: Stripe.Subscription): Promise
       stripe_subscription_id: isActive ? sub.id : null,
       subscription_tier: tier,
       subscription_period_end: isActive ? periodEnd : null,
+      // An active subscription implies a vaulted card; never un-set on
+      // downgrade (the card stays on file with Stripe).
+      ...(isActive ? { payment_method_on_file: true } : {}),
     })
     .eq("id", userId);
 
@@ -155,6 +158,30 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // mode=setup: card-on-file activation for the free screener quota
+        // (fallback for /api/stripe/setup's GET confirm leg).
+        if (session.mode === "setup") {
+          let userId = session.metadata?.user_id ?? null;
+          if (!userId && session.customer) {
+            const customerId =
+              typeof session.customer === "string" ? session.customer : session.customer.id;
+            const { data, error } = await admin
+              .from("profiles").select("id").eq("stripe_customer_id", customerId).maybeSingle();
+            if (error) throw new Error(`profiles lookup failed: ${error.message}`);
+            userId = data?.id ?? null;
+          }
+          if (userId) {
+            const { error } = await admin
+              .from("profiles")
+              .update({ payment_method_on_file: true })
+              .eq("id", userId);
+            if (error) throw new Error(`card-on-file update failed: ${error.message}`);
+            console.log(`[stripe/webhook] card on file activated for user ${userId}`);
+          }
+          break;
+        }
+
         if (session.mode !== "subscription" || !session.subscription) break;
 
         const subId =

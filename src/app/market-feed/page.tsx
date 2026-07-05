@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MarketFeedExplorer, type ScrapedProperty } from "@/components/market-feed/MarketFeedExplorer";
+import { isPaidTier, redactRows } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,13 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
       .limit(2000),
   ]);
 
-  const properties = (rawProperties ?? []) as ScrapedProperty[];
+  // Non-members (anonymous or free) get locality-level addresses and no
+  // photos — redacted server-side so the data never reaches the browser.
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
+    : { data: null };
+  const isMember = isPaidTier((profile as { subscription_tier?: string } | null)?.subscription_tier);
+  const properties = redactRows((rawProperties ?? []) as ScrapedProperty[], isMember);
 
   const total    = properties.length;
   const forSale  = properties.filter(p => p.listing_type === "sale").length;

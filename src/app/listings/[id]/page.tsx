@@ -417,8 +417,23 @@ export default async function ListingDetailPage(
           {/* ── Left / Main column (2/3) ── */}
           <div className="lg:col-span-2 space-y-8">
 
-            {/* Image gallery */}
-            <ImageGallery images={images} title={listing.title} />
+            {/* Image gallery — real photos are members-only; never pass the
+                URLs to the client for non-members (props ship in the RSC payload) */}
+            {isMember || images.length === 0 ? (
+              <ImageGallery images={images} title={listing.title} />
+            ) : (
+              <div className="rounded-2xl border border-primary/25 bg-primary/5 px-6 py-10 text-center">
+                <p className="text-sm font-bold mb-1">
+                  {images.length} photo{images.length > 1 ? "s" : ""} of this listing — members only
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Full gallery, street address and contact details unlock with membership.
+                </p>
+                <Link href="/pricing" className="bg-primary text-white font-semibold text-xs px-5 py-2 rounded-lg hover:bg-primary/85 transition-colors inline-block">
+                  Unlock from $29.99/mo →
+                </Link>
+              </div>
+            )}
 
             {/* Title + badge row */}
             <div>

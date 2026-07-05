@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   computeScreener, screenerSensitivity, buildScorecard,
@@ -12,11 +12,21 @@ import { toast } from "@/components/ui/Toaster";
 
 interface SavedCriteria extends Criteria { id: string; name: string }
 
+interface PastAnalysis {
+  id: string;
+  name: string | null;
+  created_at: string;
+  inputs: Record<string, number>;
+  outputs: Record<string, number>;
+}
+
 interface Props {
   savedCriteria: SavedCriteria | null;
+  pastAnalyses: PastAnalysis[];
   quotaUsed: number;
   quotaLimit: number;
   unlimited: boolean;
+  cardOnFile: boolean;
 }
 
 const money = (n: number) =>
@@ -48,7 +58,7 @@ const CRITERIA_FIELDS = [
   { key: "hold_years",         label: "Hold period (yrs)",     step: 1 },
 ] as const;
 
-export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited }: Props) {
+export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLimit, unlimited, cardOnFile }: Props) {
   const [inputs, setInputs] = useState<ScreenerInputs>(US_DEFAULT_INPUTS);
   const [dealName, setDealName] = useState("");
   const [criteria, setCriteria] = useState<Criteria & { name: string }>(
@@ -62,7 +72,37 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
   const [used, setUsed] = useState(quotaUsed);
   const [pendingSave, startSave] = useTransition();
   const [parsing, setParsing] = useState(false);
+  const [activating, setActivating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const needsActivation = !unlimited && !cardOnFile;
+
+  // Return leg from Stripe card setup (/api/stripe/setup GET redirect).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("card_saved") === "1") {
+      toast("Card saved — your 3 free analyses/month are active");
+      window.history.replaceState({}, "", "/screener");
+    } else if (params.get("setup_cancelled") === "1") {
+      toast("Card setup cancelled — add a card to activate your free analyses", "info");
+      window.history.replaceState({}, "", "/screener");
+    }
+  }, []);
+
+  async function onActivate() {
+    setActivating(true);
+    try {
+      const res = await fetch("/api/stripe/setup", { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (res.ok && data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      toast(data.error ?? "Could not start card setup — try again", "error");
+    } finally {
+      setActivating(false);
+    }
+  }
 
   const out  = useMemo(() => computeScreener(inputs), [inputs]);
   const sens = useMemo(() => screenerSensitivity(inputs), [inputs]);
@@ -82,6 +122,13 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
       const res = await fetch("/api/screener/parse", { method: "POST", body: fd });
       if (res.status === 503) {
         toast("PDF parsing engine not configured yet — enter the deal manually", "info");
+        return;
+      }
+      if (res.status === 403) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        toast(body.error === "card_required"
+          ? "Add a card to activate your free analyses (you won't be charged)"
+          : `Free plan: ${quotaLimit} analyses/month used — upgrade for unlimited`, "info");
         return;
       }
       if (!res.ok) {
@@ -115,6 +162,8 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
       if (!res.ok) {
         if (res.error === "quota_exceeded") {
           toast(`Free plan: ${quotaLimit} analyses/month used — upgrade for unlimited`, "error");
+        } else if (res.error === "card_required") {
+          toast("Add a card to activate your free analyses (you won't be charged)", "info");
         } else {
           toast("Could not save analysis", "error");
         }
@@ -145,6 +194,25 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
   }
 
   return (
+    <>
+    {needsActivation && (
+      <div className="mb-6 border border-primary/40 bg-primary/5 rounded-xl px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-sm font-semibold">Activate your {quotaLimit} free analyses / month</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Add a card to unlock them — you won&apos;t be charged. Your card is vaulted securely
+            with Stripe and only used if you later upgrade.
+          </p>
+        </div>
+        <button
+          onClick={onActivate}
+          disabled={activating}
+          className="bg-primary text-white font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-60 shrink-0"
+        >
+          {activating ? "Opening Stripe…" : "Add card & activate"}
+        </button>
+      </div>
+    )}
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
       {/* ── Left: deal inputs ─────────────────────────────────────────── */}
@@ -187,6 +255,41 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
             ))}
           </div>
         </div>
+
+        {/* Analysis history — click to reload a past deal into the pro-forma */}
+        {pastAnalyses.length > 0 && (
+          <div className="border border-border rounded-xl bg-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-border flex items-baseline justify-between">
+              <p className="kicker">Analysis history</p>
+              <span className="text-[10px] text-zinc-500 font-mono">{pastAnalyses.length} saved</span>
+            </div>
+            <div className="divide-y divide-border max-h-64 overflow-y-auto">
+              {pastAnalyses.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => {
+                    setInputs({ ...US_DEFAULT_INPUTS, ...a.inputs });
+                    setDealName(a.name ?? "");
+                    toast("Loaded — every input stays editable");
+                  }}
+                  className="w-full text-left px-5 py-2.5 hover:bg-secondary/50 transition-colors"
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm font-semibold truncate">{a.name || "Untitled analysis"}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono shrink-0">
+                      {new Date(a.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                    {a.outputs.capRate != null ? `${Number(a.outputs.capRate).toFixed(2)}% cap` : ""}
+                    {a.outputs.dscr != null ? ` · ${Number(a.outputs.dscr).toFixed(2)}x DSCR` : ""}
+                    {a.outputs.cashOnCash != null ? ` · ${Number(a.outputs.cashOnCash).toFixed(1)}% CoC` : ""}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Criteria profile */}
         <div className="border border-border rounded-xl bg-card p-5">
@@ -322,7 +425,7 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
         <div className="flex items-center gap-4 flex-wrap">
           <button
             onClick={onSaveAnalysis}
-            disabled={pendingSave || (!unlimited && quotaLeft <= 0)}
+            disabled={pendingSave || needsActivation || (!unlimited && quotaLeft <= 0)}
             className="bg-primary text-white font-semibold text-sm px-6 py-3 rounded-lg hover:bg-primary/85 transition-colors disabled:opacity-50"
           >
             {pendingSave ? "Saving…" : "Save analysis"}
@@ -330,6 +433,8 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
           <span className="text-xs text-muted-foreground">
             {unlimited
               ? "Unlimited analyses on your plan"
+              : needsActivation
+              ? "Add a card above to activate your free analyses"
               : `${quotaLeft} of ${quotaLimit} free analyses left this month`}
           </span>
           {!unlimited && quotaLeft <= 0 && (
@@ -343,5 +448,6 @@ export function ScreenerClient({ savedCriteria, quotaUsed, quotaLimit, unlimited
         </p>
       </div>
     </div>
+    </>
   );
 }

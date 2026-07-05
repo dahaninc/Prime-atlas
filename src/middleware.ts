@@ -12,6 +12,7 @@ const PROTECTED_ROUTES = [
   "/portfolio",
   "/deal-board",
   "/screener",
+  "/reports/market",
 ];
 
 /** Routes that require a paid subscription */

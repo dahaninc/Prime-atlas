@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ListingsExplorer, type FullListing } from "@/components/listings/ListingsExplorer";
+import { redactStreet } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,12 @@ export default async function ListingsPage() {
   const isMember = ["explorer", "professional", "institutional"].includes(
     (profile as { subscription_tier?: string } | null)?.subscription_tier ?? ""
   );
-  const listings = (rawListings ?? []) as unknown as FullListing[];
+  // Non-members: strip real property photos and street addresses server-side
+  // (cards fall back to decorative stock; the card already renders a locality
+  // summary — but the full string must never reach the client DOM).
+  const listings = ((rawListings ?? []) as unknown as FullListing[]).map((l) =>
+    isMember ? l : { ...l, images: [], address: redactStreet(l.address) ?? l.municipalities?.name ?? "Location on file" }
+  );
   const total    = listings.length;
   const featured = listings.filter((l) => l.featured).length;
   const countries = new Set(listings.map((l) => l.municipalities?.country).filter(Boolean)).size;

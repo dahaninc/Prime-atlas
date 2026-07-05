@@ -205,6 +205,7 @@ function MarketsDropdown({ open, onClose }: { open: boolean; onClose: () => void
 const ACCOUNT_LINKS = [
   { href: "/dashboard",  label: "Dashboard",   desc: "Your overview & saved markets" },
   { href: "/deal-board", label: "Deal Board",  desc: "Underwrite & export IC memos" },
+  { href: "/reports/market", label: "Market Reports", desc: "Scores, demand signals & rate scenarios" },
   { href: "/watchlists", label: "Watchlists",  desc: "Saved markets & deal alerts" },
   { href: "/portfolio",  label: "Portfolio",   desc: "Monitor assets you own" },
   { href: "/pricing",    label: "Plan & billing", desc: "Manage your subscription" },

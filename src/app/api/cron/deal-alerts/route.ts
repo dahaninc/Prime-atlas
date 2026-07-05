@@ -9,6 +9,11 @@
  * Matching criteria per rule (all optional, AND-ed):
  *   municipality_id / country_iso2 · listing_type · max_price ·
  *   min_bedrooms · min_discount_pct (vs market median £/sqm) · min_yield_pct
+ *
+ * Also processes the undervalued-property waitlist (underpriced_waitlist):
+ * new sale listings ≥15% below their market median are mailed to waitlisted
+ * users — PAID TIERS ONLY (free users may join the list; delivery activates
+ * with membership). Dedupe via underpriced_waitlist_hits.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -49,9 +54,10 @@ export async function GET(req: NextRequest) {
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const [{ data: rules }, { data: recent }, { data: stats }, { data: municipalities }] =
+  const [{ data: rules }, { data: waitlist }, { data: recent }, { data: stats }, { data: municipalities }] =
     await Promise.all([
       supabase.from("deal_alert_rules").select("*").eq("active", true),
+      supabase.from("underpriced_waitlist").select("id, user_id, municipality_id"),
       supabase
         .from("properties")
         .select(
@@ -64,8 +70,8 @@ export async function GET(req: NextRequest) {
       supabase.from("municipalities").select("id, name"),
     ]);
 
-  if (!rules?.length || !recent?.length) {
-    return NextResponse.json({ ok: true, matched: 0, reason: "no active rules or no recent listings" });
+  if ((!rules?.length && !waitlist?.length) || !recent?.length) {
+    return NextResponse.json({ ok: true, matched: 0, reason: "no active rules/waitlist or no recent listings" });
   }
 
   const medianPpsqm = new Map<string, number>();
@@ -87,7 +93,7 @@ export async function GET(req: NextRequest) {
   const errors: string[] = [];
   const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-  for (const rule of rules) {
+  for (const rule of rules ?? []) {
     const candidates = enriched.filter((p) => {
       if (rule.municipality_id && p.municipality_id !== rule.municipality_id) return false;
       if (rule.country_iso2 && p.country_iso2 !== rule.country_iso2) return false;
@@ -165,5 +171,91 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, rules: rules.length, matched: matchedTotal, emailsSent, errors });
+  // ── Undervalued-property waitlist — members only ─────────────────────────
+  // Free users may sit on the list; emails go out only once they hold a paid
+  // tier ("notifications activate with membership").
+  let waitlistEmailsSent = 0;
+  if (waitlist?.length && resend) {
+    const userIds = Array.from(new Set(waitlist.map((w) => w.user_id)));
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, subscription_tier")
+      .in("id", userIds)
+      .neq("subscription_tier", "free");
+    const paidProfiles = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    const underpriced = enriched.filter(
+      (p) => p.listing_type === "sale" && (p.discountPct ?? -Infinity) >= 15
+    );
+
+    for (const entry of waitlist) {
+      const profile = paidProfiles.get(entry.user_id);
+      if (!profile?.email) continue; // free tier or missing email — list, don't notify
+
+      const candidates = underpriced.filter(
+        (p) => !entry.municipality_id || p.municipality_id === entry.municipality_id
+      );
+      if (!candidates.length) continue;
+
+      const { data: pastHits } = await supabase
+        .from("underpriced_waitlist_hits")
+        .select("property_id")
+        .eq("waitlist_id", entry.id)
+        .in("property_id", candidates.map((c) => c.id));
+      const seen = new Set((pastHits ?? []).map((h) => h.property_id));
+      const fresh = candidates.filter((c) => !seen.has(c.id)).slice(0, MAX_PER_EMAIL);
+      if (!fresh.length) continue;
+
+      matchedTotal += fresh.length;
+      const sym = (c: string) => (c === "GBP" ? "£" : "$");
+      const rows = fresh
+        .map((p) => {
+          const priceStr = p.price ? `${sym(p.currency_code)}${Math.round(p.price / 100).toLocaleString()}` : "POA";
+          const market = p.municipality_id ? marketName.get(p.municipality_id) ?? "" : "";
+          const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app"}/market-feed/${p.id}`;
+          return `<tr><td style="padding:10px 0;border-bottom:1px solid #eee">
+            <a href="${link}" style="color:#1B4FE4;font-weight:600;text-decoration:none">${p.address ?? "View listing"}</a><br/>
+            <span style="font-size:13px;color:#111"><strong>${priceStr}</strong> · <strong style="color:#059669">${(p.discountPct ?? 0).toFixed(0)}% below ${market} median</strong></span>
+          </td></tr>`;
+        })
+        .join("");
+
+      try {
+        const { error: sendErr } = await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL ?? "Prime Atlas <onboarding@resend.dev>",
+          to: profile.email,
+          subject: `📉 ${fresh.length} undervalued propert${fresh.length > 1 ? "ies" : "y"} just launched`,
+          html: `<div style="font-family:ui-sans-serif,system-ui;max-width:560px;margin:0 auto">
+            <p style="font-size:12px;letter-spacing:2px;color:#888;text-transform:uppercase">Prime Atlas · Undervalued Waitlist</p>
+            <p style="font-size:15px;color:#111">New listings flagged ≥15% below their market's median per-sqm:</p>
+            <table style="width:100%;border-collapse:collapse">${rows}</table>
+            <p style="font-size:11px;color:#999;margin-top:20px">
+              You receive this because you joined the undervalued-property waitlist on Prime Atlas.
+              Manage it from the <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app"}/underpriced">underpriced feed</a>.
+              Estimates are heuristic — verify before acting. Not investment advice.
+            </p>
+          </div>`,
+        });
+        if (sendErr) throw new Error(sendErr.message);
+
+        const { error: hitErr } = await supabase
+          .from("underpriced_waitlist_hits")
+          .insert(fresh.map((p) => ({ waitlist_id: entry.id, property_id: p.id })));
+        if (hitErr) throw new Error(hitErr.message);
+        waitlistEmailsSent++;
+      } catch (err) {
+        errors.push(`waitlist ${entry.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    rules: rules?.length ?? 0,
+    waitlist: waitlist?.length ?? 0,
+    matched: matchedTotal,
+    emailsSent,
+    waitlistEmailsSent,
+    errors,
+  });
 }

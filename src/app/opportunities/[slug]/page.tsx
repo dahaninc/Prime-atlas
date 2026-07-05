@@ -8,6 +8,7 @@ import { ScoreRadar } from "@/components/charts/ScoreRadar";
 import { ScoreBreakdown } from "@/components/charts/ScoreBreakdown";
 import { LiveListings } from "@/components/listings/LiveListings";
 import type { Listing } from "@/components/listings/LiveListings";
+import { redactStreet } from "@/lib/access";
 import type { Signal, InfrastructureProject } from "@/types";
 
 // Skip static generation — municipalities require auth via RLS.
@@ -320,7 +321,13 @@ export default async function MunicipalityPage({ params }: PageProps) {
         {listings && listings.length > 0 && (
           <section className="mt-10 border-t border-border pt-10">
             <LiveListings
-              listings={listings as Listing[]}
+              // Static/ISR page (no viewer tier): always redacted — locality-only
+              // address, no photos. Members see full detail on /listings/[id].
+              listings={(listings as Listing[]).map((l) => ({
+                ...l,
+                images: [],
+                address: redactStreet(l.address) ?? municipality.name,
+              }))}
               marketContext={{
                 name:              municipality.name,
                 slug:              municipality.slug ?? "",

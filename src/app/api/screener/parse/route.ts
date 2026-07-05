@@ -31,9 +31,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Quota: parsing shares the monthly analysis quota (compute is the cost).
+  // Free quota activates only once a card is vaulted with Stripe.
   const { data: profile } = await supabase
-    .from("profiles").select("subscription_tier").eq("id", user.id).single();
+    .from("profiles").select("subscription_tier, payment_method_on_file").eq("id", user.id).single();
   if ((profile?.subscription_tier ?? "free") === "free") {
+    if (!profile?.payment_method_on_file) {
+      return NextResponse.json({ error: "card_required" }, { status: 403 });
+    }
     const monthStart = new Date();
     monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
     const { count } = await supabase

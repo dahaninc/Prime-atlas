@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as adminClient } from "@supabase/supabase-js";
+import { redactStreet } from "@/lib/access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -379,6 +380,18 @@ export default async function MarketFeedPropertyPage(
     .limit(6);
 
   const comps = (rawComps ?? []) as unknown as Property[];
+
+  // Server-side redaction for non-members: locality-only address, zero
+  // photos. (Blur-only gating leaks the address into the DOM — never rely
+  // on CSS for this.)
+  const photoCount = (Array.isArray(property.images) ? (property.images as string[]) : [])
+    .filter((img) => typeof img === "string" && img.startsWith("http")).length;
+  if (!isMember) {
+    property.images = [];
+    property.address = redactStreet(property.address);
+    for (const c of comps) c.address = redactStreet(c.address);
+  }
+
   const e = enrichProperty(property);
   const isSale = property.listing_type === "sale";
   const locationLabel = e.country === "UK"
@@ -399,6 +412,19 @@ export default async function MarketFeedPropertyPage(
           <span>/</span>
           <span className="text-zinc-300 line-clamp-1">{getLocationSummary(property.address, e.country)}</span>
         </nav>
+
+        {/* Photos gate — non-members see the count, never the images */}
+        {!isMember && photoCount > 0 && (
+          <div className="w-full rounded-2xl border border-primary/25 bg-primary/5 mb-8 px-6 py-8 text-center">
+            <p className="text-sm font-bold mb-1">{photoCount} photo{photoCount > 1 ? "s" : ""} of this property — members only</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Full photo gallery, street address and agent contact unlock with membership.
+            </p>
+            <Link href="/pricing" className="bg-primary text-white font-semibold text-xs px-5 py-2 rounded-lg hover:bg-primary/85 transition-colors inline-block">
+              Unlock from $29.99/mo →
+            </Link>
+          </div>
+        )}
 
         {/* Property image hero */}
         {(() => {

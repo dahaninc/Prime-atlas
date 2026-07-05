@@ -278,6 +278,38 @@ export type Database = {
           },
         ]
       }
+      deal_board_reports: {
+        Row: {
+          created_at: string
+          id: string
+          municipality_id: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          municipality_id: string
+          payload: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          municipality_id?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_board_reports_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infrastructure_projects: {
         Row: {
           budget: number
@@ -846,6 +878,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          payment_method_on_file: boolean
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_period_end: string | null
@@ -857,6 +890,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          payment_method_on_file?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_period_end?: string | null
@@ -868,6 +902,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          payment_method_on_file?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_period_end?: string | null
@@ -1192,6 +1227,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      underpriced_waitlist: {
+        Row: {
+          created_at: string
+          id: string
+          municipality_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          municipality_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          municipality_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "underpriced_waitlist_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      underpriced_waitlist_hits: {
+        Row: {
+          notified_at: string
+          property_id: string
+          waitlist_id: string
+        }
+        Insert: {
+          notified_at?: string
+          property_id: string
+          waitlist_id: string
+        }
+        Update: {
+          notified_at?: string
+          property_id?: string
+          waitlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "underpriced_waitlist_hits_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "underpriced_waitlist_hits_waitlist_id_fkey"
+            columns: ["waitlist_id"]
+            isOneToOne: false
+            referencedRelation: "underpriced_waitlist"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       watchlist_items: {
         Row: {

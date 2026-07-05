@@ -17,13 +17,21 @@ export default async function ScreenerPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: criteria }, quota] = await Promise.all([
+  const [{ data: criteria }, { data: analyses }, quota] = await Promise.all([
     supabase
       .from("screener_criteria")
       .select("id, name, target_cap_pct, min_dscr, max_price_per_unit, target_coc_pct, hold_years")
       .eq("active", true)
       .limit(1)
       .maybeSingle(),
+    user
+      ? supabase
+          .from("screener_analyses")
+          .select("id, name, created_at, inputs, outputs")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(25)
+      : Promise.resolve({ data: [] }),
     getQuota(),
   ]);
 
@@ -46,9 +54,20 @@ export default async function ScreenerPage() {
 
         <ScreenerClient
           savedCriteria={criteria ?? null}
+          pastAnalyses={((analyses ?? []) as {
+            id: string; name: string | null; created_at: string;
+            inputs: unknown; outputs: unknown;
+          }[]).map((a) => ({
+            id: a.id,
+            name: a.name,
+            created_at: a.created_at,
+            inputs: a.inputs as Record<string, number>,
+            outputs: a.outputs as Record<string, number>,
+          }))}
           quotaUsed={quota.used}
           quotaLimit={quota.limit}
           unlimited={quota.unlimited}
+          cardOnFile={quota.cardOnFile}
         />
       </main>
       <Footer />
