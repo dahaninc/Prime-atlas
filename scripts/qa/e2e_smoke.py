@@ -105,9 +105,26 @@ def main() -> int:
                       if c in html]
             check("no non-US/UK market leakage on home", not leaked, ",".join(leaked) or "clean")
 
+    # ── 1b. Free-tier redaction invariants ──────────────────────────────────
+    print("\n[1b] Free-tier redaction (anonymous)")
+    street_re = re.compile(r"\d+ [A-Z][a-z]+ (Street|Road|Avenue|Lane|Drive|St|Rd|Ave|Dr|Blvd)\b")
+    photo_re = re.compile(r'https://[^"\s]+\.(?:jpg|jpeg|png|webp)')
+    code, html, _ = http(base + "/market-feed")
+    check("market-feed: no street addresses for anon",
+          code == 200 and not street_re.search(html),
+          f"HTTP {code}, matches={len(street_re.findall(html))}")
+    check("market-feed: no property photo URLs for anon",
+          code == 200 and not photo_re.search(html),
+          f"HTTP {code}, matches={len(photo_re.findall(html))}")
+    code, html, _ = http(base + "/underpriced")
+    check("underpriced: members-only teaser for anon (no deal links)",
+          code == 200 and "market-feed/" not in html and "members only" in html.lower(),
+          f"HTTP {code}")
+    check("underpriced: waitlist CTA present", "waitlist" in html.lower(), "join CTA rendered")
+
     # ── 2. Auth walls ────────────────────────────────────────────────────────
     print("\n[2] Auth walls")
-    for path in ("/deal-board", "/dashboard", "/portfolio", "/screener"):
+    for path in ("/deal-board", "/dashboard", "/portfolio", "/screener", "/reports/market"):
         code, _, hdrs = http(base + path, follow=False)
         loc = hdrs.get("Location", hdrs.get("location", ""))
         check(f"{path} gated for anonymous", code in (301, 302, 303, 307, 308) and "login" in loc,
@@ -152,7 +169,7 @@ def main() -> int:
     # ── 3b. IDOR / RLS: anon must not read user-owned tables ─────────────────
     print("\n[3b] IDOR / tenant isolation")
     if sb_url and anon:
-        for table in ("profiles", "portfolio_assets", "deal_alert_rules", "watchlists", "subscriptions", "screener_criteria", "screener_analyses"):
+        for table in ("profiles", "portfolio_assets", "deal_alert_rules", "watchlists", "subscriptions", "screener_criteria", "screener_analyses", "underpriced_waitlist", "deal_board_reports"):
             code, body, _ = http(f"{sb_url}/rest/v1/{table}?select=*&limit=50", headers=sb_headers)
             rows = json.loads(body) if code == 200 else []
             # RLS scopes these to auth.uid(); an anon caller must get zero rows.
