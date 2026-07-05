@@ -759,7 +759,10 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     currency:      "GBP",
     proxyCountry:  "gb",
     europeanPrice: false,
-    renderJs:      true,
+    // Raw HTML carries __NEXT_DATA__ with full results; render_js not only
+    // wastes 10x credits here, it broke ?page=N pagination (rendered SPA
+    // reset to page 1, so all deep pages returned page-1 content).
+    renderJs:      false,
     baseUrl:       "https://www.onthemarket.com",
     countryIso2:   "GB",
     searchTargets: [
