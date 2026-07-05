@@ -6,6 +6,8 @@
  */
 
 import { useState, useMemo, useEffect, useTransition } from "react";
+import { type PF, computePF, sensitivityGrid, DILIGENCE_BY_COUNTRY, localizedPpsm } from "@/lib/proforma";
+import { toast } from "@/components/ui/Toaster";
 import Link from "next/link";
 import { createDealAlert } from "@/app/deal-board/actions";
 
@@ -149,41 +151,10 @@ function symFor(code: string) {
   return code === "GBP" ? "£" : "$";
 }
 
-// Conviction checklist items
-const EVIDENCE_LAYERS = [
-  { key: "sourcing",    label: "Source & pipeline",      desc: "Official planning portal cross-checked" },
-  { key: "demand",      label: "Demand fundamentals",    desc: "Population growth, migration, employment" },
-  { key: "shortfall",   label: "Supply shortfall",       desc: "Supply gap vs household formation rate" },
-  { key: "conversion",  label: "Zoning viability",       desc: "Permitted uses, by-right entitlement" },
-  { key: "cost",        label: "Cost & programme",       desc: "Build cost index, delivery risk" },
-  { key: "zoning",      label: "Planning velocity",      desc: "Recent approvals, consent pipeline" },
-] as const;
-
-// ─── Pro-Forma ────────────────────────────────────────────────────────────────
-
-interface PF {
-  units: number;
-  gsfPerUnit: number;
-  hardCostPerGsf: number;
-  landCost: number;
-  rentPerUnitMo: number;
-  exitCapPct: number;
-  contingencyPct: number;
-}
-
-function computePF(a: PF) {
-  const totalGsf    = a.units * a.gsfPerUnit;
-  const hardCosts   = totalGsf * a.hardCostPerGsf;
-  const softCosts   = hardCosts * 0.18;
-  const contingency = (hardCosts + softCosts) * (a.contingencyPct / 100);
-  const totalDevCost = hardCosts + softCosts + contingency + a.landCost;
-  const annualNOI    = a.units * a.rentPerUnitMo * 12 * (1 - 0.32); // opex 32%
-  const exitValue    = annualNOI / (a.exitCapPct / 100);
-  const profit       = exitValue - totalDevCost;
-  const yieldOnCost  = (annualNOI / totalDevCost) * 100;
-  const marginOnCost = (profit / totalDevCost) * 100;
-  return { totalGsf, totalDevCost, annualNOI, exitValue, profit, yieldOnCost, marginOnCost };
-}
+// Conviction checklist — country-localized (US: zoning/FAR, tax abatements,
+// energy compliance; UK: planning, S106/CIL, EPC). See src/lib/proforma.ts.
+// Pro-forma engine (computePF, sensitivityGrid) also lives there so the
+// terminal and the exported memo can never disagree.
 
 function fmt(n: number, sym: string) {
   const abs = Math.abs(n);
@@ -275,10 +246,13 @@ export function DealBoard({
       rentPerUnitMo:  Math.round(def.avgPrice * 0.004),
       exitCapPct:     5,
       contingencyPct: 8,
+      interestPct:    6.5,
     });
   }, [selectedRow?.id]);
 
   const pfOut = useMemo(() => pf ? computePF(pf) : null, [pf]);
+  const sens  = useMemo(() => pf ? sensitivityGrid(pf) : null, [pf]);
+  const diligence = DILIGENCE_BY_COUNTRY[country] ?? DILIGENCE_BY_COUNTRY["United Kingdom"];
 
   const tape  = MARKET_TAPE[country];
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -292,111 +266,87 @@ export function DealBoard({
     });
   }
 
-  function generateMemo() {
-    if (!selectedRow || !pf || !pfOut) return;
-    const s = symFor(selectedRow.currency_code);
-    const lines = [
-      ["PRIME ATLAS — IC MEMO", ""],
-      ["Generated", new Date().toISOString()],
-      ["Analyst", userEmail ?? "—"],
-      [""],
-      ["MARKET"],
-      ["City",         selectedRow.name],
-      ["Region",       selectedRow.region],
-      ["Country",      selectedRow.country],
-      ["Intelligence", "Prime Atlas"],
-      [""],
-      ["SCORES"],
-      ["ROI (Composite)", selectedRow.opportunity_score],
-      ["Zoning (Dev.)",   selectedRow.development_score],
-      ["Demand (Growth)", selectedRow.growth_score],
-      ["Infrastructure",  selectedRow.infrastructure_score],
-      ["Liquidity",       selectedRow.liquidity_score],
-      ["Risk",            selectedRow.risk_score],
-      [""],
-      ["PRO-FORMA INPUTS"],
-      ["Units",           pf.units],
-      ["GSF / unit",      pf.gsfPerUnit],
-      ["Hard cost / GSF", `${s}${pf.hardCostPerGsf}`],
-      ["Land cost",       fmt(pf.landCost, s)],
-      ["Rent / unit / mo", fmt(pf.rentPerUnitMo, s)],
-      ["Exit cap",        `${pf.exitCapPct}%`],
-      ["Contingency",     `${pf.contingencyPct}%`],
-      [""],
-      ["YIELD ANALYSIS"],
-      ["Total dev cost",   fmt(pfOut.totalDevCost, s)],
-      ["Stabilised NOI",   fmt(pfOut.annualNOI, s)],
-      ["Value at exit cap",fmt(pfOut.exitValue, s)],
-      ["Profit",           fmt(pfOut.profit, s)],
-      ["Yield on cost",    `${pfOut.yieldOnCost.toFixed(1)}%`],
-      ["Margin on cost",   `${pfOut.marginOnCost.toFixed(1)}%`],
-      [""],
-      ["Evidence layers included:", Array.from(checkedLayers).join(", ") || "None selected"],
-      [""],
-    ];
+  const [memoPending, setMemoPending] = useState(false);
 
-    // ── Evidence appendix: live market data, momentum, infra, planning, signals ──
+  async function generateMemo() {
+    if (!selectedRow || !pf || !pfOut || !sens || memoPending) return;
+    const s  = symFor(selectedRow.currency_code);
     const st = statsMap[selectedRow.id];
-    if (st) {
-      lines.push(
-        ["LIVE MARKET PULSE (scraped listings)"],
-        ["Active sale listings",  st.sale_count],
-        ["Active rent listings",  st.rent_count],
-        ["Median asking price",   st.median_price ? fmt(st.median_price / 100, s) : "n/a"],
-        [`Median ${s}/sqm`,       st.median_ppsqm ? fmt(Number(st.median_ppsqm) / 100, s) : "n/a"],
-        ["Listings >=15% below median /sqm", st.underpriced_count],
-        [""],
-      );
-    }
     const prev = prevScoreMap[selectedRow.id];
-    if (prev !== undefined) {
-      lines.push(
-        ["SCORE MOMENTUM"],
-        ["Composite score (previous snapshot)", prev],
-        ["Composite score (current)", selectedRow.opportunity_score],
-        ["Delta", selectedRow.opportunity_score - prev],
-        [""],
-      );
-    }
-    const infra = evidence.infra[selectedRow.id] ?? [];
-    if (infra.length) {
-      lines.push(["INFRASTRUCTURE PIPELINE"]);
-      for (const pr of infra) {
-        lines.push([pr.project_name, `${pr.type} · ${pr.status} · budget ${fmt(pr.budget / 100, s)}${pr.expected_completion ? ` · ETA ${pr.expected_completion}` : ""}`]);
+
+    const payload = {
+      market: { name: selectedRow.name, region: selectedRow.region, country: selectedRow.country, slug: selectedRow.slug },
+      scores: {
+        opportunity: selectedRow.opportunity_score, growth: selectedRow.growth_score,
+        development: selectedRow.development_score, infrastructure: selectedRow.infrastructure_score,
+        liquidity: selectedRow.liquidity_score, risk: selectedRow.risk_score,
+      },
+      momentum: prev !== undefined ? { previous: prev, current: selectedRow.opportunity_score } : null,
+      pulse: st ? {
+        sale_count: st.sale_count, rent_count: st.rent_count,
+        median_price: st.median_price ? fmt(st.median_price / 100, s) : "n/a",
+        median_ppsm_local: st.median_ppsqm ? localizedPpsm(Number(st.median_ppsqm), selectedRow.country, s) : "n/a",
+        underpriced_count: st.underpriced_count,
+      } : null,
+      pf: {
+        units: pf.units, gsfPerUnit: pf.gsfPerUnit, hardCostPerGsf: pf.hardCostPerGsf,
+        landCost: pf.landCost, rentPerUnitMo: pf.rentPerUnitMo, exitCapPct: pf.exitCapPct,
+        contingencyPct: pf.contingencyPct, interestPct: pf.interestPct,
+      },
+      pfOut: {
+        totalDevCost: fmt(pfOut.totalDevCost, s),
+        annualNOI:    fmt(pfOut.annualNOI, s),
+        exitValue:    fmt(pfOut.exitValue, s),
+        yieldOnCost:  `${pfOut.yieldOnCost.toFixed(2)}%`,
+        marginOnCost: `${pfOut.marginOnCost.toFixed(1)}%`,
+        marginOnGDV:  `${pfOut.marginOnGDV.toFixed(1)}%`,
+      },
+      sensitivity: sens.map((row) => row.map(({ ratePct, capPct, marginOnGDV }) => ({ ratePct, capPct, marginOnGDV }))),
+      diligence: diligence.map((d) => ({ label: d.label, desc: d.desc, checked: checkedLayers.has(d.key) })),
+      evidence: {
+        infra: (evidence.infra[selectedRow.id] ?? []).map((pr) =>
+          `${pr.project_name} — ${pr.type} · ${pr.status} · budget ${fmt(pr.budget / 100, s)}${pr.expected_completion ? ` · ETA ${pr.expected_completion}` : ""}`),
+        planning: (evidence.planning[selectedRow.id] ?? []).map((pl) =>
+          `${pl.project_type} · ${pl.status} · ${pl.application_date}${pl.description ? ` — ${pl.description.slice(0, 80)}` : ""}`),
+        signals: (evidence.signals[selectedRow.id] ?? []).map((sg) =>
+          `${sg.title} — ${sg.signal_type} · impact ${sg.opportunity_impact}/100 · ${new Date(sg.detected_at).toLocaleDateString("en-GB")}`),
+      },
+      provenance: {
+        source: selectedRow.source_name,
+        confidence: `${Math.round(selectedRow.data_confidence * 100)}%`,
+        retrieved: selectedRow.retrieved_at ?? "n/a",
+        freshness: freshnessMap[selectedRow.country] ?? "n/a",
+        listingBasis: st
+          ? `Market baseline computed from ${st.sale_count + st.rent_count} live ${selectedRow.name} listings scraped ${today}`
+          : "No live listing baseline for this market",
+      },
+      analyst: userEmail ?? "—",
+    };
+
+    setMemoPending(true);
+    try {
+      const res = await fetch("/api/export/ic-memo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 403) {
+        toast("IC memo export is a Pro feature — upgrade to unlock", "error");
+        return;
       }
-      lines.push([""]);
-    }
-    const plans = evidence.planning[selectedRow.id] ?? [];
-    if (plans.length) {
-      lines.push(["PLANNING APPLICATIONS (recent)"]);
-      for (const pl of plans) {
-        lines.push([`${pl.project_type} · ${pl.status}`, `${pl.application_date}${pl.description ? ` · ${pl.description.slice(0, 80)}` : ""}`]);
+      if (!res.ok) {
+        toast("Memo export failed — try again", "error");
+        return;
       }
-      lines.push([""]);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = `ic-memo-${selectedRow.slug}.doc`;
+      a.click(); URL.revokeObjectURL(url);
+      toast("IC memo exported — Word-editable .doc");
+    } finally {
+      setMemoPending(false);
     }
-    const sigs = evidence.signals[selectedRow.id] ?? [];
-    if (sigs.length) {
-      lines.push(["MARKET SIGNALS (recent)"]);
-      for (const sg of sigs) {
-        lines.push([sg.title, `${sg.signal_type} · impact ${sg.opportunity_impact}/100 · ${new Date(sg.detected_at).toLocaleDateString("en-GB")}`]);
-      }
-      lines.push([""]);
-    }
-    lines.push(
-      ["DATA PROVENANCE"],
-      ["Source",          selectedRow.source_name],
-      ["Confidence",      `${Math.round(selectedRow.data_confidence * 100)}%`],
-      ["Data retrieved",  selectedRow.retrieved_at ?? "n/a"],
-      ["Market freshness", freshnessMap[selectedRow.country] ?? "n/a"],
-      [""],
-      ["DISCLAIMER: Illustrative only. Scores are index-based. Not investment advice.", ""],
-    );
-    const csv  = lines.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href = url; a.download = `prime-atlas-ic-memo-${selectedRow.slug}.csv`;
-    a.click(); URL.revokeObjectURL(url);
   }
 
   return (
@@ -750,8 +700,12 @@ export function DealBoard({
                       <div className="text-lg font-bold text-white">{st.median_price ? fmt(st.median_price / 100, s2) : "—"}</div>
                     </div>
                     <div className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
-                      <div className="text-[10px] text-[#4A6080] mb-1">Median {s2}/sqm</div>
-                      <div className="text-lg font-bold text-white">{st.median_ppsqm ? fmt(Number(st.median_ppsqm) / 100, s2) : "—"}</div>
+                      <div className="text-[10px] text-[#4A6080] mb-1">
+                        Median {selectedRow.country === "United States" ? `${s2}/SF` : `${s2}/sqm`}
+                      </div>
+                      <div className="text-lg font-bold text-white">
+                        {st.median_ppsqm ? localizedPpsm(Number(st.median_ppsqm), selectedRow.country, s2).replace(/\/(SF|sqm)$/, "") : "—"}
+                      </div>
                     </div>
                     <div className="bg-[#111827] border border-amber-900/50 px-4 py-3">
                       <div className="text-[10px] text-amber-500/80 mb-1">Underpriced ≥15%</div>
@@ -804,7 +758,7 @@ export function DealBoard({
               <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-1">Conviction Checklist</div>
               <div className="text-[10px] text-[#2E4560] mb-3">Tick each dimension you have reviewed — checked layers are included in the IC memo export</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {EVIDENCE_LAYERS.map((layer) => {
+                {diligence.map((layer) => {
                   const checked = checkedLayers.has(layer.key);
                   return (
                     <button
@@ -858,6 +812,7 @@ export function DealBoard({
                     { label: `Rent / unit / mo (${sym})`, key: "rentPerUnitMo", step: 50, prefix: "", suffix: "" },
                     { label: "Exit cap %",         key: "exitCapPct",      step: 0.25,  prefix: "",  suffix: "" },
                     { label: "Contingency %",      key: "contingencyPct",  step: 1,     prefix: "",  suffix: "" },
+                    { label: "Financing % (APR)",  key: "interestPct",     step: 0.25,  prefix: "",  suffix: "" },
                   ].map(({ label, key, step }) => (
                     <div key={key}>
                       <label className="block text-[10px] text-[#4A6080] mb-1">{label}</label>
@@ -905,15 +860,63 @@ export function DealBoard({
                   </div>
                 </div>
 
+                {/* Sensitivity matrix — financing rate × exit cap */}
+                {sens && (
+                  <div className="mb-5">
+                    <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-1">
+                      Sensitivity — dev margin on GDV
+                    </div>
+                    <div className="text-[10px] text-[#2E4560] mb-2">
+                      financing rate ±1% × exit cap ±0.5% · committee screen ≥ 18%
+                    </div>
+                    <table className="w-full border-collapse font-mono text-xs">
+                      <thead>
+                        <tr>
+                          <th className="border border-[#1E2D40] bg-[#0D1624] px-2 py-1.5 text-[#4A6080] text-[10px] font-normal text-left">rate \ cap</th>
+                          {sens[0].map((c) => (
+                            <th key={c.capPct} className="border border-[#1E2D40] bg-[#0D1624] px-2 py-1.5 text-[#4A6080] text-[10px] font-normal text-right">
+                              {c.capPct.toFixed(2)}%
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sens.map((row) => (
+                          <tr key={row[0].ratePct}>
+                            <td className="border border-[#1E2D40] px-2 py-1.5 text-[#4A6080] text-[10px]">{row[0].ratePct.toFixed(1)}%</td>
+                            {row.map((c) => (
+                              <td
+                                key={`${c.ratePct}-${c.capPct}`}
+                                className={`border px-2 py-1.5 text-right tabular-nums ${
+                                  c.isBase
+                                    ? "border-emerald-800 bg-emerald-950/40 text-emerald-300 font-bold"
+                                    : c.marginOnGDV >= 18
+                                    ? "border-[#1E2D40] text-emerald-400"
+                                    : c.marginOnGDV >= 0
+                                    ? "border-[#1E2D40] text-amber-300"
+                                    : "border-[#1E2D40] text-red-400"
+                                }`}
+                              >
+                                {c.marginOnGDV.toFixed(1)}%
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
                 {/* IC Memo — primary CTA */}
                 <button
                   onClick={generateMemo}
-                  className="w-full py-4 bg-gradient-to-r from-[#163559] to-[#0E3070] border border-[#1E4A7A] text-white text-sm font-bold hover:from-[#1A4070] hover:to-[#1248A0] transition-all flex items-center justify-center gap-2"
+                  disabled={memoPending}
+                  className="w-full py-4 bg-gradient-to-r from-[#163559] to-[#0E3070] border border-[#1E4A7A] text-white text-sm font-bold hover:from-[#1A4070] hover:to-[#1248A0] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   <span className={checkedLayers.size > 0 ? "text-emerald-400" : "text-[#4A6080]"}>
                     {checkedLayers.size > 0 ? "☑" : "☐"}
                   </span>
-                  Export IC Memo — defend this in committee ↗
+                  {memoPending ? "Compiling memo…" : "Export IC Memo (.doc) — defend this in committee ↗"}
                 </button>
                 <div className="text-[9px] text-[#2E4560] mt-2 text-center">
                   {checkedLayers.size > 0
