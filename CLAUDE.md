@@ -24,7 +24,8 @@ US/UK property-investment intelligence SaaS. Next.js 14 (App Router) + Supabase 
 - `/api/cron/deal-alerts` (hourly): matches new listings to `deal_alert_rules` (price/beds/discount/est-yield via `src/lib/yield.ts`), emails via Resend, dedupe via `deal_alert_hits`.
 - `/api/cron/snapshot-scores` (weekly Mon): appends to `market_score_history` → momentum arrows on Deal Board.
 - `/portfolio` (institutional-gated): `portfolio_assets` + per-market intel.
-- IC memo export (DealBoard.tsx `generateMemo`) includes live stats, momentum, infra budgets, planning apps, signals, provenance.
+- IC memo export: POST /api/export/ic-memo (server-gated: 401 anon, 403 free) compiles the 5-section committee memo as Word-editable .doc; pro-forma engine shared in src/lib/proforma.ts.
+- Deal Screener (/screener, migration 007, auth-gated): editable US acquisition pro-forma (NOI/cap/DSCR/CoC + sensitivity, src/lib/screener.ts w/ vitest coverage), saved criteria profiles, pass/fail delta scorecards (never advice), quota: free 3 analyses/mo, paid unlimited. PDF parse route ready but 503 until ANTHROPIC_API_KEY set. UK module deliberately deferred.
 
 ## Env vars (all in Vercel prod+preview and .env.local)
 Supabase trio · STRIPE_SECRET_KEY (restricted rk_live) · STRIPE_WEBHOOK_SECRET · 3 price IDs · STRIPE_PORTAL_CONFIG_ID · NEXT_PUBLIC_APP_URL · CRON_SECRET · SCRAPEOPS_API_KEY · SLACK_WEBHOOK_URL · RESEND_API_KEY (send-only) · RESEND_FROM_EMAIL (temp `onboarding@resend.dev` — only delivers to owner's inbox until a domain is bought + verified in Resend). Missing: ANTHROPIC_API_KEY (thesis generation off).

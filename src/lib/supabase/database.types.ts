@@ -1021,6 +1021,92 @@ export type Database = {
         }
         Relationships: []
       }
+      screener_analyses: {
+        Row: {
+          country: string
+          created_at: string
+          criteria_id: string | null
+          id: string
+          inputs: Json
+          name: string | null
+          outputs: Json
+          scorecard: Json | null
+          user_id: string
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          criteria_id?: string | null
+          id?: string
+          inputs: Json
+          name?: string | null
+          outputs: Json
+          scorecard?: Json | null
+          user_id: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          criteria_id?: string | null
+          id?: string
+          inputs?: Json
+          name?: string | null
+          outputs?: Json
+          scorecard?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screener_analyses_criteria_id_fkey"
+            columns: ["criteria_id"]
+            isOneToOne: false
+            referencedRelation: "screener_criteria"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      screener_criteria: {
+        Row: {
+          active: boolean
+          country: string
+          created_at: string
+          hold_years: number | null
+          id: string
+          max_price_per_unit: number | null
+          min_dscr: number | null
+          name: string
+          target_cap_pct: number | null
+          target_coc_pct: number | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          country?: string
+          created_at?: string
+          hold_years?: number | null
+          id?: string
+          max_price_per_unit?: number | null
+          min_dscr?: number | null
+          name?: string
+          target_cap_pct?: number | null
+          target_coc_pct?: number | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          country?: string
+          created_at?: string
+          hold_years?: number | null
+          id?: string
+          max_price_per_unit?: number | null
+          min_dscr?: number | null
+          name?: string
+          target_cap_pct?: number | null
+          target_coc_pct?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       signals: {
         Row: {
           ai_summary: string | null
