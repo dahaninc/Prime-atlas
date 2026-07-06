@@ -1,10 +1,10 @@
 -- 010: Replay guard for AI-generated opportunities.
 --
 -- Vercel replayed identical GET invocations of the generation cron, inserting
--- duplicate (municipality, title) rows. Partial unique index scoped to the
--- generated source so hand-curated rows are unaffected; the route inserts
--- with ON CONFLICT DO NOTHING semantics against this index.
+-- duplicate (municipality, title) rows. Full (non-partial) unique index:
+-- PostgREST upsert ON CONFLICT cannot infer partial indexes. No collisions
+-- existed in curated rows at creation time (verified).
 
-create unique index if not exists opportunities_generated_dedupe
-  on opportunities (municipality_id, title)
-  where source_name = 'Prime Atlas Intelligence';
+drop index if exists opportunities_generated_dedupe;
+create unique index if not exists opportunities_market_title_unique
+  on opportunities (municipality_id, title);
