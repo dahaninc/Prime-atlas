@@ -29,7 +29,7 @@ export async function getReportQuota(): Promise<{
 }
 
 export async function generateMarketReport(municipalityId: string): Promise<
-  { ok: true; report: MarketReport; remaining: number } | { ok: false; error: string }
+  { ok: true; report: MarketReport; remaining: number; id: string } | { ok: false; error: string }
 > {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -81,14 +81,14 @@ export async function generateMarketReport(municipalityId: string): Promise<
     countryMedianPpsqm,
   });
 
-  const { error } = await supabase.from("deal_board_reports").insert({
+  const { data, error } = await supabase.from("deal_board_reports").insert({
     user_id: user.id,
     municipality_id: municipalityId,
     payload: report as unknown as Record<string, never>,
-  });
+  }).select("id").single();
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/reports/market");
   const remaining = quota.unlimited ? -1 : Math.max(0, quota.limit - quota.used - 1);
-  return { ok: true, report, remaining };
+  return { ok: true, report, remaining, id: data.id };
 }

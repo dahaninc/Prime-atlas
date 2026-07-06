@@ -72,7 +72,7 @@ export async function saveAnalysis(input: {
   outputs: Record<string, number>;
   scorecard: object[] | null;
   criteria_id: string | null;
-}): Promise<{ ok: boolean; error?: string; remaining?: number }> {
+}): Promise<{ ok: boolean; error?: string; remaining?: number; id?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "not_authenticated" };
@@ -85,7 +85,7 @@ export async function saveAnalysis(input: {
     return { ok: false, error: "quota_exceeded" };
   }
 
-  const { error } = await supabase.from("screener_analyses").insert({
+  const { data, error } = await supabase.from("screener_analyses").insert({
     user_id: user.id,
     criteria_id: input.criteria_id,
     name: input.name || "Untitled analysis",
@@ -93,9 +93,9 @@ export async function saveAnalysis(input: {
     inputs: input.inputs,
     outputs: input.outputs,
     scorecard: input.scorecard as never,
-  });
+  }).select("id").single();
   if (error) return { ok: false, error: error.message };
   revalidatePath("/screener");
   const used = quota.used + 1;
-  return { ok: true, remaining: quota.unlimited ? -1 : Math.max(0, quota.limit - used) };
+  return { ok: true, id: data.id, remaining: quota.unlimited ? -1 : Math.max(0, quota.limit - used) };
 }

@@ -151,6 +151,15 @@ ${list("Market signals (recent)", p.evidence.signals)}
 
 <p class="disclaimer">Preliminary underwrite compiled from analyst-set assumptions and index-based market scores.
 Illustrative only — not investment advice, an offer, or a solicitation. Verify all figures independently before committee vote.</p>
+
+<hr/>
+<p style="font-size:9pt;color:#666">
+Prepared on <b>Prime Atlas</b> — live US &amp; UK market intelligence for acquisition committees.<br/>
+The live data behind this memorandum (conviction scores, inventory, mispricing feed, rate scenarios):
+<a href="${(process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app")}/opportunities/${p.market.slug || ""}">${(process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app").replace(/^https?:\/\//, "")}/opportunities/${p.market.slug || ""}</a><br/>
+Committee members can screen deals against their own criteria free at
+<a href="${(process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app")}">${(process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app").replace(/^https?:\/\//, "")}</a>.
+</p>
 </body></html>`;
 
   return new NextResponse(html, {

@@ -1142,6 +1142,39 @@ export type Database = {
         }
         Relationships: []
       }
+      share_links: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          ref_id: string
+          revoked: boolean
+          token: string
+          user_id: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          ref_id: string
+          revoked?: boolean
+          token: string
+          user_id: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          ref_id?: string
+          revoked?: boolean
+          token?: string
+          user_id?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       signals: {
         Row: {
           ai_summary: string | null

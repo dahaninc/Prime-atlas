@@ -8,6 +8,7 @@ import {
   type ScreenerInputs, type Criteria,
 } from "@/lib/screener";
 import { saveAnalysis, saveCriteria } from "./actions";
+import { createShareLink } from "@/app/actions/share";
 import { toast } from "@/components/ui/Toaster";
 
 interface SavedCriteria extends Criteria { id: string; name: string }
@@ -73,7 +74,22 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
   const [pendingSave, startSave] = useTransition();
   const [parsing, setParsing] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function onShare() {
+    if (!savedId || sharing) return;
+    setSharing(true);
+    try {
+      const res = await createShareLink("analysis", savedId);
+      if (!res.ok) { toast("Could not create the share link", "error"); return; }
+      await navigator.clipboard.writeText(`${window.location.origin}${res.path}`);
+      toast("Read-only link copied — send it to your LP, lender or co-GP");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const needsActivation = !unlimited && !cardOnFile;
 
@@ -170,6 +186,7 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
         return;
       }
       setUsed((u) => u + 1);
+      setSavedId(res.id ?? null);
       toast("Analysis saved");
     });
   }
@@ -270,6 +287,7 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
                   onClick={() => {
                     setInputs({ ...US_DEFAULT_INPUTS, ...a.inputs });
                     setDealName(a.name ?? "");
+                    setSavedId(a.id);
                     toast("Loaded — every input stays editable");
                   }}
                   className="w-full text-left px-5 py-2.5 hover:bg-secondary/50 transition-colors"
@@ -439,6 +457,15 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
           </span>
           {!unlimited && quotaLeft <= 0 && (
             <Link href="/pricing" className="text-xs text-primary hover:underline">Upgrade for unlimited →</Link>
+          )}
+          {savedId && (
+            <button
+              onClick={onShare}
+              disabled={sharing}
+              className="bg-secondary border border-border text-sm font-semibold px-5 py-3 rounded-lg hover:border-primary/40 transition-colors disabled:opacity-60"
+            >
+              {sharing ? "Creating link…" : "Share read-only link"}
+            </button>
           )}
         </div>
 

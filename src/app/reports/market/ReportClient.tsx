@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { generateMarketReport } from "./actions";
+import { createShareLink } from "@/app/actions/share";
 import type { MarketReport } from "@/lib/marketReport";
 import { toast } from "@/components/ui/Toaster";
 
@@ -46,8 +47,23 @@ function Sparkline({ points }: { points: { opportunity: number }[] }) {
 export function ReportClient({ markets, pastReports, quotaUsed, quotaLimit, unlimited }: Props) {
   const [marketId, setMarketId] = useState(markets[0]?.id ?? "");
   const [report, setReport] = useState<MarketReport | null>(pastReports[0]?.payload ?? null);
+  const [reportId, setReportId] = useState<string | null>(pastReports[0]?.id ?? null);
   const [used, setUsed] = useState(quotaUsed);
   const [pending, start] = useTransition();
+  const [sharing, setSharing] = useState(false);
+
+  async function onShare() {
+    if (!reportId || sharing) return;
+    setSharing(true);
+    try {
+      const res = await createShareLink("report", reportId);
+      if (!res.ok) { toast("Could not create the share link", "error"); return; }
+      await navigator.clipboard.writeText(`${window.location.origin}${res.path}`);
+      toast("Read-only link copied — forward it to your partners");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const quotaLeft = unlimited ? Infinity : Math.max(0, quotaLimit - used);
 
@@ -62,6 +78,7 @@ export function ReportClient({ markets, pastReports, quotaUsed, quotaLimit, unli
         return;
       }
       setReport(res.report);
+      setReportId(res.id);
       setUsed((u) => u + 1);
       toast("Report generated");
     });
@@ -106,15 +123,26 @@ export function ReportClient({ markets, pastReports, quotaUsed, quotaLimit, unli
       {report && (
         <div className="space-y-4">
           {/* Header */}
-          <div className="border border-border rounded-xl bg-card p-5">
-            <p className="kicker text-primary mb-1">Prime Atlas market report · proprietary metrics</p>
-            <h2 className="text-xl font-bold">
-              {report.market.country === "United Kingdom" ? "🇬🇧" : "🇺🇸"} {report.market.name}
-              <span className="text-muted-foreground font-normal text-sm ml-2">{report.market.region}</span>
-            </h2>
-            <p className="text-[10px] text-zinc-500 font-mono mt-1">
-              generated {new Date(report.generatedAt).toLocaleString("en-GB")}
-            </p>
+          <div className="border border-border rounded-xl bg-card p-5 flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className="kicker text-primary mb-1">Prime Atlas market report · proprietary metrics</p>
+              <h2 className="text-xl font-bold">
+                {report.market.country === "United Kingdom" ? "🇬🇧" : "🇺🇸"} {report.market.name}
+                <span className="text-muted-foreground font-normal text-sm ml-2">{report.market.region}</span>
+              </h2>
+              <p className="text-[10px] text-zinc-500 font-mono mt-1">
+                generated {new Date(report.generatedAt).toLocaleString("en-GB")}
+              </p>
+            </div>
+            {reportId && (
+              <button
+                onClick={onShare}
+                disabled={sharing}
+                className="bg-secondary border border-border text-xs font-semibold px-4 py-2 rounded-lg hover:border-primary/40 transition-colors disabled:opacity-60 shrink-0"
+              >
+                {sharing ? "Creating link…" : "Share read-only link"}
+              </button>
+            )}
           </div>
 
           {/* Conviction scores */}
@@ -244,7 +272,7 @@ export function ReportClient({ markets, pastReports, quotaUsed, quotaLimit, unli
             {pastReports.map((r) => (
               <button
                 key={r.id}
-                onClick={() => setReport(r.payload)}
+                onClick={() => { setReport(r.payload); setReportId(r.id); }}
                 className="w-full text-left px-5 py-3 hover:bg-secondary/50 transition-colors flex items-baseline justify-between gap-4"
               >
                 <span className="text-sm font-semibold truncate">
