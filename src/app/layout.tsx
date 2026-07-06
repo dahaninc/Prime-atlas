@@ -95,7 +95,17 @@ export default function RootLayout({
               __html: `
                 if ('serviceWorker' in navigator) {
                   window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js').catch(console.error);
+                    // The old caching SW stranded browsers on stale deploys
+                    // (dead JS chunks -> broken signup). Registering the v4
+                    // self-destruct worker forces an update check on legacy
+                    // clients; explicitly unregister + purge caches as well.
+                    navigator.serviceWorker.register('/sw.js').catch(() => {});
+                    navigator.serviceWorker.getRegistrations()
+                      .then((rs) => rs.forEach((r) => r.unregister()))
+                      .catch(() => {});
+                    if (window.caches) {
+                      caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
+                    }
                   });
                 }
               `,

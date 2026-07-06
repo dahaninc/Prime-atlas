@@ -1,96 +1,27 @@
-// prime-atlas Service Worker v3
-const CACHE_NAME = "prime-atlas-v3";
-const OFFLINE_URL = "/offline";
+// prime-atlas Service Worker v4 — SELF-DESTRUCT.
+//
+// v3 cached the app shell cache-first with no revalidation, so returning
+// browsers ran a stale deploy forever: old HTML referencing deleted JS
+// chunks → hydration dead → signup/login broken. This version replaces v3
+// on the browser's next update check, wipes every cache, unregisters
+// itself, and reloads open tabs so stranded clients heal automatically.
+// Do NOT reintroduce a caching service worker without deploy-aware
+// versioning and network-first navigations.
 
-const SHELL_ASSETS = [
-  "/",
-  "/offline",
-  "/manifest.json",
-];
-
-const BYPASS_PREFIXES = [
-  "/dashboard",
-  "/watchlists",
-  "/signals",
-  "/opportunities/finder",
-  "/auth/",
-  "/api/",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
-  );
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  if (request.method !== "GET" || url.origin !== self.location.origin) return;
-
-  if (BYPASS_PREFIXES.some((p) => url.pathname.startsWith(p))) return;
-
-  if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(
-      caches.match(request).then((cached) => cached ?? fetch(request).then((res) => {
-        if (res.status === 200) {
-          const r = res.clone(); caches.open(CACHE_NAME).then((c) => c.put(request, r));
-        }
-        return res;
-      }))
-    );
-    return;
-  }
-
-  if (url.pathname.startsWith("/_next/")) return;
-
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(request);
-      const fetchPromise = fetch(request)
-        .then((res) => {
-          if (res.status === 200) { const clone = res.clone(); cache.put(request, clone); }
-          return res;
-        })
-        .catch(() => caches.match(OFFLINE_URL));
-      return cached ?? fetchPromise;
-    })
-  );
-});
-
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-  const data = event.data.json();
-  event.waitUntil(
-    self.registration.showNotification(data.title ?? "prime-atlas Signal", {
-      body: data.body ?? "A new investment signal has been detected.",
-      tag: data.tag ?? "signal",
-      data: { url: data.url ?? "/signals" },
-    })
-  );
-});
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  if (event.action === "dismiss") return;
-  const url = event.notification.data?.url ?? "/signals";
-  event.waitUntil(
-    clients.matchAll({ type: "window" }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === url && "focus" in client) return client.focus();
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        client.navigate(client.url); // reload each tab against the live network
       }
-      if (clients.openWindow) return clients.openWindow(url);
-    })
+    })()
   );
 });
