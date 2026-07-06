@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { loginAction, signupAction } from "@/app/auth/actions";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthFormProps {
@@ -58,6 +59,9 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
   const pwColor = ["", "bg-pa-red", "bg-pa-red", "bg-pa-amber", "bg-pa-green", "bg-pa-green"][pwStrength];
 
   // ── Login handler ────────────────────────────────────────────────────────
+  // First-party server action first (same-origin — content blockers can't
+  // intercept it); browser supabase-js only as a fallback if the action
+  // itself is unreachable.
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -65,41 +69,44 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     setInfoMessage(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (authError) {
-        const parsed = parseAuthError(authError.message);
+      const res = await loginAction({ email, password });
+      if (!res.ok) {
+        const parsed = parseAuthError(res.error);
         if (parsed === "EMAIL_NOT_CONFIRMED") {
           setInfoMessage("Your email isn't confirmed yet. Check your inbox for the confirmation link.");
-          setLoading(false);
-          return;
-        }
-        if (parsed === "RATE_LIMITED") {
+        } else if (parsed === "RATE_LIMITED") {
           setInfoMessage("Too many attempts. Please wait a few minutes before trying again.");
-          setLoading(false);
-          return;
+        } else {
+          setError(parsed);
         }
-        setError(parsed);
         setLoading(false);
         return;
       }
-
-      if (!data.user) {
-        setError("Sign-in completed but no user was returned. Please try again.");
-        setLoading(false);
-        return;
-      }
-
       // Hard-navigate so the server picks up the new session cookie
       window.location.href = redirectTo ?? "/dashboard";
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
-      setError(parseAuthError(message));
-      setLoading(false);
+    } catch {
+      // Server action unreachable — fall back to the direct client.
+      try {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+        if (authError || !data.user) {
+          setError(parseAuthError(authError?.message ?? "Sign-in failed. Please try again."));
+          setLoading(false);
+          return;
+        }
+        window.location.href = redirectTo ?? "/dashboard";
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+        setError(parseAuthError(message));
+        setLoading(false);
+      }
     }
   }
 
   // ── Signup handler ───────────────────────────────────────────────────────
+  // Server action first (first-party — immune to content blockers that kill
+  // *.supabase.co requests). When auto-confirm is on the action returns a
+  // live session and we go straight into the app; the check-inbox state only
+  // renders when confirmation email is actually required.
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -107,36 +114,54 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     setInfoMessage(null);
 
     try {
-      const { error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: name },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (authError) {
-        const parsed = parseAuthError(authError.message);
+      const res = await signupAction({ email, password, fullName: name });
+      if (!res.ok) {
+        const parsed = parseAuthError(res.error);
         if (parsed === "RATE_LIMITED") {
           setInfoMessage(
             "Your account may have been created, but the confirmation email couldn't be sent right now " +
             "due to a sending limit. Try signing in — if that fails, use 'Forgot password' in a few minutes."
           );
-          setLoading(false);
-          return;
+        } else {
+          setError(parsed);
         }
-        setError(parsed);
         setLoading(false);
         return;
       }
-
+      if (res.session) {
+        // Auto-confirmed and signed in — straight into the product.
+        window.location.href = redirectTo ?? "/dashboard";
+        return;
+      }
       setSignupSuccess(true);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
-      setError(parseAuthError(message));
-    } finally {
       setLoading(false);
+    } catch {
+      // Server action unreachable — fall back to the direct client.
+      try {
+        const { data, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        });
+        if (authError) {
+          setError(parseAuthError(authError.message));
+          setLoading(false);
+          return;
+        }
+        if (data.session) {
+          window.location.href = redirectTo ?? "/dashboard";
+          return;
+        }
+        setSignupSuccess(true);
+        setLoading(false);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+        setError(parseAuthError(message));
+        setLoading(false);
+      }
     }
   }
 
