@@ -94,7 +94,9 @@ export async function POST(req: NextRequest) {
   }
 
   const data = await res.json();
-  const text: string = data?.content?.[0]?.text ?? "";
+  // content may lead with a thinking block — take the first text block.
+  const text: string = (data?.content as { type: string; text?: string }[] | undefined)
+    ?.find((b) => b.type === "text")?.text ?? "";
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return NextResponse.json({ error: "parse_failed" }, { status: 502 });
 

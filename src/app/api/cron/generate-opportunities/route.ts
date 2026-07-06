@@ -151,7 +151,9 @@ export async function GET(req: NextRequest) {
       });
       if (!res.ok) throw new Error(`anthropic ${res.status}`);
       const data = await res.json();
-      const text: string = data?.content?.[0]?.text ?? "";
+      // content may lead with a thinking block — take the first text block.
+      const text: string = (data?.content as { type: string; text?: string }[] | undefined)
+        ?.find((b) => b.type === "text")?.text ?? "";
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) throw new Error("no JSON array in response");
       const parsed = JSON.parse(jsonMatch[0]) as GeneratedOpp[];
