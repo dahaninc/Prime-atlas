@@ -16,6 +16,12 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+
+/** Only ever redirect within our own app. */
+function safePath(p: string | null | undefined): string {
+  return p && p.startsWith("/") && !p.startsWith("//") ? p : "/dashboard";
+}
 
 function friendly(message: string): string {
   const m = message.toLowerCase();
@@ -66,4 +72,40 @@ export async function loginAction(input: {
   if (error) return { ok: false, error: friendly(error.message) };
   if (!data.user) return { ok: false, error: "Sign-in completed but no user was returned — try again." };
   return { ok: true };
+}
+
+/* ── Progressive-enhancement form actions ──────────────────────────────────
+ * Bound directly to <form action={...}>. These work with ZERO client-side
+ * JavaScript: the browser does a native POST, Next runs the action, and the
+ * redirect() is a real 303 — so signup/login succeed even when hydration is
+ * blocked or broken (the failure mode observed in production: only GETs in
+ * the logs because the un-hydrated form had nowhere to POST).
+ */
+
+export type AuthFormState = { error: string | null };
+
+export async function signupFormAction(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const res = await signupAction({
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    fullName: String(formData.get("fullName") ?? ""),
+  });
+  if (!res.ok) return { error: res.error };
+  if (res.session) redirect(safePath(String(formData.get("redirectTo") ?? "")));
+  redirect("/auth/verify-email"); // only when confirmation email is genuinely required
+}
+
+export async function loginFormAction(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const res = await loginAction({
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (!res.ok) return { error: res.error };
+  redirect(safePath(String(formData.get("redirectTo") ?? "")));
 }
