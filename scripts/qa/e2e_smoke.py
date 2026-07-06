@@ -169,7 +169,7 @@ def main() -> int:
     # ── 3b. IDOR / RLS: anon must not read user-owned tables ─────────────────
     print("\n[3b] IDOR / tenant isolation")
     if sb_url and anon:
-        for table in ("profiles", "portfolio_assets", "deal_alert_rules", "watchlists", "subscriptions", "screener_criteria", "screener_analyses", "underpriced_waitlist", "deal_board_reports"):
+        for table in ("profiles", "portfolio_assets", "deal_alert_rules", "watchlists", "subscriptions", "screener_criteria", "screener_analyses", "underpriced_waitlist", "deal_board_reports", "share_links"):
             code, body, _ = http(f"{sb_url}/rest/v1/{table}?select=*&limit=50", headers=sb_headers)
             rows = json.loads(body) if code == 200 else []
             # RLS scopes these to auth.uid(); an anon caller must get zero rows.
