@@ -186,7 +186,10 @@ export async function GET(req: NextRequest) {
         }));
 
       if (rows.length) {
-        const { error } = await supabase.from("opportunities").insert(rows);
+        // Partial unique index (municipality_id, title) makes replays no-ops.
+        const { error } = await supabase
+          .from("opportunities")
+          .upsert(rows, { onConflict: "municipality_id,title", ignoreDuplicates: true });
         if (error) throw new Error(error.message);
         created += rows.length;
       }
@@ -196,11 +199,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    created,
-    processed,
-    remaining_under_covered: Math.max(0, (munis ?? []).filter((mm) => (oppCount.get(mm.id) ?? 0) < perMarket).length - processed.length),
-    errors,
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      created,
+      processed,
+      remaining_under_covered: Math.max(0, (munis ?? []).filter((mm) => (oppCount.get(mm.id) ?? 0) < perMarket).length - processed.length),
+      errors,
+    },
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }
