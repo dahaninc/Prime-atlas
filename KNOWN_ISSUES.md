@@ -45,6 +45,15 @@ Shipped documented rather than delayed for polish. Last updated: 2026-07-05.
   market reports, underpriced feed all carry "not investment advice" language,
   but it has not been reviewed by counsel).
 
+## Removed features
+
+- **PWA offline shell removed (2026-07-07).** The v3 service worker cached
+  the app shell cache-first with no revalidation — returning browsers ran a
+  stale deploy forever (dead JS chunks, broken signup). sw.js is now a
+  self-destructing kill switch served with no-store. Do not reintroduce a
+  caching service worker without deploy-aware versioning and network-first
+  navigation handling.
+
 ## Data quality
 
 - **Gallery backfill in progress** (~25% synced); Zillow intermittently
