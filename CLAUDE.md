@@ -41,5 +41,6 @@ Supabase trio · STRIPE_SECRET_KEY (restricted rk_live) · STRIPE_WEBHOOK_SECRET
 - QA: `python3 scripts/qa/e2e_smoke.py` — 30+ live checks vs prod (surface, auth walls, IDOR/RLS, data invariants, gallery dedupe). Run after every deploy.
 - Data sanity TODO: filter absurd price/size_sqm outliers (some -70%+ "discounts" on /underpriced are source-data noise).
 - Screener UK module (SDLT/initial yield) deliberately deferred until US validates with design partners; legal review of disclaimers before public launch.
-- Marketing copy says "80+ markets"; DB has 32. Owner to decide.
+- **MARKET SCOPE FROZEN (owner directive, 2026-07-06)**: no new markets/geographies/scraper city feeds beyond the current 32 (18 US / 14 UK) until public launch AND first revenue. Depth over breadth.
+- Marketing copy says "80+ markets"; DB has 32 — resolve by editing copy DOWN (scope is frozen), owner to approve wording.
 - Admin gate = email list in `src/lib/auth/admins.ts` (override via ADMIN_EMAILS env).
