@@ -134,6 +134,54 @@ def main() -> int:
     code, _, _ = http(base + "/api/export/ic-memo", "POST", {"market": {"name": "x"}})
     check("/api/export/ic-memo blocks anonymous", code == 401, f"HTTP {code}")
 
+    # ── 2b. Zero-JS signup through the SITE's own form ───────────────────────
+    # Regression guard for the production incident where a non-hydrating
+    # browser could not sign up: posts the /auth/signup form exactly as a
+    # JS-less browser would (multipart, Next progressive-enhancement fields)
+    # and expects a 303 to /dashboard with a session cookie.
+    print("\n[2b] Zero-JS signup (site form, progressive enhancement)")
+    try:
+        import uuid
+        _, page_html, _ = http(base + "/auth/signup")
+        action_fields = re.findall(r'name="(\$ACTION[^"]*)"[^>]*value="([^"]*)"', page_html)
+        check("signup form carries server-action fields", len(action_fields) >= 2,
+              f"{len(action_fields)} $ACTION inputs found")
+        if action_fields:
+            import html as _html
+            boundary = uuid.uuid4().hex
+            fields = [(n, _html.unescape(v)) for n, v in action_fields]
+            fields += [("$ACTION_REF_1", ""), ("redirectTo", "/dashboard"),
+                       ("fullName", "QA NoJS"),
+                       ("email", f"qa.nojs+{int(time.time())}@prime-atlas.com"),
+                       ("password", secrets.token_urlsafe(18) + "A1!")]
+            seen_names = set()
+            body_parts = []
+            for n, v in fields:
+                if n in seen_names:
+                    continue
+                seen_names.add(n)
+                body_parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{n}\"\r\n\r\n{v}\r\n")
+            payload = ("".join(body_parts) + f"--{boundary}--\r\n").encode()
+            req = urllib.request.Request(
+                base + "/auth/signup", data=payload, method="POST",
+                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+            class _NoRedirect(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self, *a, **k):  # noqa: N802
+                    return None
+            opener = urllib.request.build_opener(_NoRedirect)
+            try:
+                with opener.open(req, timeout=30) as r:
+                    scode, shdrs = r.status, dict(r.headers)
+            except urllib.error.HTTPError as e:
+                scode, shdrs = e.code, dict(e.headers)
+            loc = shdrs.get("Location", shdrs.get("location", ""))
+            cookies = shdrs.get("Set-Cookie", shdrs.get("set-cookie", "")) or ""
+            check("no-JS form signup → 303 to app with session",
+                  scode == 303 and "/dashboard" in loc and "sb-" in cookies,
+                  f"HTTP {scode} -> {loc or '(none)'}, cookie={'yes' if 'sb-' in cookies else 'NO'}")
+    except Exception as exc:  # noqa: BLE001
+        check("no-JS form signup", False, f"exception: {exc}")
+
     # ── 3. Signup lifecycle (@tycoon_operator) ───────────────────────────────
     print("\n[3] Signup lifecycle")
     if not (sb_url and anon):
