@@ -17,6 +17,10 @@ import type { Database } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Next's Data Cache was replaying the Supabase GET fetches across
+// invocations, freezing the under-covered market list — force every
+// fetch in this handler to bypass it.
+export const fetchCache = "force-no-store";
 export const maxDuration = 300;
 
 const CATEGORIES = ["BTR", "PBSA", "Commercial", "Industrial", "Mixed-use", "Land & Development", "Affordable Housing"];
