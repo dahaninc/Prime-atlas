@@ -195,7 +195,7 @@ export default async function UnderpricedPage() {
         const ppsqm = p.price! / p.size_sqm!;
         return { ...p, ppsqm, discount: 1 - ppsqm / median };
       })
-      .filter((p) => p.discount >= 0.15 && p.discount <= 0.75)
+      .filter((p) => p.discount >= 0.15 && p.discount <= 0.60) // deeper than −60% = presumed data error
       .sort((a, b) => b.discount - a.discount)
       .slice(0, 6);
     if (deals.length) byMarket.set(s.municipality_id, deals);

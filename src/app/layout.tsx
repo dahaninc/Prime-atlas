@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | prime-atlas",
   },
   description:
-    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 80+ markets, live underwrite, IC memo in one click. USA · UK.",
+    "From retail investors spotting emerging markets early to institutional funds closing deals before competitors build a model. Pre-screened pipeline across 32 markets, live underwrite, IC memo in one click. USA · UK.",
   keywords: [
     "real estate investment conviction",
     "IC memo generator real estate",
@@ -47,12 +47,12 @@ export const metadata: Metadata = {
     siteName: "prime-atlas",
     title: "prime-atlas | Real estate conviction — for every investor, at every scale.",
     description:
-      "Pre-screened pipeline across 80+ markets, live preliminary underwrite, IC memo in one click. For retail investors, developers, and institutional funds. USA · UK.",
+      "Pre-screened pipeline across 32 markets, live preliminary underwrite, IC memo in one click. For retail investors, developers, and institutional funds. USA · UK.",
   },
   twitter: {
     card: "summary_large_image",
     title: "prime-atlas",
-    description: "Real estate conviction for every investor. Pre-screened pipeline, live underwrite, IC memo same day. 80+ markets across the USA and UK.",
+    description: "Real estate conviction for every investor. Pre-screened pipeline, live underwrite, IC memo same day. 32 markets across the USA and UK.",
   },
   manifest: "/manifest.json",
   appleWebApp: {

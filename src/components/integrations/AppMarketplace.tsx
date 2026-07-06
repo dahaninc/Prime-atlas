@@ -265,11 +265,11 @@ const APPS: MarketplaceApp[] = [
     id: "market-heatmap",
     slug: "market-heatmap",
     name: "Market Heat Map",
-    tagline: "Score distribution · 80+ markets · interactive",
+    tagline: "Score distribution · 32 markets · interactive",
     category: "Analytics",
     markets: ["Global"],
     description:
-      "Interactive geographic heat map of Prime Atlas opportunity scores across all 80+ tracked markets. Filter by score component.",
+      "Interactive geographic heat map of Prime Atlas opportunity scores across all 32 tracked markets. Filter by score component.",
     longDescription:
       "Market Heat Map renders all tracked municipalities on a Mapbox GL canvas, colour-coded by opportunity score (or any sub-score: growth, infrastructure, development, liquidity, risk). Hover for a score card pop-up, click to navigate to the full opportunity page. Pro users can export the filtered dataset as CSV.",
     rating: 4.4,

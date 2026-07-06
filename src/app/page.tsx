@@ -11,13 +11,13 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Prime Atlas | Investment-grade real estate intelligence · USA + UK",
   description:
-    "80+ pre-screened markets across USA and UK. Live underwrite. Committee-ready IC memo in 20 minutes. Powered by Prime Atlas proprietary intelligence.",
+    "32 pre-screened markets across USA and UK. Live underwrite. Committee-ready IC memo in 20 minutes. Powered by Prime Atlas proprietary intelligence.",
 };
 
 /* ─────────────────────────── data ─────────────────────────── */
 
 const STATS = [
-  { value: "80+",    label: "Markets pre-screened · USA + UK" },
+  { value: "32",    label: "Markets pre-screened · USA + UK" },
   { value: "20 min", label: "Deal board to preliminary IC memo" },
   { value: "$70K+",  label: "Avg. cost of a late-aborted diligence process" },
   { value: "100%",   label: "Prime Atlas proprietary intelligence on every score" },
@@ -76,7 +76,7 @@ const AUDIENCES = [
     pain:
       "You see a market moving but can't quantify the thesis fast enough before prices reflect it. By the time a research note publishes, the entry window has closed.",
     value: [
-      "80+ markets ranked by ROI Feasibility Index",
+      "32 markets ranked by ROI Feasibility Index",
       "Undersupply signals before they reach mainstream press",
       "Conviction scores built on Prime Atlas proprietary intelligence — not opinion",
       "Free tier: 5 markets per country, no credit card",
@@ -158,7 +158,7 @@ const WORKFLOW = [
   {
     step: "01",
     title: "Pre-screened deal pipeline",
-    body: "80+ markets across USA and UK ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score is Prime Atlas proprietary intelligence — built to hold up in committee.",
+    body: "32 markets across USA and UK ranked by ROI Feasibility Index across five conviction dimensions: growth momentum, development permissiveness, infrastructure pipeline, liquidity, and risk. Every score is Prime Atlas proprietary intelligence — built to hold up in committee.",
     cta: { label: "Open Deal Board", href: "/deal-board" },
   },
   {
@@ -309,7 +309,7 @@ export default async function HomePage() {
 
               {/* Subtext */}
               <p className="text-base sm:text-lg text-zinc-400 max-w-[480px] mb-3 leading-relaxed text-pretty">
-                80+ pre-screened markets across USA and UK, ranked by ROI Feasibility Index.
+                32 pre-screened markets across USA and UK, ranked by ROI Feasibility Index.
                 Run a live underwrite and export a committee-ready IC memo — on the day the deal arrives.
               </p>
               <p className="text-sm text-zinc-500 max-w-[420px] mb-8 leading-relaxed">
@@ -335,7 +335,7 @@ export default async function HomePage() {
               {/* Trust strip */}
               <div className="flex flex-wrap gap-x-5 gap-y-2 mb-8">
                 {[
-                  { icon: "📊", text: "80+ markets ranked" },
+                  { icon: "📊", text: "32 markets ranked" },
                   { icon: "⚡", text: "IC memo in 20 min" },
                   { icon: "🔒", text: "Prime Atlas verified data" },
                 ].map(({ icon, text }) => (
@@ -894,7 +894,7 @@ export default async function HomePage() {
                 </h2>
                 <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
                   Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
-                  Analyst tier: all 80+ markets, full evidence layers, unlimited contact reveals, exportable IC memo.
+                  Analyst tier: all 32 markets, full evidence layers, unlimited contact reveals, exportable IC memo.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                   <Link

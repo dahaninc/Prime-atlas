@@ -83,8 +83,11 @@ export async function GET(req: NextRequest) {
   // Pre-compute discount + yield per property
   const enriched = (recent as Property[]).map((p) => {
     const median = p.municipality_id ? medianPpsqm.get(p.municipality_id) : undefined;
-    const ppsqm = p.price && p.size_sqm && p.size_sqm > 0 ? p.price / Number(p.size_sqm) : null;
-    const discountPct = median && ppsqm ? ((median - ppsqm) / median) * 100 : null;
+    const size = Number(p.size_sqm);
+    const ppsqm = p.price && size >= 15 && size <= 2000 ? p.price / size : null;
+    let discountPct = median && ppsqm ? ((median - ppsqm) / median) * 100 : null;
+    // Deeper than −60% vs median is presumed source-data noise, never alerted.
+    if (discountPct != null && discountPct > 60) discountPct = null;
     return { ...p, discountPct, estYield: estimateGrossYield(p) };
   });
 
