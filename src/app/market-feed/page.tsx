@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
@@ -14,6 +16,41 @@ export const metadata: Metadata = {
     "Live property intelligence feed — residential and commercial listings across USA and UK markets, refreshed daily. Powered by Prime Atlas.",
 };
 
+const PROPERTY_COLUMNS = "id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images";
+
+// PostgREST caps every request at 1000 rows (Supabase's db-max-rows) even if
+// .limit() asks for more, so a segment above that size must be paged with
+// .range() to be fetched in full.
+const PAGE_SIZE = 1000;
+
+async function fetchSegment(
+  supabase: SupabaseClient<Database>,
+  currencyCode: string,
+  listingType: string
+) {
+  const { count } = await supabase
+    .from("properties")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "active")
+    .eq("currency_code", currencyCode)
+    .eq("listing_type", listingType);
+
+  const pages = Math.ceil((count ?? 0) / PAGE_SIZE);
+  const results = await Promise.all(
+    Array.from({ length: pages }, (_, i) =>
+      supabase
+        .from("properties")
+        .select(PROPERTY_COLUMNS)
+        .eq("status", "active")
+        .eq("currency_code", currencyCode)
+        .eq("listing_type", listingType)
+        .order("scraped_at", { ascending: false })
+        .range(i * PAGE_SIZE, i * PAGE_SIZE + PAGE_SIZE - 1)
+    )
+  );
+  return results.flatMap((r) => r.data ?? []);
+}
+
 export default async function MarketFeedPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
   const supabase = await createClient();
@@ -23,7 +60,6 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   // another segment out of the window entirely — e.g. a UK-heavy scrape
   // batch previously starved "USA + for sale" down to zero visible listings
   // even though thousands were active in the table.
-  const PROPERTY_COLUMNS = "id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images";
   const SEGMENTS: Array<{ currency_code: string; listing_type: string }> = [
     { currency_code: "USD", listing_type: "sale" },
     { currency_code: "USD", listing_type: "rent" },
@@ -33,18 +69,9 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
 
   const [{ data: { user } }, ...segmentResults] = await Promise.all([
     supabase.auth.getUser(),
-    ...SEGMENTS.map((seg) =>
-      supabase
-        .from("properties")
-        .select(PROPERTY_COLUMNS)
-        .eq("status", "active")
-        .eq("currency_code", seg.currency_code)
-        .eq("listing_type", seg.listing_type)
-        .order("scraped_at", { ascending: false })
-        .limit(500)
-    ),
+    ...SEGMENTS.map((seg) => fetchSegment(supabase, seg.currency_code, seg.listing_type)),
   ]);
-  const rawProperties = segmentResults.flatMap((r) => r.data ?? []);
+  const rawProperties = segmentResults.flat();
 
   // Non-members (anonymous or free) get locality-level addresses and no
   // photos — redacted server-side so the data never reaches the browser.
