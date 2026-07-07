@@ -292,7 +292,7 @@ export default async function HomePage() {
             }}
           />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-20 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[calc(100vh-64px)]">
-            <div className="order-2 lg:order-1 z-10">
+            <div className="order-2 lg:order-1 z-10 glow-ambient">
               {/* Kicker */}
               <div className="flex items-center gap-2 mb-7">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
@@ -304,7 +304,7 @@ export default async function HomePage() {
               {/* Headline */}
               <h1 className="font-serif text-[clamp(2.6rem,5.5vw,4.2rem)] font-bold leading-[1.04] tracking-[-0.02em] text-foreground mb-6 max-w-[540px] text-balance">
                 Investment conviction.{" "}
-                <span className="italic font-semibold">Before the window closes.</span>
+                <span className="italic font-semibold text-gradient-primary">Before the window closes.</span>
               </h1>
 
               {/* Subtext */}
@@ -320,13 +320,13 @@ export default async function HomePage() {
               <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <Link
                   href="/deal-board"
-                  className="inline-flex items-center justify-center bg-primary text-white font-bold px-8 py-3.5 rounded-full hover:bg-primary/85 active:scale-[0.98] transition-all text-sm shadow-[0_4px_20px_rgba(27,79,228,0.30)]"
+                  className="btn-premium inline-flex items-center justify-center bg-primary text-white font-bold px-8 py-3.5 rounded-full hover:bg-primary/85 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all text-sm"
                 >
                   Open the Deal Board
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="inline-flex items-center justify-center border border-zinc-600 text-foreground px-8 py-3.5 rounded-full hover:bg-white/5 transition-colors text-sm"
+                  className="inline-flex items-center justify-center border border-zinc-600 text-foreground px-8 py-3.5 rounded-full hover:bg-white/5 hover:border-zinc-400 hover:-translate-y-0.5 transition-all text-sm"
                 >
                   Start free — no card
                 </Link>
@@ -371,7 +371,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 sm:gap-8">
               {STATS.map((s) => (
                 <div key={s.value} className="text-center">
-                  <p className="text-5xl font-black tabular-nums text-primary leading-none tracking-tight">{s.value}</p>
+                  <p className="text-5xl font-black tabular-nums text-gradient-primary leading-none tracking-tight">{s.value}</p>
                   <p className="text-xs text-zinc-500 mt-3 uppercase tracking-widest font-semibold leading-snug max-w-[180px] mx-auto">{s.label}</p>
                 </div>
               ))}
@@ -597,7 +597,7 @@ export default async function HomePage() {
               {PAIN_POINTS.map((p) => (
                 <div
                   key={p.label}
-                  className="rounded-3xl p-7 bg-card border border-primary/10"
+                  className="card-premium p-7"
                 >
                   <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-5">{p.label}</p>
                   <p className="text-4xl font-black tracking-tight tabular-nums text-foreground leading-none mb-1">{p.stat}</p>
@@ -878,7 +878,7 @@ export default async function HomePage() {
           <div className="max-w-2xl mx-auto">
             <div
               className="relative overflow-hidden rounded-[36px] px-8 sm:px-14 py-14 text-center bg-primary"
-              style={{ boxShadow: "0 20px 60px rgba(27,79,228,0.25)" }}
+              style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.4), 0 32px 80px -12px rgba(27,79,228,0.45), inset 0 1px 0 rgba(255,255,255,0.1)" }}
             >
               <div className="absolute top-0 left-0 right-0 h-px bg-card/20" />
               <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none opacity-20"
@@ -899,13 +899,13 @@ export default async function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                   <Link
                     href="/auth/signup"
-                    className="inline-block bg-card text-primary font-bold px-8 py-3.5 rounded-full hover:bg-card/90 transition-all text-sm"
+                    className="btn-premium inline-block bg-card text-primary font-bold px-8 py-3.5 rounded-full hover:bg-card/90 hover:-translate-y-0.5 transition-all text-sm"
                   >
                     Get access — free
                   </Link>
                   <Link
                     href="/deal-board"
-                    className="inline-block border border-white/30 text-white px-8 py-3.5 rounded-full hover:bg-card/10 transition-colors text-sm"
+                    className="inline-block border border-white/30 text-white px-8 py-3.5 rounded-full hover:bg-card/10 hover:border-white/50 hover:-translate-y-0.5 transition-all text-sm"
                   >
                     Open Deal Board →
                   </Link>

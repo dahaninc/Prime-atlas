@@ -156,4 +156,107 @@
     from { opacity: 0; transform: translateY(8px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
+
+  /* ── Premium surface language — elevate the existing obsidian/blue/green
+     palette, never introduce new brand colors. Used on high-conversion
+     surfaces (homepage, pricing). ── */
+
+  /* Ambient glow behind a hero/CTA element — Prime Blue, very soft */
+  .glow-ambient {
+    position: relative;
+  }
+  .glow-ambient::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    z-index: -1;
+    background: radial-gradient(closest-side, hsl(var(--primary) / 0.18), transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+  }
+
+  /* Gradient text — Prime Blue → white, for hero numerals/headlines only */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, #7fb2ff 45%, hsl(var(--foreground)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* pa-green equivalent, for "live/positive" hero numerals */
+  .text-gradient-live {
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, #7fffb0 60%, hsl(var(--foreground)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Elevated card — layered shadow depth + hover lift, still bg-card/border-border */
+  .card-premium {
+    @apply border border-border bg-card rounded-2xl;
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.03) inset,
+      0 24px 48px -24px hsl(0 0% 0% / 0.6),
+      0 8px 16px -8px hsl(0 0% 0% / 0.4);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s;
+  }
+  .card-premium:hover {
+    transform: translateY(-3px);
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.05) inset,
+      0 32px 64px -24px hsl(0 0% 0% / 0.7),
+      0 0 0 1px hsl(var(--primary) / 0.15),
+      0 0 40px -8px hsl(var(--primary) / 0.25);
+  }
+
+  /* The "this is the one" card — genuine dark-on-dark contrast pop, not just
+     a tinted border. Reserve for exactly one CTA per page (e.g. recommended
+     pricing tier). */
+  .card-spotlight {
+    @apply rounded-2xl relative overflow-hidden;
+    background: linear-gradient(180deg, hsl(240 8% 11%) 0%, hsl(240 10% 5%) 100%);
+    border: 1px solid hsl(var(--primary) / 0.4);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.1),
+      0 32px 64px -20px hsl(var(--primary) / 0.35),
+      0 8px 24px -8px hsl(0 0% 0% / 0.8);
+  }
+  .card-spotlight::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 120% 60% at 50% -10%, hsl(var(--primary) / 0.15), transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Premium CTA button — depth + shine sweep on hover */
+  .btn-premium {
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.3);
+  }
+  .btn-premium::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -60%;
+    width: 40%; height: 100%;
+    background: linear-gradient(115deg, transparent, hsl(0 0% 100% / 0.25), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+  }
+  .btn-premium:hover::after { left: 130%; }
+
+  /* Fine grain texture for large dark canvases — barely visible, adds depth */
+  .noise-overlay {
+    position: relative;
+  }
+  .noise-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
 }

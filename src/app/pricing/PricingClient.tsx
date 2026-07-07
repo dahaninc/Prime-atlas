@@ -21,6 +21,7 @@ const TIERS = [
     monthlyPrice: 29.99,
     annualMonthly: 20.99,
     annualTotal: 251.88,
+    annualSavings: 108,
     tagline: "Entry-level access",
     description: "For investors getting started with US and UK deal flow.",
     cta: "Start Explorer",
@@ -48,6 +49,7 @@ const TIERS = [
     monthlyPrice: 69.99,
     annualMonthly: 48.99,
     annualTotal: 587.88,
+    annualSavings: 252,
     tagline: "Recommended",
     description: "For active investors who need full intelligence and unlimited deal access.",
     cta: "Start Professional",
@@ -75,6 +77,7 @@ const TIERS = [
     monthlyPrice: 89.99,
     annualMonthly: 62.99,
     annualTotal: 755.88,
+    annualSavings: 324,
     tagline: "Full platform",
     description: "For professional investors and teams who need API access, export, and portfolio tools.",
     cta: "Start Institutional",
@@ -187,15 +190,16 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
       )}
 
       {/* Header */}
-      <div className="text-center mb-14">
+      <div className="text-center mb-14 relative glow-ambient">
         <div className="flex items-center justify-center gap-2 mb-3">
           <span className="w-1.5 h-1.5 rounded-full bg-pa-green animate-pulse" />
           <span className="text-[10px] font-mono font-bold text-pa-green uppercase tracking-widest">
             Prime Atlas · Pricing
           </span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
-          USA + UK Investment Intelligence.<br className="hidden sm:block" /> One Terminal. Three Tiers.
+        <h1 className="text-4xl sm:text-5xl font-extrabold mb-4 leading-[1.05] tracking-tight">
+          USA + UK Investment Intelligence.<br className="hidden sm:block" />{" "}
+          <span className="text-gradient-primary">One Terminal. Three Tiers.</span>
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto text-sm leading-relaxed">
           Every listing enriched with macro and micro analysis, conviction scores, and exit projections.
@@ -214,28 +218,33 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
         </div>
 
         {/* Billing toggle */}
-        <div className="mt-8 inline-flex items-center gap-1 p-1 rounded-full border border-border bg-card">
-          <button
-            onClick={() => setBilling("monthly")}
-            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
-              billing === "monthly" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setBilling("annual")}
-            className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
-              billing === "annual" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Yearly
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-              billing === "annual" ? "bg-pa-green text-background" : "bg-pa-green/15 text-pa-green"
-            }`}>
-              −30%
-            </span>
-          </button>
+        <div className="mt-10 flex flex-col items-center gap-2.5">
+          <div className="inline-flex items-center gap-1 p-1 rounded-full border border-border bg-card">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                billing === "monthly" ? "bg-foreground text-background shadow-lg" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBilling("annual")}
+              className={`relative px-6 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
+                billing === "annual" ? "bg-foreground text-background shadow-lg" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Yearly
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                billing === "annual" ? "bg-pa-green text-background" : "bg-pa-green/15 text-pa-green"
+              }`}>
+                −30%
+              </span>
+            </button>
+          </div>
+          <p className={`text-xs font-mono transition-opacity ${billing === "annual" ? "text-pa-green opacity-100" : "text-muted-foreground/50 opacity-0"}`}>
+            Save up to $324/year on Institutional — billed once, not twelve times
+          </p>
         </div>
       </div>
 
@@ -246,100 +255,112 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
           const isLoading = loading === tier.id || (loading === "portal" && isCurrent);
 
           return (
-            <div
-              key={tier.id}
-              className={`border rounded-xl flex flex-col relative overflow-hidden ${
-                tier.highlight
-                  ? "border-pa-green/50 bg-pa-green/[0.03] shadow-[0_0_30px_rgba(0,200,100,0.08)]"
-                  : isCurrent
-                  ? "border-pa-green/20 bg-card"
-                  : "border-border bg-card"
-              }`}
-            >
-              {/* Terminal title bar */}
-              <div className={`px-4 py-2 border-b flex items-center justify-between ${
-                tier.highlight ? "border-pa-green/20 bg-pa-green/5" : "border-border bg-secondary/30"
-              }`}>
-                <span className="text-[9px] font-mono font-bold text-muted-foreground/50 uppercase tracking-widest">
-                  {tier.tagline}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {billing === "annual" && (
-                    <span className="text-[8px] font-mono font-bold text-pa-green bg-pa-green/10 border border-pa-green/30 rounded px-1.5 py-0.5">
-                      −30%
-                    </span>
-                  )}
-                  {tier.highlight && (
-                    <span className="text-[8px] font-mono font-bold text-pa-green border border-pa-green/30 rounded px-1.5 py-0.5">
-                      RECOMMENDED
-                    </span>
-                  )}
-                  {isCurrent && (
-                    <span className="text-[8px] font-mono font-bold text-pa-green/60 border border-pa-green/20 rounded px-1.5 py-0.5">
-                      ACTIVE
-                    </span>
-                  )}
+            <div key={tier.id} className={`relative flex flex-col ${tier.highlight ? "md:-mt-3 md:mb-3" : ""}`}>
+              {/* Floating badge — overlaps the top edge, like the reference */}
+              {tier.highlight && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-[0_4px_16px_rgba(37,99,235,0.5)]">
+                  ⭐ Most Popular
                 </div>
-              </div>
+              )}
 
-              <div className="p-6 flex flex-col flex-1">
-                {/* Price */}
-                <div className="mb-5">
-                  <p className="text-[11px] font-mono font-bold text-muted-foreground/60 uppercase tracking-widest mb-1">
-                    {tier.name}
-                  </p>
-                  <div className="flex items-baseline gap-2 mb-1">
+              <div
+                className={`flex flex-col flex-1 overflow-hidden ${
+                  tier.highlight ? "card-spotlight" : "card-premium"
+                } ${isCurrent && !tier.highlight ? "border-pa-green/30" : ""}`}
+              >
+                {/* Terminal title bar */}
+                <div className={`px-4 py-2.5 border-b flex items-center justify-between ${
+                  tier.highlight ? "border-white/10" : "border-border bg-secondary/30"
+                }`}>
+                  <span className={`text-[9px] font-mono font-bold uppercase tracking-widest ${
+                    tier.highlight ? "text-white/50" : "text-muted-foreground/50"
+                  }`}>
+                    {tier.tagline}
+                  </span>
+                  <div className="flex items-center gap-1.5">
                     {billing === "annual" && (
-                      <span className="text-lg text-muted-foreground/50 line-through font-mono">
-                        ${tier.monthlyPrice.toFixed(2)}
+                      <span className="text-[8px] font-mono font-bold text-pa-green bg-pa-green/10 border border-pa-green/30 rounded px-1.5 py-0.5">
+                        −30%
                       </span>
                     )}
-                    <span className="text-4xl font-bold font-mono">
-                      ${(billing === "annual" ? tier.annualMonthly : tier.monthlyPrice).toFixed(2)}
-                    </span>
-                    <span className="text-muted-foreground text-sm">/month</span>
+                    {isCurrent && (
+                      <span className="text-[8px] font-mono font-bold text-pa-green/70 border border-pa-green/25 rounded px-1.5 py-0.5">
+                        ACTIVE
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground/70 mb-2 h-4">
-                    {billing === "annual" ? `Billed $${tier.annualTotal.toFixed(2)} annually` : "Billed monthly"}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
                 </div>
 
-                {/* Features */}
-                <ul className="space-y-2 flex-1 mb-6">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-foreground/80">
-                      <CheckIcon className="text-pa-green flex-shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                  {"locked" in tier && tier.locked.length > 0 && (
-                    <>
-                      <li className="pt-1 pb-0.5 border-t border-border/40" />
-                      {tier.locked.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-xs text-muted-foreground/30">
-                          <span className="text-[10px] mt-0.5 flex-shrink-0">—</span>
-                          {f}
-                        </li>
-                      ))}
-                    </>
-                  )}
-                </ul>
+                <div className="p-6 flex flex-col flex-1">
+                  {/* Price */}
+                  <div className="mb-5">
+                    <p className={`text-[11px] font-mono font-bold uppercase tracking-widest mb-1.5 ${
+                      tier.highlight ? "text-white/60" : "text-muted-foreground/60"
+                    }`}>
+                      {tier.name}
+                    </p>
+                    <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                      {billing === "annual" && (
+                        <span className={`text-lg line-through font-mono ${tier.highlight ? "text-white/30" : "text-muted-foreground/50"}`}>
+                          ${tier.monthlyPrice.toFixed(2)}
+                        </span>
+                      )}
+                      <span className={`text-4xl font-extrabold font-mono ${tier.highlight ? "text-white" : "text-foreground"}`}>
+                        ${(billing === "annual" ? tier.annualMonthly : tier.monthlyPrice).toFixed(2)}
+                      </span>
+                      <span className={`text-sm ${tier.highlight ? "text-white/50" : "text-muted-foreground"}`}>/month</span>
+                      {billing === "annual" && (
+                        <span className="text-[10px] font-bold text-pa-green bg-pa-green/15 border border-pa-green/30 rounded-full px-2 py-0.5">
+                          −30%
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-[11px] mb-2 h-4 font-mono ${tier.highlight ? "text-pa-green/90" : "text-muted-foreground/70"}`}>
+                      {billing === "annual"
+                        ? `Billed $${tier.annualTotal.toFixed(2)}/yr · save $${tier.annualSavings}`
+                        : "Billed monthly"}
+                    </p>
+                    <p className={`text-xs leading-relaxed ${tier.highlight ? "text-white/60" : "text-muted-foreground"}`}>
+                      {tier.description}
+                    </p>
+                  </div>
 
-                <button
-                  onClick={() => handleUpgrade(tier.id)}
-                  disabled={isLoading}
-                  className={`w-full text-center text-sm font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${
-                    tier.highlight
-                      ? "bg-primary text-white hover:bg-primary/85 shadow-[0_0_16px_rgba(0,200,100,0.2)]"
-                      : "border border-border text-foreground hover:border-pa-green/40 hover:text-pa-green"
-                  }`}
-                >
-                  {isLoading && (
-                    <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  )}
-                  {ctaLabel(tier.id, tier.cta)}
-                </button>
+                  {/* Features */}
+                  <ul className="space-y-2 flex-1 mb-6">
+                    {tier.features.map((f) => (
+                      <li key={f} className={`flex items-start gap-2 text-xs ${tier.highlight ? "text-white/85" : "text-foreground/80"}`}>
+                        <CheckIcon className="text-pa-green flex-shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                    {"locked" in tier && tier.locked.length > 0 && (
+                      <>
+                        <li className={`pt-1 pb-0.5 border-t ${tier.highlight ? "border-white/10" : "border-border/40"}`} />
+                        {tier.locked.map((f) => (
+                          <li key={f} className={`flex items-start gap-2 text-xs ${tier.highlight ? "text-white/25" : "text-muted-foreground/30"}`}>
+                            <span className="text-[10px] mt-0.5 flex-shrink-0">—</span>
+                            {f}
+                          </li>
+                        ))}
+                      </>
+                    )}
+                  </ul>
+
+                  <button
+                    onClick={() => handleUpgrade(tier.id)}
+                    disabled={isLoading}
+                    className={`w-full text-center text-sm font-semibold py-3 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${
+                      tier.highlight
+                        ? "btn-premium bg-primary text-white hover:bg-primary/90"
+                        : "border border-border text-foreground hover:border-pa-green/40 hover:text-pa-green"
+                    }`}
+                  >
+                    {isLoading && (
+                      <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {ctaLabel(tier.id, tier.cta)}
+                  </button>
+                </div>
               </div>
             </div>
           );
