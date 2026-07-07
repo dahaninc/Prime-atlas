@@ -263,8 +263,11 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
   const avgPrice   = saleItems.length > 0
     ? Math.round(saleItems.reduce((s, p) => s + (p.price ?? 0), 0) / saleItems.length)
     : null;
-  const lastSync   = properties[0]?.scraped_at
-    ? new Date(properties[0].scraped_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  const mostRecent = properties.reduce<string | null>(
+    (latest, p) => (!latest || p.scraped_at > latest ? p.scraped_at : latest), null
+  );
+  const lastSync   = mostRecent
+    ? new Date(mostRecent).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
     : "—";
 
   const activeFilterCount = [

@@ -18,18 +18,33 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   const { q } = await searchParams;
   const supabase = await createClient();
 
-  const [
-    { data: { user } },
-    { data: rawProperties },
-  ] = await Promise.all([
+  // Fetched as separate per-segment queries (not one global recency-ordered
+  // limit) so a scrape run skewed toward one country/listing-type can't push
+  // another segment out of the window entirely — e.g. a UK-heavy scrape
+  // batch previously starved "USA + for sale" down to zero visible listings
+  // even though thousands were active in the table.
+  const PROPERTY_COLUMNS = "id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images";
+  const SEGMENTS: Array<{ currency_code: string; listing_type: string }> = [
+    { currency_code: "USD", listing_type: "sale" },
+    { currency_code: "USD", listing_type: "rent" },
+    { currency_code: "GBP", listing_type: "sale" },
+    { currency_code: "GBP", listing_type: "rent" },
+  ];
+
+  const [{ data: { user } }, ...segmentResults] = await Promise.all([
     supabase.auth.getUser(),
-    supabase
-      .from("properties")
-      .select("id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images")
-      .eq("status", "active")
-      .order("scraped_at", { ascending: false })
-      .limit(2000),
+    ...SEGMENTS.map((seg) =>
+      supabase
+        .from("properties")
+        .select(PROPERTY_COLUMNS)
+        .eq("status", "active")
+        .eq("currency_code", seg.currency_code)
+        .eq("listing_type", seg.listing_type)
+        .order("scraped_at", { ascending: false })
+        .limit(500)
+    ),
   ]);
+  const rawProperties = segmentResults.flatMap((r) => r.data ?? []);
 
   // Non-members (anonymous or free) get locality-level addresses and no
   // photos — redacted server-side so the data never reaches the browser.
@@ -42,8 +57,11 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   const total    = properties.length;
   const forSale  = properties.filter(p => p.listing_type === "sale").length;
   const forRent  = properties.filter(p => p.listing_type === "rent").length;
-  const lastSync = properties[0]?.scraped_at
-    ? new Date(properties[0].scraped_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  const mostRecent = properties.reduce<string | null>(
+    (latest, p) => (!latest || p.scraped_at > latest ? p.scraped_at : latest), null
+  );
+  const lastSync = mostRecent
+    ? new Date(mostRecent).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
     : "—";
 
   return (
