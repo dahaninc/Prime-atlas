@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient as createSsrClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { isAdminEmail } from "@/lib/auth/admins";
+import { TierSelect } from "@/components/admin/TierSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +12,11 @@ export const metadata: Metadata = {
   title: "Admin Dashboard | Prime Atlas",
 };
 
-const ADMIN_EMAILS = ["alpha.richie@outlook.com", "admin@prime-atlas.io"];
-
-const TIER_COLORS: Record<string, string> = {
-  institutional: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
-  professional:  "text-primary bg-primary/10 border-primary/25",
-  explorer:      "text-purple-400 bg-purple-500/10 border-purple-500/25",
-  free:          "text-zinc-500 bg-background border-border",
-};
-
 export default async function AdminDashboardPage() {
   // ── Auth gate ──────────────────────────────────────────────────
   const ssrClient = await createSsrClient();
   const { data: { user } } = await ssrClient.auth.getUser();
-  if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) redirect("/auth/login");
+  if (!user || !isAdminEmail(user.email)) redirect("/auth/login");
 
   // ── Service-role client ────────────────────────────────────────
   const supabase = createClient(
@@ -143,11 +136,9 @@ export default async function AdminDashboardPage() {
                 <p className="text-[9px] text-zinc-400 mt-0.5 font-mono">{u.id.slice(0, 8)}…</p>
               </div>
 
-              {/* Tier badge */}
+              {/* Tier — editable */}
               <div>
-                <span className={`text-[9px] font-bold border rounded px-2 py-0.5 uppercase tracking-wider ${TIER_COLORS[u.tier] ?? TIER_COLORS.free}`}>
-                  {u.tier}
-                </span>
+                <TierSelect userId={u.id} initialTier={u.tier} />
               </div>
 
               {/* Joined */}
@@ -167,19 +158,6 @@ export default async function AdminDashboardPage() {
           {users.length === 0 && (
             <div className="px-4 py-10 text-center text-zinc-500 text-sm">No users found</div>
           )}
-        </div>
-
-        {/* Tier upgrade note */}
-        <div className="mt-6 border border-[#1E2D40] rounded-xl p-4 bg-[#0D1221]">
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
-            To change a user&apos;s subscription tier
-          </p>
-          <p className="text-xs text-zinc-500 font-mono">
-            UPDATE profiles SET subscription_tier = &apos;institutional&apos; WHERE id = &apos;&lt;user-id&gt;&apos;;
-          </p>
-          <p className="text-[10px] text-zinc-400 mt-2">
-            Valid tiers: <span className="text-emerald-400">institutional</span> · <span className="text-blue-400">professional</span> · <span className="text-purple-400">explorer</span> · <span className="text-zinc-500">free</span>
-          </p>
         </div>
 
       </main>
