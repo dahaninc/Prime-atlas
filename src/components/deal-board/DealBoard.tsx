@@ -9,7 +9,7 @@ import { useState, useMemo, useEffect, useTransition } from "react";
 import { type PF, computePF, sensitivityGrid, DILIGENCE_BY_COUNTRY, localizedPpsm } from "@/lib/proforma";
 import { toast } from "@/components/ui/Toaster";
 import Link from "next/link";
-import { createDealAlert } from "@/app/deal-board/actions";
+import { createDealAlert, setChecklistItem } from "@/app/deal-board/actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -90,6 +90,7 @@ interface DealBoardProps {
     planning: Record<string, EvidencePlanning[]>;
     signals: Record<string, EvidenceSignal[]>;
   };
+  checklistMap?: Record<string, string[]>;
 }
 
 // ─── Market Tape Data ─────────────────────────────────────────────────────────
@@ -203,6 +204,7 @@ export function DealBoard({
   rows, tier, freshnessMap, userEmail, opportunitiesMap = {},
   statsMap = {}, prevScoreMap = {},
   evidence = { infra: {}, planning: {}, signals: {} },
+  checklistMap = {},
 }: DealBoardProps) {
   const isPro = tier !== "free";
   const [alertState, setAlertState] = useState<"idle" | "done" | "error">("idle");
@@ -211,7 +213,12 @@ export function DealBoard({
   const [country,     setCountry]     = useState("United States");
   const [sortMode,    setSortMode]    = useState<SortMode>("roi");
   const [selectedId,  setSelectedId]  = useState<string | null>(null);
-  const [checkedLayers, setCheckedLayers] = useState<Set<string>>(new Set());
+  // Conviction-checklist ticks, keyed by market id — seeded from the DB,
+  // persisted per-toggle via setChecklistItem (src/app/deal-board/actions.ts).
+  const [checkedByMarket, setCheckedByMarket] = useState<Record<string, Set<string>>>(
+    () => Object.fromEntries(Object.entries(checklistMap).map(([id, keys]) => [id, new Set(keys)]))
+  );
+  const checkedLayers = (selectedId && checkedByMarket[selectedId]) || new Set<string>();
   const [time, setTime] = useState("");
 
   // Screening rail
@@ -276,10 +283,24 @@ export function DealBoard({
   const sym   = selectedRow ? symFor(selectedRow.currency_code) : "$";
 
   function toggleLayer(key: string) {
-    setCheckedLayers((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
+    if (!selectedRow) return;
+    const marketId = selectedRow.id;
+    const wasChecked = checkedLayers.has(key);
+    setCheckedByMarket((prev) => {
+      const next = new Set(prev[marketId] ?? []);
+      wasChecked ? next.delete(key) : next.add(key);
+      return { ...prev, [marketId]: next };
+    });
+    setChecklistItem(marketId, key, !wasChecked).then((res) => {
+      if (!res.ok) {
+        // Revert on write failure so the UI never claims a save that didn't happen
+        setCheckedByMarket((prev) => {
+          const next = new Set(prev[marketId] ?? []);
+          wasChecked ? next.add(key) : next.delete(key);
+          return { ...prev, [marketId]: next };
+        });
+        toast("Could not save checklist item — try again", "error");
+      }
     });
   }
 

@@ -310,6 +310,35 @@ export type Database = {
           },
         ]
       }
+      deal_checklist_items: {
+        Row: {
+          checked_at: string
+          checklist_key: string
+          municipality_id: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          checklist_key: string
+          municipality_id: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          checklist_key?: string
+          municipality_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_checklist_items_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       infrastructure_projects: {
         Row: {
           budget: number

@@ -20,7 +20,7 @@ export default async function DealBoardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login?redirect=/deal-board");
 
-  const [profileRes, municipalitiesRes, freshnessRes, opportunitiesRes, statsRes, historyRes, infraRes, planningRes, signalsRes] = await Promise.all([
+  const [profileRes, municipalitiesRes, freshnessRes, opportunitiesRes, statsRes, historyRes, infraRes, planningRes, signalsRes, checklistRes] = await Promise.all([
     supabase.from("profiles").select("subscription_tier").eq("id", user.id).single(),
     supabase.from("municipalities").select(
       `id, name, region, country, currency_code,
@@ -49,6 +49,9 @@ export default async function DealBoardPage() {
       .select("municipality_id, title, signal_type, opportunity_impact, detected_at")
       .order("detected_at", { ascending: false })
       .limit(200),
+    supabase.from("deal_checklist_items")
+      .select("municipality_id, checklist_key")
+      .eq("user_id", user.id),
   ]);
 
   const tier = (profileRes.data?.subscription_tier ?? "free") as
@@ -108,6 +111,12 @@ export default async function DealBoardPage() {
     signals:  groupBy((signalsRes.data ?? []) as EvidenceSignal[], 5),
   };
 
+  // Persisted conviction-checklist ticks, keyed by market
+  const checklistMap: Record<string, string[]> = {};
+  for (const c of (checklistRes.data ?? []) as Array<{ municipality_id: string; checklist_key: string }>) {
+    (checklistMap[c.municipality_id] ??= []).push(c.checklist_key);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <DealBoard
@@ -119,6 +128,7 @@ export default async function DealBoardPage() {
         statsMap={statsMap}
         prevScoreMap={prevScoreMap}
         evidence={evidence}
+        checklistMap={checklistMap}
       />
     </div>
   );
