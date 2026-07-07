@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   const tier = profile?.subscription_tier ?? "free";
   if (tier === "free") {
     return NextResponse.json(
-      { error: "upgrade_required", message: "IC memo export is a Pro feature." },
+      { error: "upgrade_required", message: "Investment Analysis Report export is a Pro feature." },
       { status: 403 },
     );
   }
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     ? `<h3>${esc(title)}</h3><ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>` : "";
 
   const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>IC Memo — ${esc(p.market.name)}</title>
+<html><head><meta charset="utf-8"><title>Investment Analysis Report — ${esc(p.market.name)}</title>
 <style>
   body { font-family: Calibri, 'Segoe UI', Arial, sans-serif; color: #111; margin: 48px; font-size: 11pt; }
   h1 { font-size: 17pt; border-bottom: 2px solid #111; padding-bottom: 6px; }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   .disclaimer { margin-top: 28px; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
 </style></head><body>
 
-<h1>Investment Committee Memo — ${esc(p.market.name)}, ${esc(p.market.region)}</h1>
+<h1>Investment Analysis Report — ${esc(p.market.name)}, ${esc(p.market.region)}</h1>
 <p class="meta">Generated ${esc(generated)} · Analyst: ${esc(p.analyst)} · Market: ${esc(p.market.country)}</p>
 
 <h2>1. Executive Summary — Core Financial Matrix</h2>
@@ -166,7 +166,7 @@ Committee members can screen deals against their own criteria free at
     status: 200,
     headers: {
       "Content-Type": "application/msword",
-      "Content-Disposition": `attachment; filename="ic-memo-${p.market.slug || "market"}.doc"`,
+      "Content-Disposition": `attachment; filename="investment-analysis-${p.market.slug || "market"}.doc"`,
       "Cache-Control": "no-store",
     },
   });

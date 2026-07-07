@@ -27,13 +27,13 @@ If ANY step fails, that's a launch blocker — report exactly which step.
 7. Redeploy (push any commit or Vercel "Redeploy").
 8. Run: python3 scripts/qa/e2e_smoke.py --base https://<domain>
 Unblocks: ALL customer email (deal alerts, waitlist notifications), correct
-share-link URLs in copied links and IC memo footers, SEO indexing.
+share-link URLs in copied links and Investment Analysis Report footers, SEO indexing.
 
 ## 3. Legal review — before public marketing
 Disclaimers to review (all already say "not investment advice"):
 - Screener scorecard: src/lib/screener.ts (SCORECARD_DISCLAIMER)
 - Market reports: src/lib/marketReport.ts (REPORT_DISCLAIMER)
-- IC memo: src/app/api/export/ic-memo/route.ts (disclaimer paragraph)
+- Investment Analysis Report: src/app/api/export/ic-memo/route.ts (disclaimer paragraph)
 - Share pages: src/app/s/[token]/page.tsx (footer)
 - Underpriced feed + deal alert emails
 Positioning note: the product says "institutional-grade intelligence",

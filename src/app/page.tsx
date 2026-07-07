@@ -11,14 +11,14 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Prime Atlas | Investment-grade real estate intelligence · USA + UK",
   description:
-    "32 pre-screened markets across USA and UK. Live underwrite. Committee-ready IC memo in 20 minutes. Powered by Prime Atlas proprietary intelligence.",
+    "32 pre-screened markets across USA and UK. Live underwrite. Investment Analysis Report in 20 minutes. Powered by Prime Atlas proprietary intelligence.",
 };
 
 /* ─────────────────────────── data ─────────────────────────── */
 
 const STATS = [
   { value: "32",    label: "Markets pre-screened · USA + UK" },
-  { value: "20 min", label: "Deal board to preliminary IC memo" },
+  { value: "20 min", label: "Deal board to preliminary Investment Analysis Report" },
   { value: "$70K+",  label: "Avg. cost of a late-aborted diligence process" },
   { value: "100%",   label: "Prime Atlas proprietary intelligence on every score" },
 ];
@@ -102,13 +102,13 @@ const AUDIENCES = [
   },
   {
     tag: "Funds & institutions",
-    headline: "IC memo. Same day. Auditable.",
+    headline: "Investment Analysis Report. Same day. Auditable.",
     pain:
       "Your analysts spend 2–3 weeks per site stitching data from eight different sources in formats that don't match. Off-market windows are 72 hours. You are structurally late.",
     value: [
       "Preliminary underwrite ready the moment a deal hits your desk",
       "Conviction checklist — every item verified through Prime Atlas intelligence",
-      "Exportable IC memo — assumptions traceable, committee-ready",
+      "Exportable Investment Analysis Report — assumptions traceable, committee-ready",
       "Multi-market pipeline ranked by ROI index for allocation decisions",
     ],
     cta: { label: "Book institutional access", href: "/auth/signup?tier=institutional" },
@@ -121,7 +121,7 @@ const TIMELINE_WITHOUT = [
   { marker: "Day 1–3",   action: "Manual data pull — fragmented portals, parcel databases, planning records, census exports" },
   { marker: "Day 4–7",   action: "Analyst builds financial model from scratch in Excel" },
   { marker: "Day 8–14",  action: "Internal review — assumptions challenged, model rebuilt" },
-  { marker: "Day 14–21", action: "IC memo drafted, formatted, circulated for sign-off" },
+  { marker: "Day 14–21", action: "Investment Analysis Report drafted, formatted, circulated for sign-off" },
   { marker: "Day 21+",   action: "Off-market window closed. Vendor in exclusivity with someone else.", bad: true },
 ];
 
@@ -129,7 +129,7 @@ const TIMELINE_WITH = [
   { marker: "Min 1–5",  action: "Market screened — ROI index, growth, risk scores visible" },
   { marker: "Min 5–10", action: "Preliminary underwrite run — DCF inputs adjusted, yield-on-cost live" },
   { marker: "Min 10–15",action: "Conviction checklist reviewed — signals verified, thesis confirmed" },
-  { marker: "Min 15–20",action: "IC memo exported — structured, sourced, defensible in committee" },
+  { marker: "Min 15–20",action: "Investment Analysis Report exported — structured, sourced, defensible in committee" },
   { marker: "Same day", action: "Deal in front of committee. Window open.", good: true },
 ];
 
@@ -149,7 +149,7 @@ const PAIN_POINTS = [
   {
     label: "Committee",
     stat: "3 wks",
-    statLabel: "avg. time to IC memo",
+    statLabel: "avg. time to Investment Analysis Report",
     body: "An IC won't approve a deal you can't defend in writing. Manual memo builds take days. By then the site is under offer, or the committee has moved on.",
   },
 ];
@@ -169,7 +169,7 @@ const WORKFLOW = [
   },
   {
     step: "03",
-    title: "IC memo — same day, defensible in writing",
+    title: "Investment Analysis Report — same day, defensible in writing",
     body: "Export a structured investment memo covering Prime Atlas scores, pro-forma outputs, and the conviction checklist you reviewed. Every assumption is traceable and defensible. Ready for committee the same day the deal hits your desk.",
     cta: null,
   },
@@ -310,7 +310,7 @@ export default async function HomePage() {
               {/* Subtext */}
               <p className="text-base sm:text-lg text-zinc-400 max-w-[480px] mb-3 leading-relaxed text-pretty">
                 32 pre-screened markets across USA and UK, ranked by ROI Feasibility Index.
-                Run a live underwrite and export a committee-ready IC memo — on the day the deal arrives.
+                Run a live underwrite and export a committee-ready Investment Analysis Report — on the day the deal arrives.
               </p>
               <p className="text-sm text-zinc-500 max-w-[420px] mb-8 leading-relaxed">
                 Prime Atlas proprietary intelligence — built to hold up in your investment committee.
@@ -336,7 +336,7 @@ export default async function HomePage() {
               <div className="flex flex-wrap gap-x-5 gap-y-2 mb-8">
                 {[
                   { icon: "📊", text: "32 markets ranked" },
-                  { icon: "⚡", text: "IC memo in 20 min" },
+                  { icon: "⚡", text: "Investment Analysis Report in 20 min" },
                   { icon: "🔒", text: "Prime Atlas verified data" },
                 ].map(({ icon, text }) => (
                   <span key={text} className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
@@ -614,7 +614,7 @@ export default async function HomePage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest mb-2">How it works</p>
             <h2 className="text-2xl font-black tracking-tight mb-10 text-balance">
-              From deal board to IC memo — same day, defensible in writing
+              From deal board to Investment Analysis Report — same day, defensible in writing
             </h2>
             <div className="space-y-12">
               {WORKFLOW.map((step) => (
@@ -894,7 +894,7 @@ export default async function HomePage() {
                 </h2>
                 <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
                   Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
-                  Professional tier: all 32 markets, full evidence layers, unlimited contact reveals, exportable IC memo.
+                  Professional tier: all 32 markets, full evidence layers, unlimited contact reveals, exportable Investment Analysis Report.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                   <Link

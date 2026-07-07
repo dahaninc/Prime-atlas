@@ -1,7 +1,7 @@
 /**
  * Shared pro-forma engine — used by the Deal Board terminal (client) and the
- * IC memo export API (server) so the numbers in the UI and the exported
- * document can never drift apart.
+ * Investment Analysis Report export API (server) so the numbers in the UI
+ * and the exported document can never drift apart.
  */
 
 export interface PF {

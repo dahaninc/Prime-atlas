@@ -313,7 +313,7 @@ export default async function UndersuppliedMarketsReport() {
               The Deal Board goes deeper.
             </h2>
             <p className="text-zinc-500 text-sm max-w-xl mx-auto mb-6 leading-relaxed">
-              Every market in this report has a full deal card in the Deal Board: clickable evidence layers, editable pro-forma with yield-on-cost and margin-on-cost, Bloomberg-style market tape, and one-click IC memo export. Free tier access — no credit card.
+              Every market in this report has a full deal card in the Deal Board: clickable evidence layers, editable pro-forma with yield-on-cost and margin-on-cost, Bloomberg-style market tape, and one-click Investment Analysis Report export. Free tier access — no credit card.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
@@ -348,8 +348,8 @@ export default async function UndersuppliedMarketsReport() {
                 },
                 {
                   icon: "↗",
-                  title: "One-click IC Memo",
-                  desc: "Export a structured CSV investment committee memo with scores, pro-forma, and checked evidence layers in under 3 seconds.",
+                  title: "One-click Investment Analysis Report",
+                  desc: "Export a structured investment analysis report with scores, pro-forma, and checked evidence layers in under 3 seconds.",
                 },
               ].map((f) => (
                 <div

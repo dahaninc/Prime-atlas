@@ -294,7 +294,7 @@ export function FinderClient({ geoOptions, categories }: Props) {
                 <div className="border border-dashed border-pa-green/30 rounded-xl p-4 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium">View {selectedResult.municipality_name} full market analysis</p>
-                    <p className="text-xs text-muted-foreground">Conviction scores, signals, deal pipeline and IC memo.</p>
+                    <p className="text-xs text-muted-foreground">Conviction scores, signals, deal pipeline and Investment Analysis Report.</p>
                   </div>
                   <a
                     href={`/opportunities/${selectedResult.municipality_slug}`}

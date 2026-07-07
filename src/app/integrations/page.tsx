@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "Integrations | prime-atlas",
   description:
-    "Connect data sources, AI tools, and analytics integrations to your Prime Atlas workspace. Zillow, Rightmove, Land Registry, IC Memo AI and more.",
+    "Connect data sources, AI tools, and analytics integrations to your Prime Atlas workspace. Zillow, Rightmove, Land Registry, Investment Analysis AI and more.",
 };
 
 export const dynamic = "force-dynamic";

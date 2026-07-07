@@ -2,7 +2,7 @@
 
 /**
  * PRIME ATLAS — conviction terminal
- * Pre-screened pipeline · Preliminary underwrite · One-click IC memo
+ * Pre-screened pipeline · Preliminary underwrite · One-click Investment Analysis Report
  */
 
 import { useState, useMemo, useEffect, useTransition } from "react";
@@ -369,7 +369,7 @@ export function DealBoard({
         body: JSON.stringify(payload),
       });
       if (res.status === 403) {
-        toast("IC memo export is a Pro feature — upgrade to unlock", "error");
+        toast("Investment Analysis Report export is a Pro feature — upgrade to unlock", "error");
         return;
       }
       if (!res.ok) {
@@ -379,9 +379,9 @@ export function DealBoard({
       const blob = await res.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
-      a.href = url; a.download = `ic-memo-${selectedRow.slug}.doc`;
+      a.href = url; a.download = `investment-analysis-${selectedRow.slug}.doc`;
       a.click(); URL.revokeObjectURL(url);
-      toast("IC memo exported — Word-editable .doc");
+      toast("Investment Analysis Report exported — Word-editable .doc");
     } finally {
       setMemoPending(false);
     }
@@ -882,7 +882,7 @@ export function DealBoard({
             {/* Conviction checklist */}
             <div className="px-5 pt-4 pb-3 border-b border-[#1E2D40]">
               <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-1">Conviction Checklist</div>
-              <div className="text-[10px] text-[#2E4560] mb-3">Tick each dimension you have reviewed — checked layers are included in the IC memo export</div>
+              <div className="text-[10px] text-[#2E4560] mb-3">Tick each dimension you have reviewed — checked layers are included in the Investment Analysis Report export</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {diligence.map((layer) => {
                   const checked = checkedLayers.has(layer.key);
@@ -1033,7 +1033,7 @@ export function DealBoard({
                   </div>
                 )}
 
-                {/* IC Memo — primary CTA */}
+                {/* Investment Analysis Report — primary CTA */}
                 <button
                   onClick={generateMemo}
                   disabled={memoPending}
@@ -1042,10 +1042,10 @@ export function DealBoard({
                   <div className="px-5 py-4 flex items-center justify-between gap-6">
                     <div>
                       <div className="text-[9px] tracking-[0.3em] text-[#4A7090] uppercase mb-1">
-                        Investment Committee
+                        Investment Analysis
                       </div>
                       <div className="text-sm font-bold text-white tracking-tight">
-                        {memoPending ? "Preparing memorandum…" : "Prepare Committee Memorandum"}
+                        {memoPending ? "Preparing report…" : "Prepare Investment Analysis Report"}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -1053,7 +1053,7 @@ export function DealBoard({
                       <div className={`text-[10px] font-mono mt-0.5 ${checkedLayers.size > 0 ? "text-emerald-400" : "text-[#3A5068]"}`}>
                         {checkedLayers.size > 0
                           ? `${checkedLayers.size} conviction dimension${checkedLayers.size > 1 ? "s" : ""}`
-                          : "base memorandum"}
+                          : "base report"}
                       </div>
                     </div>
                   </div>
@@ -1061,7 +1061,7 @@ export function DealBoard({
                 <div className="text-[9px] text-[#2E4560] mt-2 text-center">
                   {checkedLayers.size > 0
                     ? "Compiled from live market data, preliminary underwrite, and selected conviction dimensions — with scores and sources."
-                    : "Select conviction checklist dimensions above to annex them to the memorandum."}
+                    : "Select conviction checklist dimensions above to annex them to the report."}
                 </div>
 
                 {/* Link to full city deal page */}
@@ -1079,9 +1079,9 @@ export function DealBoard({
         {/* Free-tier upgrade wall */}
         {selectedRow && !isPro && (
           <div className="border border-[#1E2D40] bg-[#0D1624] px-5 py-5 text-center">
-            <div className="text-sm font-semibold text-white mb-1">Preliminary underwrite &amp; IC memo are Pro features</div>
+            <div className="text-sm font-semibold text-white mb-1">Preliminary underwrite &amp; Investment Analysis Report are Pro features</div>
             <div className="text-xs text-[#4A6080] mb-4">
-              Pro unlocks all markets, the conviction checklist, editable preliminary underwrite (yield-on-cost · NOI · margin), and one-click IC memo export — the output you bring to committee.
+              Pro unlocks all markets, the conviction checklist, editable preliminary underwrite (yield-on-cost · NOI · margin), and one-click Investment Analysis Report export.
             </div>
             <Link href="/pricing" className="inline-block bg-[#163559] border border-[#1E4A7A] text-white text-xs px-6 py-2.5 hover:bg-[#1A4070] transition-colors">
               Upgrade to Pro →
@@ -1093,7 +1093,7 @@ export function DealBoard({
         <div className="text-[9px] text-[#2E4560] pb-6 leading-relaxed">
           Sub-scores (growth, development, infrastructure, liquidity, risk) are manually-researched composite indexes compiled from the public data sources shown on each market tape — not generated by machine learning.
           The preliminary underwrite is a standard DCF calculator: all inputs and assumptions are set by you.
-          IC memo output is illustrative and for internal use only. Nothing here constitutes investment advice.
+          Investment Analysis Report output is illustrative and for internal use only. Nothing here constitutes investment advice.
           Past performance does not guarantee future results.
         </div>
 

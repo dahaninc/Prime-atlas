@@ -163,7 +163,7 @@ export default async function OpportunitiesPage({ searchParams }: PageProps) {
       <div className="mt-10 p-6 border border-dashed border-border rounded-xl text-center">
         <p className="text-sm font-semibold mb-1">View live market scores in the Deal Board</p>
         <p className="text-xs text-muted-foreground mb-4">
-          The Deal Board ranks all 58 markets with editable pro-forma, evidence layers, and IC memo export.
+          The Deal Board ranks all 32 markets with editable pro-forma, evidence layers, and Investment Analysis Report export.
         </p>
         <Link href="/deal-board" className="inline-block bg-primary text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-primary/85 transition-colors">
           Open Deal Board →

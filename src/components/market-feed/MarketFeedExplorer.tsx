@@ -263,12 +263,6 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
   const avgPrice   = saleItems.length > 0
     ? Math.round(saleItems.reduce((s, p) => s + (p.price ?? 0), 0) / saleItems.length)
     : null;
-  const mostRecent = properties.reduce<string | null>(
-    (latest, p) => (!latest || p.scraped_at > latest ? p.scraped_at : latest), null
-  );
-  const lastSync   = mostRecent
-    ? new Date(mostRecent).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-    : "—";
 
   const activeFilterCount = [
     listing !== "all", propType !== "all", state !== "ALL",
@@ -473,11 +467,6 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
               <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Avg price</span>
             </div>
           )}
-          <div className="flex flex-col">
-            <span className={`text-sm font-semibold ${C.textPrimary} leading-none`}>{lastSync}</span>
-            <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Last synced</span>
-          </div>
-
           {/* Sort + mobile filter */}
           <div className="ml-auto flex items-center gap-2">
             <button

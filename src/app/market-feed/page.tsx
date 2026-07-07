@@ -84,12 +84,6 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   const total    = properties.length;
   const forSale  = properties.filter(p => p.listing_type === "sale").length;
   const forRent  = properties.filter(p => p.listing_type === "rent").length;
-  const mostRecent = properties.reduce<string | null>(
-    (latest, p) => (!latest || p.scraped_at > latest ? p.scraped_at : latest), null
-  );
-  const lastSync = mostRecent
-    ? new Date(mostRecent).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-    : "—";
 
   return (
     <>
@@ -135,17 +129,13 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
               <p className="text-2xl font-bold font-mono text-primary">2</p>
               <p className="text-xs text-muted-foreground">Markets</p>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{lastSync}</p>
-              <p className="text-xs text-muted-foreground">Last synced</p>
-            </div>
           </div>
 
           {/* Data freshness badge — no source branding */}
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
             <span className="text-[9px] text-muted-foreground">
-              Last synced {lastSync} · {total.toLocaleString()} active listings · USA + UK
+              {total.toLocaleString()} active listings · USA + UK
             </span>
           </div>
         </div>
