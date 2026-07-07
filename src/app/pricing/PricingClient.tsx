@@ -12,12 +12,15 @@ interface Props {
   upgraded: boolean;
 }
 
+/** Annual = 30% off, billed yearly. Matches the Stripe prices created with
+ * lookup_key prime_atlas_<tier>_annual (see /api/stripe/checkout). */
 const TIERS = [
   {
     id: "explorer",
     name: "Explorer",
-    price: "$29.99",
-    period: "/month",
+    monthlyPrice: 29.99,
+    annualMonthly: 20.99,
+    annualTotal: 251.88,
     tagline: "Entry-level access",
     description: "For investors getting started with US and UK deal flow.",
     cta: "Start Explorer",
@@ -42,8 +45,9 @@ const TIERS = [
   {
     id: "professional",
     name: "Professional",
-    price: "$69.99",
-    period: "/month",
+    monthlyPrice: 69.99,
+    annualMonthly: 48.99,
+    annualTotal: 587.88,
     tagline: "Recommended",
     description: "For active investors who need full intelligence and unlimited deal access.",
     cta: "Start Professional",
@@ -68,8 +72,9 @@ const TIERS = [
   {
     id: "institutional",
     name: "Institutional",
-    price: "$89.99",
-    period: "/month",
+    monthlyPrice: 89.99,
+    annualMonthly: 62.99,
+    annualTotal: 755.88,
     tagline: "Full platform",
     description: "For professional investors and teams who need API access, export, and portfolio tools.",
     cta: "Start Institutional",
@@ -88,6 +93,7 @@ const TIERS = [
 ] as const;
 
 type TierId = typeof TIERS[number]["id"];
+type Billing = "monthly" | "annual";
 
 const COMPARISON_ROWS = [
   { label: "USA + UK listings terminal",          explorer: true,   professional: true,        institutional: true },
@@ -122,6 +128,7 @@ function CellValue({ val }: { val: boolean | string }) {
 export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled, upgraded }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [billing, setBilling] = useState<Billing>("monthly");
 
   async function handleUpgrade(tierId: TierId) {
     if (!isLoggedIn) {
@@ -140,7 +147,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier: tierId }),
+      body: JSON.stringify({ tier: tierId, interval: billing }),
     });
     const json = await res.json();
     if (json.url) window.location.href = json.url;
@@ -205,6 +212,31 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
           <span className="text-border">|</span>
           <span>Prime Atlas <span className="text-pa-green font-bold">from $29.99/mo</span></span>
         </div>
+
+        {/* Billing toggle */}
+        <div className="mt-8 inline-flex items-center gap-1 p-1 rounded-full border border-border bg-card">
+          <button
+            onClick={() => setBilling("monthly")}
+            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+              billing === "monthly" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBilling("annual")}
+            className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${
+              billing === "annual" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Yearly
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+              billing === "annual" ? "bg-pa-green text-background" : "bg-pa-green/15 text-pa-green"
+            }`}>
+              −30%
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Tier cards */}
@@ -231,16 +263,23 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
                 <span className="text-[9px] font-mono font-bold text-muted-foreground/50 uppercase tracking-widest">
                   {tier.tagline}
                 </span>
-                {tier.highlight && (
-                  <span className="text-[8px] font-mono font-bold text-pa-green border border-pa-green/30 rounded px-1.5 py-0.5">
-                    RECOMMENDED
-                  </span>
-                )}
-                {isCurrent && (
-                  <span className="text-[8px] font-mono font-bold text-pa-green/60 border border-pa-green/20 rounded px-1.5 py-0.5">
-                    ACTIVE
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {billing === "annual" && (
+                    <span className="text-[8px] font-mono font-bold text-pa-green bg-pa-green/10 border border-pa-green/30 rounded px-1.5 py-0.5">
+                      −30%
+                    </span>
+                  )}
+                  {tier.highlight && (
+                    <span className="text-[8px] font-mono font-bold text-pa-green border border-pa-green/30 rounded px-1.5 py-0.5">
+                      RECOMMENDED
+                    </span>
+                  )}
+                  {isCurrent && (
+                    <span className="text-[8px] font-mono font-bold text-pa-green/60 border border-pa-green/20 rounded px-1.5 py-0.5">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="p-6 flex flex-col flex-1">
@@ -249,10 +288,20 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
                   <p className="text-[11px] font-mono font-bold text-muted-foreground/60 uppercase tracking-widest mb-1">
                     {tier.name}
                   </p>
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-4xl font-bold font-mono">{tier.price}</span>
-                    <span className="text-muted-foreground text-sm">{tier.period}</span>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    {billing === "annual" && (
+                      <span className="text-lg text-muted-foreground/50 line-through font-mono">
+                        ${tier.monthlyPrice.toFixed(2)}
+                      </span>
+                    )}
+                    <span className="text-4xl font-bold font-mono">
+                      ${(billing === "annual" ? tier.annualMonthly : tier.monthlyPrice).toFixed(2)}
+                    </span>
+                    <span className="text-muted-foreground text-sm">/month</span>
                   </div>
+                  <p className="text-[11px] text-muted-foreground/70 mb-2 h-4">
+                    {billing === "annual" ? `Billed $${tier.annualTotal.toFixed(2)} annually` : "Billed monthly"}
+                  </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">{tier.description}</p>
                 </div>
 
@@ -329,7 +378,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
       </div>
 
       <p className="text-center text-[10px] font-mono text-muted-foreground/40 mb-14">
-        All prices in USD. Cancel anytime. No setup fees.
+        All prices in USD. Cancel anytime. No setup fees. Annual plans billed in full upfront, 30% off the monthly rate.
       </p>
 
       {/* FAQ */}
@@ -352,6 +401,10 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
             {
               q: "Can I cancel anytime?",
               a: "Yes. Cancel from the member portal at any time — you keep access until the end of your billing period.",
+            },
+            {
+              q: "How does annual billing work?",
+              a: "Switch to Yearly and every tier drops 30% versus paying monthly — charged as one upfront annual payment rather than 12 separate charges. You can still cancel anytime from the member portal; you keep access through the end of the paid year.",
             },
             {
               q: "Do you offer team plans?",

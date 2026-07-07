@@ -34,6 +34,11 @@ type Admin = SupabaseClient<Database>;
 /** Statuses that grant paid access. Everything else downgrades to free. */
 const ACTIVE_STATUSES = new Set<Stripe.Subscription.Status>(["active", "trialing"]);
 
+const PAID_TIERS = new Set<SubscriptionTier>(["explorer", "professional", "institutional"]);
+function isPaidTier(v: unknown): v is SubscriptionTier {
+  return typeof v === "string" && PAID_TIERS.has(v as SubscriptionTier);
+}
+
 function adminClient(): Admin {
   return createAdminClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -84,15 +89,20 @@ async function syncSubscription(admin: Admin, sub: Stripe.Subscription): Promise
   }
 
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
-  const priceId = sub.items.data[0]?.price.id ?? "";
-  const mappedTier = tierByPrice()[priceId];
+  const price = sub.items.data[0]?.price;
+  const priceId = price?.id ?? "";
+  // Env-var map first (existing monthly prices); fall back to the price's own
+  // metadata.tier (set on every Prime Atlas price, monthly and annual — see
+  // /api/stripe/checkout's annualPriceId) so new prices/intervals never need
+  // a new env var wired into Vercel to grant the right tier.
+  const mappedTier = tierByPrice()[priceId] ?? (isPaidTier(price?.metadata?.tier) ? price!.metadata.tier as SubscriptionTier : undefined);
   const isActive = ACTIVE_STATUSES.has(sub.status);
 
   if (isActive && !mappedTier) {
     // Unknown price ID: never guess a paid tier. Loud log, no grant, no retry loop.
     console.error(
       `[stripe/webhook] Unmapped price "${priceId}" on subscription ${sub.id} — ` +
-        `check STRIPE_PRICE_EXPLORER / STRIPE_PRICE_PROFESSIONAL / STRIPE_PRICE_INSTITUTIONAL env vars.`
+        `no env-var match and no valid metadata.tier on the Stripe price.`
     );
     return;
   }
