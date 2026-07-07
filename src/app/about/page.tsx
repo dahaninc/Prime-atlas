@@ -91,7 +91,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               {[
                 { tier: "Explorer", who: "Individual investors and property enthusiasts exploring USA and UK markets. 10 contact reveals/month." },
-                { tier: "Analyst", who: "Active investors running live deal pipelines across both markets. Unlimited contacts and full analytics." },
+                { tier: "Professional", who: "Active investors running live deal pipelines across both markets. Unlimited contacts and full analytics." },
                 { tier: "Institutional", who: "Funds, family offices, and developers deploying capital at scale. API access, export, and team seats." },
               ].map(({ tier, who }) => (
                 <div key={tier} className="border border-border rounded-xl p-4 bg-card">

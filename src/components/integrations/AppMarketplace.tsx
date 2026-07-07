@@ -403,7 +403,7 @@ const APPS: MarketplaceApp[] = [
     description:
       "Export any filtered Deal Board view, ranking table, or listings set as a clean, structured CSV. No formatting cruft.",
     longDescription:
-      "CSV Export adds a download button to Deal Board, Listings Terminal, and Market Feed pages. Exports honour your current filters — so exporting from 'UK, score > 70' produces exactly that dataset. Columns match the displayed table with consistent naming. Analyst users get enriched exports including all score sub-components.",
+      "CSV Export adds a download button to Deal Board, Listings Terminal, and Market Feed pages. Exports honour your current filters — so exporting from 'UK, score > 70' produces exactly that dataset. Columns match the displayed table with consistent naming. Professional users get enriched exports including all score sub-components.",
     rating: 4.5,
     ratingCount: 780,
     installs: 4320,

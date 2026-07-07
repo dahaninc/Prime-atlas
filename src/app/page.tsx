@@ -894,7 +894,7 @@ export default async function HomePage() {
                 </h2>
                 <p className="text-white/70 text-sm mb-8 leading-relaxed max-w-lg mx-auto text-pretty">
                   Explorer tier: Deal Board access, preliminary underwrite, live market feed across USA and UK.
-                  Analyst tier: all 32 markets, full evidence layers, unlimited contact reveals, exportable IC memo.
+                  Professional tier: all 32 markets, full evidence layers, unlimited contact reveals, exportable IC memo.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                   <Link

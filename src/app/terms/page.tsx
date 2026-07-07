@@ -102,11 +102,11 @@ export default function TermsPage() {
                 listings terminal and market intelligence, with 10 contact reveals per month.
               </li>
               <li>
-                <strong className="text-foreground">Analyst ($69.99/month):</strong> Unlimited contact
+                <strong className="text-foreground">Professional ($69.99/month):</strong> Unlimited contact
                 reveals, full investment thesis analytics, macro/micro outlooks, and exit projections.
               </li>
               <li>
-                <strong className="text-foreground">Institutional ($89.99/month):</strong> All Analyst
+                <strong className="text-foreground">Institutional ($89.99/month):</strong> All Professional
                 features plus API access, data export, and 3 team seats.
               </li>
             </ul>

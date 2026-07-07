@@ -310,7 +310,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
               <tr className="border-b border-border/60 bg-secondary/20">
                 <th className="text-left px-4 py-3 text-[10px] font-mono font-bold text-muted-foreground/50 uppercase tracking-widest w-1/2">Feature</th>
                 <th className="text-center px-4 py-3 text-[10px] font-mono font-bold text-muted-foreground/70 uppercase tracking-widest">Explorer</th>
-                <th className="text-center px-4 py-3 text-[10px] font-mono font-bold text-pa-green uppercase tracking-widest">Analyst</th>
+                <th className="text-center px-4 py-3 text-[10px] font-mono font-bold text-pa-green uppercase tracking-widest">Professional</th>
                 <th className="text-center px-4 py-3 text-[10px] font-mono font-bold text-muted-foreground/70 uppercase tracking-widest">Institutional</th>
               </tr>
             </thead>
@@ -343,7 +343,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
             },
             {
               q: "What is a 'contact reveal'?",
-              a: "When you want the seller's or agent's contact details for a listing, that counts as one reveal. Explorer members get 10 per month. Analyst and Institutional members have unlimited reveals.",
+              a: "When you want the seller's or agent's contact details for a listing, that counts as one reveal. Explorer members get 10 per month. Professional and Institutional members have unlimited reveals.",
             },
             {
               q: "How does Prime Atlas compare to CoStar or Crexi?",

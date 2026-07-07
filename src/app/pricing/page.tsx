@@ -7,7 +7,7 @@ import { PricingClient } from "./PricingClient";
 export const metadata: Metadata = {
   title: "Pricing | Prime Atlas — USA & UK Investment Intelligence",
   description:
-    "Explorer $29.99/mo · Analyst $69.99/mo · Institutional $89.99/mo. Cross-market real estate investment intelligence for USA and UK.",
+    "Explorer $29.99/mo · Professional $69.99/mo · Institutional $89.99/mo. Cross-market real estate investment intelligence for USA and UK.",
 };
 
 export default async function PricingPage({
