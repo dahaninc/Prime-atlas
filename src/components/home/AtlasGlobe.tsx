@@ -71,7 +71,7 @@ interface AtlasGlobeProps {
   marketCount?: number;
 }
 
-export function AtlasGlobe({ marketCount = 80 }: AtlasGlobeProps) {
+export function AtlasGlobe({ marketCount = 32 }: AtlasGlobeProps) {
   return (
     <div className="relative w-full max-w-[580px] mx-auto select-none" aria-hidden="true">
 

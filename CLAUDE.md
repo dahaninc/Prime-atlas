@@ -21,7 +21,7 @@ US/UK property-investment SaaS. Next.js 14 App Router + Supabase (`vcnpevcmnobpz
 - Free-tier funnel: non-members get locality-only addresses + zero photos (src/lib/access.ts, fails closed); /underpriced members-only w/ teaser + waitlist (mig 009, cron mails paid tiers only); share links /s/[token] (mig 011, service-role resolved, tokens unguessable).
 - Engines (pure + vitest): screener.ts (pro-forma/sensitivity/scorecard), marketReport.ts (scores/signals/rate grid), levers.ts (value levers), proforma.ts (IC memo), yield.ts.
 - Anthropic responses: content may lead with a thinking block — always `content.find(b => b.type==="text")`. Cron route handlers need `fetchCache = "force-no-store"` (Data Cache froze reads once).
-- Scraping: /api/cron/scrape-listings (targets generated in-route; OTM numeric ids only; upsert never shrinks galleries), /api/cron/enrich-agents hourly (per-provider markers; Zillow blocking comes/goes — don't hammer). ~11k properties, galleries backfilling.
+- Scraping: /api/cron/scrape-listings (targets generated in-route; tiered — busiest markets daily, long tail every 3 days via ?tier=; OTM numeric ids only; upsert never shrinks galleries), /api/cron/enrich-agents every 3 days (per-provider markers; Zillow blocking comes/goes — don't hammer). ~11k properties, galleries backfilling.
 - Opportunities: all 32 markets ≥3 active theses; /api/cron/generate-opportunities is grounded-Claude, dedupe-indexed (mig 010), self-terminating.
 
 ## Env (Vercel prod+preview + .env.local)

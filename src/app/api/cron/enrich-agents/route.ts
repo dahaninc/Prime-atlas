@@ -5,7 +5,9 @@
  * fetches each detail page via ScrapeOps, extracts agent contact info, updates DB.
  *
  * Runs max 40 properties per invocation (rate-limited).
- * Schedule: run every 6h after main scrape (vercel.json).
+ * Schedule: every 3 days (vercel.json) — agent enrichment is a nice-to-have
+ * backfill on top of already-scraped listings, not part of the freshness
+ * claim, so it doesn't need the daily cadence scrape-listings has.
  *
  * Auth: Bearer CRON_SECRET
  */
@@ -282,7 +284,7 @@ export async function GET(req: NextRequest) {
       if (!html) {
         errors.push(`${row.id}: fetch failed`);
         // Send permanently-blocked rows to the back of the queue so they
-        // don't head-of-line block the hourly backfill.
+        // don't head-of-line block the every-3-days backfill.
         await supabase.from("properties")
           .update({ updated_at: new Date().toISOString() })
           .eq("id", row.id);

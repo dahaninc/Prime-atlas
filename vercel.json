@@ -1,104 +1,46 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=0",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=1",
-      "schedule": "20 3 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=2",
-      "schedule": "40 3 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=3",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=4",
-      "schedule": "20 4 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=5",
-      "schedule": "40 4 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=6",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=zillow&batch=7",
-      "schedule": "20 5 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=0",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=1",
-      "schedule": "20 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=9",
-      "schedule": "25 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=10",
-      "schedule": "30 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=11",
-      "schedule": "35 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=12",
-      "schedule": "40 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=13",
-      "schedule": "45 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=rightmove&batch=14",
-      "schedule": "50 7 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=0",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=1",
-      "schedule": "20 8 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=2",
-      "schedule": "40 8 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=3",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=4",
-      "schedule": "20 9 * * *"
-    },
-    {
-      "path": "/api/cron/scrape-listings?provider=onthemarket&batch=5",
-      "schedule": "40 9 * * *"
-    },
-    {
-      "path": "/api/cron/enrich-agents",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/deal-alerts",
-      "schedule": "30 * * * *"
-    },
-    {
-      "path": "/api/cron/snapshot-scores",
-      "schedule": "0 2 * * 1"
-    }
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=0", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=1", "schedule": "20 3 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=2", "schedule": "40 3 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=3", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=4", "schedule": "20 4 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=5", "schedule": "40 4 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=6", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=daily&batch=7", "schedule": "20 5 * * *" },
+
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=daily&batch=0", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=daily&batch=1", "schedule": "20 7 * * *" },
+
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=daily&batch=0", "schedule": "0 8 * * *" },
+
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=0", "schedule": "0 12 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=1", "schedule": "20 12 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=2", "schedule": "40 12 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=3", "schedule": "0 13 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=4", "schedule": "20 13 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=5", "schedule": "40 13 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=6", "schedule": "0 14 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=7", "schedule": "20 14 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=8", "schedule": "40 14 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=zillow&tier=longtail&batch=9", "schedule": "0 15 */3 * *" },
+
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=longtail&batch=0", "schedule": "20 15 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=longtail&batch=1", "schedule": "40 15 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=longtail&batch=2", "schedule": "0 16 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=longtail&batch=3", "schedule": "20 16 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=longtail&batch=4", "schedule": "40 16 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=rightmove&tier=longtail&batch=5", "schedule": "0 17 */3 * *" },
+
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=longtail&batch=0", "schedule": "20 17 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=longtail&batch=1", "schedule": "40 17 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=longtail&batch=2", "schedule": "0 18 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=longtail&batch=3", "schedule": "20 18 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=longtail&batch=4", "schedule": "40 18 */3 * *" },
+    { "path": "/api/cron/scrape-listings?provider=onthemarket&tier=longtail&batch=5", "schedule": "0 19 */3 * *" },
+
+    { "path": "/api/cron/enrich-agents", "schedule": "0 6 */3 * *" },
+    { "path": "/api/cron/deal-alerts", "schedule": "30 * * * *" },
+    { "path": "/api/cron/snapshot-scores", "schedule": "0 2 * * 1" }
   ]
 }

@@ -64,7 +64,7 @@ const APPS: MarketplaceApp[] = [
     id: "zillow-feed",
     slug: "zillow-feed",
     name: "Zillow Market Feed",
-    tagline: "30 US cities · live scraped · daily refresh",
+    tagline: "30 US cities · live scraped · regularly refreshed",
     category: "Data Sources",
     markets: ["US"],
     description:

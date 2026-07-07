@@ -14,13 +14,18 @@
  *    SLACK_WEBHOOK_URL         — optional Slack alert webhook
  *
  *  Invoke:
- *    GET /api/cron/scrape-listings?provider=zillow&batch=0
+ *    GET /api/cron/scrape-listings?provider=zillow&tier=daily&batch=0
  *    Authorization: Bearer <CRON_SECRET>
  *
- *  Batching: providers with many search targets are sliced into batches of
- *  BATCH_SIZE URLs (?batch=N picks the Nth slice). Each batch fits inside the
- *  Vercel Pro 300s window even in the worst case (all requests timing out
- *  once and retrying). See vercel.json for the batch schedule.
+ *  Tiers: each provider has a "daily" tier (busiest markets, scraped every
+ *  day) and a "longtail" tier (lower-traffic markets, scraped every 3 days —
+ *  cost reduction without staling the markets that actually drive traffic).
+ *  ?tier= defaults to "daily" if omitted. See vercel.json for the schedule.
+ *
+ *  Batching: each tier's search targets are sliced into batches of
+ *  BATCH_SIZE URLs (?batch=N picks the Nth slice, scoped to that tier). Each
+ *  batch fits inside the Vercel Pro 300s window even in the worst case (all
+ *  requests timing out once and retrying).
  */
 
 import { NextResponse } from "next/server";
@@ -150,16 +155,20 @@ interface SearchTarget {
 }
 
 interface ProviderConfig {
-  name:          Provider;
-  currency:      string;
-  proxyCountry:  string;
-  europeanPrice: boolean;
-  renderJs:      boolean;
-  waitFor?:      string;
-  baseUrl:       string;
-  countryIso2:   string;
-  searchTargets: SearchTarget[];
-  extract:       (html: string, baseUrl: string, listingType: ListingType) => ExtractedProperty[];
+  name:            Provider;
+  currency:        string;
+  proxyCountry:    string;
+  europeanPrice:   boolean;
+  renderJs:        boolean;
+  waitFor?:        string;
+  baseUrl:         string;
+  countryIso2:     string;
+  // Busiest markets are scraped daily; the long tail is scraped every 3 days
+  // (see vercel.json) — ScrapeOps cost reduction without staling the markets
+  // that actually drive traffic.
+  dailyTargets:    SearchTarget[];
+  longTailTargets: SearchTarget[];
+  extract:         (html: string, baseUrl: string, listingType: ListingType) => ExtractedProperty[];
 }
 
 interface ScrapeReport {
@@ -683,20 +692,26 @@ function extractOnTheMarket(
    PROVIDER REGISTRY
 ───────────────────────────────────────────────────────────────────────────── */
 
-/* Target generators — batches of BATCH_SIZE slice these lists in order, so
-   "fresh" page-1 targets sit first (re-scraped daily by cron; see vercel.json)
-   and deep pagination sits at higher batch indices (one-shot backfill). */
+/* Target generators — split per provider into a DAILY tier (busiest markets,
+   scraped every day) and a LONG-TAIL tier (lower-traffic markets, scraped
+   every 3 days — see vercel.json). Within each tier, fresh page-1 targets
+   sit first and deep pagination sits at higher batch indices (still largely
+   one-shot backfill, unscheduled beyond what vercel.json explicitly lists). */
 
-const ZILLOW_SALE_CITIES = [
+const ZILLOW_DAILY_SALE_CITIES = [
   "New-York-NY", "Los-Angeles-CA", "Chicago-IL", "Houston-TX", "Phoenix-AZ",
   "Philadelphia-PA", "San-Antonio-TX", "San-Diego-CA", "Dallas-TX", "San-Francisco-CA",
+];
+const ZILLOW_DAILY_RENT_CITIES = [
+  "New-York-NY", "Los-Angeles-CA", "Chicago-IL", "Houston-TX", "Miami-FL",
+];
+const ZILLOW_LONGTAIL_SALE_CITIES = [
   "Austin-TX", "Jacksonville-FL", "Columbus-OH", "Charlotte-NC", "Indianapolis-IN",
   "Seattle-WA", "Denver-CO", "Nashville-TN", "Oklahoma-City-OK", "Atlanta-GA",
   "Baltimore-MD", "Miami-FL", "Louisville-KY", "Portland-OR", "Milwaukee-WI",
   "Las-Vegas-NV", "Albuquerque-NM", "Minneapolis-MN", "Boston-MA", "Detroit-MI",
 ];
-const ZILLOW_RENT_CITIES = [
-  "New-York-NY", "Los-Angeles-CA", "Chicago-IL", "Houston-TX", "Miami-FL",
+const ZILLOW_LONGTAIL_RENT_CITIES = [
   "San-Francisco-CA", "Seattle-WA", "Boston-MA", "Denver-CO", "Atlanta-GA",
 ];
 const zillowTarget = (city: string, type: ListingType, page: number): SearchTarget => ({
@@ -726,8 +741,8 @@ const rightmoveTarget = (type: ListingType, index: number, region: string = RM_L
   listingType: type,
 });
 
-const OTM_CITIES = [
-  "london", "birmingham", "leeds", "glasgow", "sheffield", "manchester",
+const OTM_LONGTAIL_CITIES = [
+  "birmingham", "leeds", "glasgow", "sheffield", "manchester",
   "edinburgh", "liverpool", "bristol", "leicester", "cardiff", "nottingham",
   "oxford", "cambridge",
 ];
@@ -746,14 +761,20 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     renderJs:      true,
     baseUrl:       "https://www.zillow.com",
     countryIso2:   "US",
-    searchTargets: [
-      // Page 1 per city — fresh (cron batches 0-7, daily)
-      ...ZILLOW_SALE_CITIES.map((c) => zillowTarget(c, "sale", 1)),
-      ...ZILLOW_RENT_CITIES.map((c) => zillowTarget(c, "rent", 1)),
-      // Deep pages — backfill coverage (batches 8+)
-      ...ZILLOW_SALE_CITIES.map((c) => zillowTarget(c, "sale", 2)),
-      ...ZILLOW_RENT_CITIES.map((c) => zillowTarget(c, "rent", 2)),
-      ...ZILLOW_SALE_CITIES.slice(0, 20).map((c) => zillowTarget(c, "sale", 3)),
+    // Daily tier — top 10 sale + top 5 rent metros, 3 pages deep (cron batches 0-7)
+    dailyTargets: [
+      ...ZILLOW_DAILY_SALE_CITIES.map((c) => zillowTarget(c, "sale", 1)),
+      ...ZILLOW_DAILY_RENT_CITIES.map((c) => zillowTarget(c, "rent", 1)),
+      ...ZILLOW_DAILY_SALE_CITIES.map((c) => zillowTarget(c, "sale", 2)),
+      ...ZILLOW_DAILY_RENT_CITIES.map((c) => zillowTarget(c, "rent", 2)),
+      ...ZILLOW_DAILY_SALE_CITIES.map((c) => zillowTarget(c, "sale", 3)),
+    ],
+    // Long-tail tier — remaining 20 sale + 5 rent metros, 2 pages deep (every 3 days)
+    longTailTargets: [
+      ...ZILLOW_LONGTAIL_SALE_CITIES.map((c) => zillowTarget(c, "sale", 1)),
+      ...ZILLOW_LONGTAIL_RENT_CITIES.map((c) => zillowTarget(c, "rent", 1)),
+      ...ZILLOW_LONGTAIL_SALE_CITIES.map((c) => zillowTarget(c, "sale", 2)),
+      ...ZILLOW_LONGTAIL_RENT_CITIES.map((c) => zillowTarget(c, "rent", 2)),
     ],
     extract: extractZillow,
   },
@@ -766,20 +787,21 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     renderJs:      true,
     baseUrl:       "https://www.rightmove.co.uk",
     countryIso2:   "GB",
-    searchTargets: [
-      // Fresh pages (cron batches 0-1, daily)
+    // Daily tier — London only (cron batches 0-1 scheduled; rest one-shot backfill)
+    dailyTargets: [
       rightmoveTarget("sale", 0), rightmoveTarget("rent", 0),
       rightmoveTarget("sale", 24), rightmoveTarget("rent", 24),
       rightmoveTarget("sale", 48),
       // Deep London pagination — backfill coverage (sale to idx 744, rent to 360)
       ...Array.from({ length: 29 }, (_, i) => rightmoveTarget("sale", (i + 3) * 24)),
       ...Array.from({ length: 14 }, (_, i) => rightmoveTarget("rent", (i + 2) * 24)),
-      // 13 regional city markets — page 1s first (cron batches 9-14, daily)
+    ],
+    // Long-tail tier — 13 regional cities, page 1s first (every 3 days; rest one-shot backfill)
+    longTailTargets: [
       ...RM_CITY_CODES.flatMap((code) => [
         rightmoveTarget("sale", 0, code),
         rightmoveTarget("rent", 0, code),
       ]),
-      // City deep pagination — backfill coverage (sale pages 2-6, rent 2-3)
       ...RM_CITY_CODES.flatMap((code) =>
         Array.from({ length: 5 }, (_, i) => rightmoveTarget("sale", (i + 1) * 24, code))),
       ...RM_CITY_CODES.flatMap((code) =>
@@ -799,14 +821,19 @@ const PROVIDERS: Record<Provider, ProviderConfig> = {
     renderJs:      false,
     baseUrl:       "https://www.onthemarket.com",
     countryIso2:   "GB",
-    searchTargets: [
-      // Page 1 per market — fresh (cron batches 0-5, daily)
-      ...OTM_CITIES.map((c) => otmTarget(c, "sale", 1)),
-      ...OTM_CITIES.map((c) => otmTarget(c, "rent", 1)),
-      // Deep pages — backfill coverage
-      ...OTM_CITIES.map((c) => otmTarget(c, "sale", 2)),
-      ...OTM_CITIES.map((c) => otmTarget(c, "rent", 2)),
-      ...OTM_CITIES.map((c) => otmTarget(c, "sale", 3)),
+    // Daily tier — London only (cron batch 0)
+    dailyTargets: [
+      otmTarget("london", "sale", 1), otmTarget("london", "rent", 1),
+      otmTarget("london", "sale", 2), otmTarget("london", "rent", 2),
+      otmTarget("london", "sale", 3),
+    ],
+    // Long-tail tier — 13 regional cities (every 3 days for fresh pages; deep pages one-shot)
+    longTailTargets: [
+      ...OTM_LONGTAIL_CITIES.map((c) => otmTarget(c, "sale", 1)),
+      ...OTM_LONGTAIL_CITIES.map((c) => otmTarget(c, "rent", 1)),
+      ...OTM_LONGTAIL_CITIES.map((c) => otmTarget(c, "sale", 2)),
+      ...OTM_LONGTAIL_CITIES.map((c) => otmTarget(c, "rent", 2)),
+      ...OTM_LONGTAIL_CITIES.map((c) => otmTarget(c, "sale", 3)),
     ],
     extract: extractOnTheMarket,
   },
@@ -1029,15 +1056,22 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
-  // ── Batch slicing ─────────────────────────────────────────────────────────
-  const allTargets   = PROVIDERS[providerParam].searchTargets;
+  // ── Tier + batch slicing ──────────────────────────────────────────────────
+  // tier=daily (default) hits the busiest markets on the daily cron; tier=longtail
+  // hits lower-traffic markets on the every-3-days cron (see vercel.json).
+  const tierRaw = searchParams.get("tier")?.toLowerCase().trim();
+  const tier    = tierRaw === "longtail" ? "longtail" : "daily";
+
+  const allTargets   = tier === "longtail"
+    ? PROVIDERS[providerParam].longTailTargets
+    : PROVIDERS[providerParam].dailyTargets;
   const totalBatches = Math.ceil(allTargets.length / BATCH_SIZE);
   const batchRaw     = searchParams.get("batch");
   const batch        = batchRaw === null ? 0 : Number.parseInt(batchRaw, 10);
 
   if (!Number.isInteger(batch) || batch < 0 || batch >= totalBatches) {
     return NextResponse.json(
-      { error: `Invalid ?batch= (provider "${providerParam}" has batches 0–${totalBatches - 1})` },
+      { error: `Invalid ?batch= (provider "${providerParam}" tier "${tier}" has batches 0–${totalBatches - 1})` },
       { status: 400 },
     );
   }
@@ -1048,7 +1082,7 @@ export async function GET(request: Request): Promise<Response> {
   const debug = searchParams.get("debug") === "1";
   if (debug) {
     const cfg    = PROVIDERS[providerParam];
-    const target = cfg.searchTargets[0];
+    const target = cfg.dailyTargets[0];
     try {
       const html = await fetchViaScrapeOps(target.url, cfg.proxyCountry, cfg.renderJs);
       const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
@@ -1076,7 +1110,7 @@ export async function GET(request: Request): Promise<Response> {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  console.log(`[cron/scrape-listings] ▶ provider=${providerParam} batch=${batch}/${totalBatches - 1} (${targets.length} URLs)`);
+  console.log(`[cron/scrape-listings] ▶ provider=${providerParam} tier=${tier} batch=${batch}/${totalBatches - 1} (${targets.length} URLs)`);
 
   try {
     const report = await scrapeProvider(PROVIDERS[providerParam], supabase, targets);
@@ -1094,7 +1128,7 @@ export async function GET(request: Request): Promise<Response> {
     const status = report.errors.length === 0 ? 200 : report.upsertedCount > 0 ? 207 : 500;
 
     return NextResponse.json(
-      { ok: status < 500, report, meta: { provider: providerParam, batch, totalBatches, executedAt: new Date().toISOString() } },
+      { ok: status < 500, report, meta: { provider: providerParam, tier, batch, totalBatches, executedAt: new Date().toISOString() } },
       { status },
     );
   } catch (err) {

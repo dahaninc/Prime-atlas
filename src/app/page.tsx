@@ -360,7 +360,7 @@ export default async function HomePage() {
               </div>
             </div>
             <div className="order-1 lg:order-2 flex items-center justify-center lg:justify-end">
-              <AtlasGlobe marketCount={marketCount ?? 80} />
+              <AtlasGlobe marketCount={marketCount ?? 32} />
             </div>
           </div>
         </section>

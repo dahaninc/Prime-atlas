@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Market Feed | Prime Atlas",
   description:
-    "Live property intelligence feed — residential and commercial listings across USA and UK markets, refreshed daily. Powered by Prime Atlas.",
+    "Live property intelligence feed — residential and commercial listings across USA and UK markets, regularly refreshed. Powered by Prime Atlas.",
 };
 
 const PROPERTY_COLUMNS = "id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images";
@@ -114,7 +114,7 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
             Market Intelligence Feed
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl mb-6">
-            Live residential and commercial listings across USA and UK markets — refreshed daily. Filter by market, type and price.
+            Live residential and commercial listings across USA and UK markets — regularly refreshed. Filter by market, type and price.
           </p>
 
           {/* Stat strip */}
@@ -145,7 +145,7 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
             <span className="text-[9px] text-muted-foreground">
-              Auto-refreshed daily · {total.toLocaleString()} active listings · USA + UK
+              Last synced {lastSync} · {total.toLocaleString()} active listings · USA + UK
             </span>
           </div>
         </div>

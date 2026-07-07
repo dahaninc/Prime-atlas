@@ -57,7 +57,15 @@ Shipped documented rather than delayed for polish. Last updated: 2026-07-05.
 ## Data quality
 
 - **Gallery backfill in progress** (~25% synced); Zillow intermittently
-  bot-blocked — hourly cron retries.
+  bot-blocked — enrich-agents cron retries every 3 days (2026-07-07: reduced
+  from hourly to cut ScrapeOps cost; agent/gallery enrichment is a backfill,
+  not part of the "live data" freshness claim, so slower is low-risk).
+- **Listing freshness is now tiered** (2026-07-07): busiest markets (NYC, LA,
+  Chicago, Houston, Phoenix, Philadelphia, San Antonio, San Diego, Dallas,
+  SF for sale; NYC/LA/Chicago/Houston/Miami for rent; London for UK) scrape
+  daily. Remaining 20 US metros and 13 UK regional cities scrape every 3
+  days. "Auto-refreshed daily" copy was removed from market-feed accordingly
+  — the UI now shows the real last-synced date instead of a blanket claim.
 - **Price/size outliers** produce absurd "-70% discounts" in underpriced
   detection in some markets — source-data noise, needs a sanity filter.
 - **Redaction heuristics**: `redactStreet` filters street words + house-number
