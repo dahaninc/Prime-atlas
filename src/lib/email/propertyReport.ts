@@ -1,10 +1,23 @@
 /**
  * Prime Atlas — Property Research Report Email
  *
- * Generates a fully branded HTML email with property data, investment
- * analysis, and agent contact details. Sent via Resend when a member
+ * Generates a fully branded HTML email with property data, real market
+ * intelligence, and agent contact details. Sent via Resend when a member
  * requests agent details on a market-feed listing.
+ *
+ * Real data only (2026-07-09 market-feed audit fix): every figure comes
+ * from the same engines the Deal Board / Investment Analysis Report / Deal
+ * Brochure use — real market rent comps (>=10, market_rent_stats), the
+ * ZIP-level comp screen (src/lib/comps.ts, >=5 same-ZIP/type/bedroom
+ * comps), and the real screener/pro-forma engine for financing math. This
+ * previously ran a hardcoded state-rent lookup table feeding fabricated
+ * IRR/cash-on-cash/exit-value/conviction-score/canned-macro-text fields —
+ * all removed. Below any real-data threshold: an explicit gap, never a
+ * fallback estimate.
  */
+
+export interface CompEvidenceLine { address: string; price: string; ppsm: string }
+export interface DemandSignalLine { label: string; value: string; note: string }
 
 export interface PropertyReportData {
   // Property
@@ -20,24 +33,30 @@ export interface PropertyReportData {
   sizeSqm:        number | null;
   imageUrl:       string | null;
 
-  // Scores
-  conviction:     number;
-  grossYield:     number;
-  netYield:       number;
-  irr3yr:         number;
-  irr5yr:         number;
-  irr10yr:        number;
-  cashOnCash:     number;
-  exit3yr:        string;
-  exit5yr:        string;
-  exit10yr:       string;
-  monthlyRent:    string;
-  strategy:       string;
+  // Market
+  marketName:       string | null;
+  opportunityScore: number | null;  // real municipality-level index, null if no market context
+  demandSignals:    DemandSignalLine[]; // real, from marketReport.ts — [] if none available
 
-  // Macro
-  macroLabel:     string;
-  macroText:      string;
-  microText:      string;
+  // Real yield (market_rent_stats gate, >=10 comps)
+  grossYieldPct:  number | null;
+  rentCompCount:  number;
+  netYieldPct:    number | null;    // cap rate after vacancy/opex, requires real rent basis
+  monthlyRent:    string | null;    // real market median rent, null if ungated
+
+  // Real ZIP-comp discount (src/lib/comps.ts, >=5 comps)
+  discountPct:       number | null;
+  compBasisLabel:    string | null;
+  comps:             CompEvidenceLine[]; // top 3, empty if no discount
+  discountUnavailableReason: "not_covered" | "insufficient" | "implausible" | null;
+
+  // Real financing scenario (computeScreener, one representative rate — see financingAssumptions)
+  financingRatePct:  number;
+  monthlyPI:         string;        // always real — price-based only
+  dscr:              number | null; // requires real rent basis
+  cashOnCashPct:     number | null; // requires real rent basis
+  exitValue:         string | null; // requires real rent basis
+  financingAssumptions: string;     // labeled assumptions line
 
   // Agent
   agentName:      string | null;
@@ -50,23 +69,22 @@ export interface PropertyReportData {
   reportUrl:      string;           // link to the print report page
 }
 
-const SYM: Record<string, string> = { GBP: "£", USD: "$" };
-
-function scoreColor(s: number): string {
-  if (s >= 75) return "#16a34a";
-  if (s >= 55) return "#1B4FE4";
-  return "#d97706";
-}
-
-function yieldColor(y: number): string {
+function yieldColor(y: number | null): string {
+  if (y == null) return "#9CA3AF";
   if (y >= 7) return "#16a34a";
   if (y >= 5) return "#1B4FE4";
   return "#d97706";
 }
 
+function scoreColor(s: number | null): string {
+  if (s == null) return "#9CA3AF";
+  if (s >= 75) return "#16a34a";
+  if (s >= 55) return "#1B4FE4";
+  return "#d97706";
+}
+
 export function buildPropertyReportEmail(d: PropertyReportData): { subject: string; html: string } {
   const subject = `Prime Atlas Research Report — ${d.location} · ${d.price}`;
-  const sym     = SYM[d.currency] ?? "£";
 
   const agentBlock = d.agentName || d.agentCompany || d.agentPhone
     ? `
@@ -102,6 +120,23 @@ export function buildPropertyReportEmail(d: PropertyReportData): { subject: stri
           style="width:100%;max-width:560px;height:260px;object-fit:cover;border-radius:12px;display:block;" />
       </td></tr>`
     : "";
+
+  const discountLine = d.discountPct != null
+    ? `<span style="color:#16a34a;font-weight:700;">${Math.abs(d.discountPct).toFixed(1)}% below</span> the median of ${d.comps.length}+ live comparables (${d.compBasisLabel ?? "same submarket"})`
+    : d.discountUnavailableReason === "implausible"
+      ? `Flagged as a likely data error (beyond ±60% of its comparable basis) — not shown as a discount`
+      : d.discountUnavailableReason === "not_covered"
+        ? `No ZIP-level comparable coverage for this market today — no discount is computed or implied`
+        : `Insufficient comparable data — fewer than 5 live same-ZIP/type/bedroom comps exist for this listing`;
+
+  const compRows = d.comps.length > 0 ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;">
+      ${d.comps.map((c) => `<tr style="border-bottom:1px solid #E5E7EB;"><td style="padding:6px 10px;font-size:11px;color:#374151;">${c.address}</td><td style="padding:6px 10px;font-size:11px;color:#374151;text-align:right;font-family:monospace;">${c.price} · ${c.ppsm}</td></tr>`).join("")}
+    </table>` : "";
+
+  const signalLines = d.demandSignals.length > 0
+    ? d.demandSignals.slice(0, 2).map((s) => `<p style="margin:0 0 8px;font-size:13px;color:#374151;line-height:1.6;"><strong>${s.label}:</strong> ${s.value} — ${s.note}</p>`).join("")
+    : `<p style="margin:0;font-size:13px;color:#6B7A99;line-height:1.6;">Insufficient market data for a demand-signal read in this market.</p>`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -155,8 +190,8 @@ export function buildPropertyReportEmail(d: PropertyReportData): { subject: stri
         ${d.bathrooms != null ? `<td style="padding:12px 16px;text-align:center;border-right:1px solid #E5E7EB;"><p style="margin:0;font-size:18px;font-weight:800;color:#0A0E1A;">${d.bathrooms}</p><p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Baths</p></td>` : ""}
         ${d.sizeSqm   != null ? `<td style="padding:12px 16px;text-align:center;border-right:1px solid #E5E7EB;"><p style="margin:0;font-size:18px;font-weight:800;color:#0A0E1A;">${d.sizeSqm.toLocaleString()}</p><p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">sqm</p></td>` : ""}
         <td style="padding:12px 16px;text-align:center;">
-          <p style="margin:0;font-size:18px;font-weight:800;" style="color:${scoreColor(d.conviction)}">${d.conviction}</p>
-          <p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Conviction</p>
+          <p style="margin:0;font-size:18px;font-weight:800;color:${scoreColor(d.opportunityScore)};">${d.opportunityScore ?? "—"}</p>
+          <p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">${d.marketName ?? "Market"} Index</p>
         </td>
       </tr>
     </table>
@@ -169,60 +204,71 @@ export function buildPropertyReportEmail(d: PropertyReportData): { subject: stri
       <tr>
         <td width="33%" style="padding-right:8px;">
           <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;text-align:center;">
-            <p style="margin:0;font-size:20px;font-weight:800;font-family:monospace;color:${yieldColor(d.grossYield)};">${d.grossYield}%</p>
+            <p style="margin:0;font-size:20px;font-weight:800;font-family:monospace;color:${yieldColor(d.grossYieldPct)};">${d.grossYieldPct != null ? `${d.grossYieldPct.toFixed(1)}%` : "—"}</p>
             <p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Gross Yield</p>
           </div>
         </td>
         <td width="33%" style="padding-right:8px;">
           <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;text-align:center;">
-            <p style="margin:0;font-size:20px;font-weight:800;font-family:monospace;color:${yieldColor(d.netYield)};">${d.netYield}%</p>
+            <p style="margin:0;font-size:20px;font-weight:800;font-family:monospace;color:${yieldColor(d.netYieldPct)};">${d.netYieldPct != null ? `${d.netYieldPct.toFixed(1)}%` : "—"}</p>
             <p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Net Yield</p>
           </div>
         </td>
         <td width="33%">
           <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:14px;text-align:center;">
-            <p style="margin:0;font-size:20px;font-weight:800;font-family:monospace;color:${scoreColor(d.irr5yr * 5)};">${d.irr5yr > 0 ? "+" : ""}${d.irr5yr}%</p>
-            <p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">5-Yr IRR</p>
+            <p style="margin:0;font-size:20px;font-weight:800;font-family:monospace;color:${d.discountPct != null ? "#16a34a" : "#9CA3AF"};">${d.discountPct != null ? `−${Math.abs(d.discountPct).toFixed(1)}%` : "—"}</p>
+            <p style="margin:4px 0 0;font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">Discount vs Comps</p>
           </div>
         </td>
       </tr>
     </table>
+    <p style="margin:8px 0 0;font-size:9px;color:#9CA3AF;">
+      Gross yield requires ${"≥"}10 real rent comps for this market (${d.rentCompCount} on file). Metrics read "—" without real coverage — never a fallback estimate.
+    </p>
   </td></tr>
 
-  <!-- Exit Architecture -->
+  <!-- Comparable evidence -->
   <tr><td style="padding:0 32px 24px;">
-    <p style="margin:0 0 12px;font-size:10px;font-weight:700;color:#6B7A99;letter-spacing:2px;text-transform:uppercase;font-family:monospace;">Predictive Exit Architecture</p>
+    <p style="margin:0 0 8px;font-size:10px;font-weight:700;color:#6B7A99;letter-spacing:2px;text-transform:uppercase;font-family:monospace;">Pricing Basis</p>
+    <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:16px;">
+      <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">${discountLine}</p>
+      ${compRows}
+    </div>
+  </td></tr>
+
+  <!-- Financing Scenario -->
+  <tr><td style="padding:0 32px 24px;">
+    <p style="margin:0 0 12px;font-size:10px;font-weight:700;color:#6B7A99;letter-spacing:2px;text-transform:uppercase;font-family:monospace;">Financing Scenario — Illustrative</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;">
       <tr style="background:#F9FAFB;border-bottom:1px solid #E5E7EB;">
-        <td style="padding:8px 12px;font-size:9px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:1px;border-right:1px solid #E5E7EB;">Horizon</td>
-        <td style="padding:8px 12px;font-size:9px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:1px;border-right:1px solid #E5E7EB;">IRR (Est.)</td>
-        <td style="padding:8px 12px;font-size:9px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:1px;">Exit Value</td>
+        <td style="padding:8px 12px;font-size:9px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:1px;">Metric</td>
+        <td style="padding:8px 12px;font-size:9px;font-weight:700;color:#6B7A99;text-transform:uppercase;letter-spacing:1px;text-align:right;">${d.financingRatePct}% rate</td>
       </tr>
       <tr style="border-bottom:1px solid #E5E7EB;">
-        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;border-right:1px solid #E5E7EB;">3 Year</td>
-        <td style="padding:10px 12px;font-size:13px;font-weight:800;font-family:monospace;color:${scoreColor(d.irr3yr * 5)};border-right:1px solid #E5E7EB;">${d.irr3yr > 0 ? "+" : ""}${d.irr3yr}%</td>
-        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#4B5563;">${d.exit3yr}</td>
+        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;">Monthly P&amp;I</td>
+        <td style="padding:10px 12px;font-size:13px;font-weight:800;font-family:monospace;color:#0A0E1A;text-align:right;">${d.monthlyPI}</td>
       </tr>
       <tr style="border-bottom:1px solid #E5E7EB;">
-        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;border-right:1px solid #E5E7EB;">5 Year</td>
-        <td style="padding:10px 12px;font-size:13px;font-weight:800;font-family:monospace;color:${scoreColor(d.irr5yr * 5)};border-right:1px solid #E5E7EB;">${d.irr5yr > 0 ? "+" : ""}${d.irr5yr}%</td>
-        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#4B5563;">${d.exit5yr}</td>
+        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;">DSCR</td>
+        <td style="padding:10px 12px;font-size:13px;font-weight:800;font-family:monospace;color:#0A0E1A;text-align:right;">${d.dscr != null ? d.dscr.toFixed(2) : "n/a — no real rent basis"}</td>
+      </tr>
+      <tr style="border-bottom:1px solid #E5E7EB;">
+        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;">Cash-on-cash</td>
+        <td style="padding:10px 12px;font-size:13px;font-weight:800;font-family:monospace;color:#0A0E1A;text-align:right;">${d.cashOnCashPct != null ? `${d.cashOnCashPct > 0 ? "+" : ""}${d.cashOnCashPct}%` : "n/a"}</td>
       </tr>
       <tr>
-        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;border-right:1px solid #E5E7EB;">10 Year</td>
-        <td style="padding:10px 12px;font-size:13px;font-weight:800;font-family:monospace;color:${scoreColor(d.irr10yr * 5)};border-right:1px solid #E5E7EB;">${d.irr10yr > 0 ? "+" : ""}${d.irr10yr}%</td>
-        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#4B5563;">${d.exit10yr}</td>
+        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#0A0E1A;">Exit value</td>
+        <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#4B5563;text-align:right;">${d.exitValue ?? "n/a"}</td>
       </tr>
     </table>
-    <p style="margin:6px 0 0;font-size:9px;color:#9CA3AF;font-family:monospace;">70% LTV · 5% IR · 3% p.a. appreciation assumed</p>
+    <p style="margin:6px 0 0;font-size:9px;color:#9CA3AF;font-family:monospace;">${d.financingAssumptions}</p>
   </td></tr>
 
-  <!-- Macro Outlook -->
+  <!-- Demand Signals -->
   <tr><td style="padding:0 32px 24px;">
-    <p style="margin:0 0 12px;font-size:10px;font-weight:700;color:#6B7A99;letter-spacing:2px;text-transform:uppercase;font-family:monospace;">Market Outlook · ${d.macroLabel}</p>
+    <p style="margin:0 0 12px;font-size:10px;font-weight:700;color:#6B7A99;letter-spacing:2px;text-transform:uppercase;font-family:monospace;">Demand Signals${d.marketName ? ` — ${d.marketName}` : ""}</p>
     <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:16px;">
-      <p style="margin:0 0 10px;font-size:13px;color:#374151;line-height:1.6;">${d.macroText}</p>
-      <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">${d.microText}</p>
+      ${signalLines}
     </div>
   </td></tr>
 
@@ -247,7 +293,7 @@ export function buildPropertyReportEmail(d: PropertyReportData): { subject: stri
   <!-- Footer -->
   <tr><td style="padding:0 32px 28px;">
     <p style="margin:0;font-size:10px;color:#9CA3AF;line-height:1.6;border-top:1px solid #E5E7EB;padding-top:16px;">
-      <strong>DISCLAIMER:</strong> This report is produced by Prime Atlas for informational purposes only and does not constitute financial or investment advice. Yield and IRR projections are illustrative estimates based on market data and proprietary modelling. Actual returns will vary. Prime Atlas is not a regulated financial adviser. Always seek independent professional advice before making investment decisions.
+      <strong>DISCLAIMER:</strong> This report is produced by Prime Atlas for informational purposes only and does not constitute financial or investment advice. Yield, discount, and financing figures are calculations from Prime Atlas's own live market data and comparable listings at the stated assumptions — never a fallback estimate below a real-data threshold. Actual returns will vary. Prime Atlas is not a regulated financial adviser. Always seek independent professional advice before making investment decisions.
     </p>
     <p style="margin:12px 0 0;font-size:10px;color:#9CA3AF;">
       © ${new Date().getFullYear()} Prime Atlas · <a href="https://prime-atlas.io" style="color:#6B7A99;text-decoration:none;">prime-atlas.io</a>

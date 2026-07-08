@@ -30,7 +30,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import type { Database } from "@/lib/supabase/database.types";
-import { estimateGrossYield } from "@/lib/yield";
+import { computeRealGrossYieldPct, type RentBasis } from "@/lib/realYield";
 import { fetchZipCompScreens } from "@/lib/server/compScreens";
 
 export const maxDuration = 120;
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const [{ data: rules }, { data: waitlist }, { data: recent }, { data: municipalities }] =
+  const [{ data: rules }, { data: waitlist }, { data: recent }, { data: municipalities }, { data: rentStats }] =
     await Promise.all([
       supabase.from("deal_alert_rules").select("*").eq("active", true),
       supabase.from("underpriced_waitlist").select("id, user_id, municipality_id"),
@@ -78,6 +78,10 @@ export async function GET(req: NextRequest) {
         .gte("scraped_at", new Date(Date.now() - LOOKBACK_HOURS * 3600_000).toISOString())
         .not("price", "is", null),
       supabase.from("municipalities").select("id, name, country"),
+      // Real rent-comp basis per market (>=10 comps required — same gate as
+      // the Deal Board/market-feed) — replaces the deleted src/lib/yield.ts
+      // hardcoded state-rent lookup table.
+      supabase.from("market_rent_stats").select("municipality_id, rent_comp_count, median_rent_price"),
     ]);
 
   if ((!rules?.length && !waitlist?.length) || !recent?.length) {
@@ -86,6 +90,12 @@ export async function GET(req: NextRequest) {
 
   const marketName = new Map((municipalities ?? []).map((m) => [m.id, m.name]));
   const usMarketIds = new Set((municipalities ?? []).filter((m) => m.country === "United States").map((m) => m.id));
+  const rentBasisByMarket = new Map<string, RentBasis>(
+    (rentStats ?? []).map((r) => [r.municipality_id as string, {
+      rentCompCount: r.rent_comp_count ?? 0,
+      medianRentPriceMinor: r.median_rent_price != null ? Number(r.median_rent_price) : null,
+    }]),
+  );
 
   // ZIP-comp screens over the FULL sale inventory of every US market with a
   // recent listing — a recent listing's discount is measured against its
@@ -100,10 +110,13 @@ export async function GET(req: NextRequest) {
 
   // Pre-compute discount + yield per property. discountPct is non-null ONLY
   // when the ZIP-comp screen ranks it mispriced (15–60% below ≥5 real comps).
+  // estYield is non-null ONLY when the market clears the real rent-comp gate
+  // (>=10 comps) — never a hardcoded per-state/city rent estimate.
   const enriched = (recent as Property[]).map((p) => {
     const entry = p.municipality_id ? screens.get(p.municipality_id)?.screen.byId.get(p.id) : undefined;
     const discountPct = entry?.status === "mispriced" ? entry.discountPct : null;
-    return { ...p, discountPct, compCount: entry?.comps.length ?? 0, estYield: estimateGrossYield(p) };
+    const rentBasis = p.municipality_id ? rentBasisByMarket.get(p.municipality_id) : undefined;
+    return { ...p, discountPct, compCount: entry?.comps.length ?? 0, estYield: computeRealGrossYieldPct(p.price, rentBasis) };
   });
 
   let emailsSent = 0;
