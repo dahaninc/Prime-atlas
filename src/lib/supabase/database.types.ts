@@ -1440,6 +1440,22 @@ export type Database = {
           },
         ]
       }
+      market_rent_stats: {
+        Row: {
+          median_rent_price: number | null
+          municipality_id: string | null
+          rent_comp_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_municipality_id_fkey"
+            columns: ["municipality_id"]
+            isOneToOne: false
+            referencedRelation: "municipalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signals_public: {
         Row: {
           ai_summary: string | null

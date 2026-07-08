@@ -7,6 +7,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MarketFeedExplorer, type ScrapedProperty } from "@/components/market-feed/MarketFeedExplorer";
 import { isPaidTier, redactRows } from "@/lib/access";
+import { sanitizeListingRows } from "@/lib/listingSanity";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,10 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
     ? await supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
     : { data: null };
   const isMember = isPaidTier((profile as { subscription_tier?: string } | null)?.subscription_tier);
-  const properties = redactRows((rawProperties ?? []) as ScrapedProperty[], isMember);
+  // Stopgap against confirmed scraper corruption (onthemarket/zillow) — see
+  // src/lib/listingSanity.ts. Excludes rows with an implausible price;
+  // nulls implausible bedrooms/size_sqm on the rest.
+  const properties = redactRows(sanitizeListingRows((rawProperties ?? []) as ScrapedProperty[]), isMember);
 
   const total    = properties.length;
   const forSale  = properties.filter(p => p.listing_type === "sale").length;

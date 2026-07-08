@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as adminClient } from "@supabase/supabase-js";
 import { redactStreet } from "@/lib/access";
+import { sanitizeListingFields, sanitizeListingRows } from "@/lib/listingSanity";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -339,7 +340,11 @@ export default async function MarketFeedPropertyPage(
 
   if (!p) notFound();
 
-  const property = p as unknown as Property;
+  // Stopgap against confirmed scraper corruption (onthemarket/zillow) — see
+  // src/lib/listingSanity.ts. Nulls (never fabricates) an implausible
+  // price/size_sqm/bedrooms; enrichProperty() already treats these fields
+  // as optional (`p.price ? ... : 0`, `p.bedrooms ?? 2`).
+  const property = sanitizeListingFields(p as unknown as Property);
 
   // Membership gate
   const { data: profile } = user
@@ -379,7 +384,7 @@ export default async function MarketFeedPropertyPage(
     .order("scraped_at", { ascending: false })
     .limit(6);
 
-  const comps = (rawComps ?? []) as unknown as Property[];
+  const comps = sanitizeListingRows((rawComps ?? []) as unknown as Property[]);
 
   // Server-side redaction for non-members: locality-only address, zero
   // photos. (Blur-only gating leaks the address into the DOM — never rely
