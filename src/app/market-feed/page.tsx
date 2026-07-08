@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { MarketFeedExplorer, type ScrapedProperty } from "@/components/market-feed/MarketFeedExplorer";
 import { isPaidTier, redactRows } from "@/lib/access";
 import { sanitizeListingRows } from "@/lib/listingSanity";
+import { computeRealGrossYieldPct, type RentBasis } from "@/lib/realYield";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     "Live property intelligence feed — residential and commercial listings across USA and UK markets, regularly refreshed. Powered by Prime Atlas.",
 };
 
-const PROPERTY_COLUMNS = "id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images";
+const PROPERTY_COLUMNS = "id, provider, address, price, currency_code, bedrooms, bathrooms, size_sqm, property_type, listing_type, scraped_at, images, municipality_id";
 
 // PostgREST caps every request at 1000 rows (Supabase's db-max-rows) even if
 // .limit() asks for more, so a segment above that size must be paged with
@@ -68,11 +69,12 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
     { currency_code: "GBP", listing_type: "rent" },
   ];
 
-  const [{ data: { user } }, ...segmentResults] = await Promise.all([
+  const [{ data: { user } }, { data: rentStatsRows }, ...segmentResults] = await Promise.all([
     supabase.auth.getUser(),
+    supabase.from("market_rent_stats").select("municipality_id, rent_comp_count, median_rent_price"),
     ...SEGMENTS.map((seg) => fetchSegment(supabase, seg.currency_code, seg.listing_type)),
   ]);
-  const rawProperties = segmentResults.flat();
+  const rawProperties = segmentResults.flat() as (ScrapedProperty & { municipality_id: string | null })[];
 
   // Non-members (anonymous or free) get locality-level addresses and no
   // photos — redacted server-side so the data never reaches the browser.
@@ -80,10 +82,29 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
     ? await supabase.from("profiles").select("subscription_tier").eq("id", user.id).single()
     : { data: null };
   const isMember = isPaidTier((profile as { subscription_tier?: string } | null)?.subscription_tier);
+
+  // Real yield gate, same basis as Market Feed detail and Deal Board — never
+  // the old estimateYield() heuristic (hardcoded state-rent table). A sale
+  // listing only gets a number when its market clears YIELD_MIN_RENT_COMPS
+  // real rent comps; every other listing gets null, rendered as "—" by the
+  // client rather than a fabricated figure.
+  const rentBasisByMuni = new Map<string, RentBasis>(
+    (rentStatsRows ?? [])
+      .filter((r): r is { municipality_id: string; rent_comp_count: number | null; median_rent_price: number | null } => r.municipality_id != null)
+      .map((r) => [r.municipality_id, { rentCompCount: r.rent_comp_count ?? 0, medianRentPriceMinor: r.median_rent_price }])
+  );
+
   // Stopgap against confirmed scraper corruption (onthemarket/zillow) — see
   // src/lib/listingSanity.ts. Excludes rows with an implausible price;
   // nulls implausible bedrooms/size_sqm on the rest.
-  const properties = redactRows(sanitizeListingRows((rawProperties ?? []) as ScrapedProperty[]), isMember);
+  const sanitized = sanitizeListingRows(rawProperties);
+  const withYield: ScrapedProperty[] = sanitized.map(({ municipality_id, ...rest }) => ({
+    ...rest,
+    real_yield_pct: rest.listing_type === "sale" && municipality_id
+      ? computeRealGrossYieldPct(rest.price, rentBasisByMuni.get(municipality_id) ?? null)
+      : null,
+  }));
+  const properties = redactRows(withYield, isMember);
 
   const total    = properties.length;
   const forSale  = properties.filter(p => p.listing_type === "sale").length;

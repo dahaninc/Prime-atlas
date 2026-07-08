@@ -17,6 +17,8 @@ export interface ScrapedProperty {
   listing_type: string;
   scraped_at: string;
   images?: string[] | null;
+  /** Real gross yield, gated on real rent comps (src/lib/realYield.ts) — null when the market lacks coverage. Never a heuristic. */
+  real_yield_pct: number | null;
 }
 
 interface Props { properties: ScrapedProperty[]; initialQuery?: string }
@@ -89,31 +91,6 @@ const STATE_NAMES: Record<string, string> = {
   KY: "Kentucky", VA: "Virginia", SC: "S. Carolina", IN: "Indiana", MO: "Missouri",
 };
 
-/* ─── yield estimation ─────────────────────────────────────────── */
-
-const STATE_RENTS: Record<string, number> = {
-  NY: 2800, CA: 2600, WA: 2200, MA: 2800, CO: 2000,
-  FL: 2000, MD: 2000, OR: 1800, TX: 1800, AZ: 1600,
-  GA: 1600, TN: 1600, NC: 1500, MN: 1500, PA: 1500,
-  NV: 1700, IL: 1700, OH: 1200, MI: 1200, WI: 1200,
-  KY: 1100, VA: 2000, SC: 1400, IN: 1100, MO: 1200,
-};
-const BED_MULT: Record<number, number> = { 0: 0.60, 1: 0.75, 2: 1.00, 3: 1.30, 4: 1.55 };
-
-function estimateYield(p: ScrapedProperty): number | null {
-  if (!p.price || p.listing_type !== "sale") return null;
-  const country = getCountry(p.currency_code);
-  const state = getState(p.address);
-  const beds = p.bedrooms ?? 2;
-  const mult = BED_MULT[Math.min(beds, 4)] ?? 1.80;
-  let baseUSD = country === "UK"
-    ? ((p.address ?? "").toLowerCase().includes("london") ? 2500 : 1150) * 1.27
-    : (STATE_RENTS[state] ?? 1600);
-  const annualUSD = baseUSD * mult * 12;
-  const priceUSD  = country === "UK" ? (p.price / 100) * 1.27 : p.price / 100;
-  return priceUSD > 0 ? Math.round((annualUSD / priceUSD) * 100 * 10) / 10 : null;
-}
-
 /* ─── property type normalisation ──────────────────────────────── */
 
 type PropBucket = "house" | "apartment" | "condo" | "townhouse" | "other";
@@ -132,7 +109,7 @@ function normType(t: string | null): PropBucket {
 /* ─── enriched item ─────────────────────────────────────────────── */
 
 interface Enriched extends ScrapedProperty {
-  estYield: number | null;
+  realYieldPct: number | null;
   sqft: number | null;
   propBucket: PropBucket;
   stateCode: string;
@@ -142,7 +119,7 @@ interface Enriched extends ScrapedProperty {
 function enrich(p: ScrapedProperty): Enriched {
   return {
     ...p,
-    estYield:   estimateYield(p),
+    realYieldPct: p.real_yield_pct,
     sqft:       p.size_sqm != null ? Math.round(Number(p.size_sqm) * 10.764) : null,
     propBucket: normType(p.property_type),
     stateCode:  getState(p.address),
@@ -221,7 +198,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
     if (propType !== "all")   list = list.filter(p => p.propBucket === propType);
     if (state !== "ALL" && market !== "UK") list = list.filter(p => p.stateCode === state);
     if (minBeds > 0)          list = list.filter(p => (p.bedrooms ?? 0) >= minBeds);
-    if (yieldF !== "all")     list = list.filter(p => p.estYield != null && p.estYield >= Number(yieldF));
+    if (yieldF !== "all")     list = list.filter(p => p.realYieldPct != null && p.realYieldPct >= Number(yieldF));
 
     if (priceF !== "all") {
       list = list.filter(p => {
@@ -244,21 +221,33 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
       });
     }
 
+    const byRecency = (a: Enriched, b: Enriched) =>
+      new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime();
+
     return [...list].sort((a, b) => {
       if (sortBy === "price_asc")  return (a.price ?? 0) - (b.price ?? 0);
       if (sortBy === "price_desc") return (b.price ?? 0) - (a.price ?? 0);
-      if (sortBy === "yield_desc") return (b.estYield ?? 0) - (a.estYield ?? 0);
-      if (sortBy === "yield_asc")  return (a.estYield ?? 0) - (b.estYield ?? 0);
+      if (sortBy === "yield_desc" || sortBy === "yield_asc") {
+        // Real yield is null for most listings (no market rent-comp coverage) —
+        // null always sinks to the end regardless of direction, never treated
+        // as 0, so "insufficient data" listings can't outrank or interleave
+        // with real (even low) yields. Nulls keep a stable recency order.
+        if (a.realYieldPct == null && b.realYieldPct == null) return byRecency(a, b);
+        if (a.realYieldPct == null) return 1;
+        if (b.realYieldPct == null) return -1;
+        return sortBy === "yield_desc" ? b.realYieldPct - a.realYieldPct : a.realYieldPct - b.realYieldPct;
+      }
       if (sortBy === "size_desc")  return Number(b.size_sqm ?? 0) - Number(a.size_sqm ?? 0);
       if (sortBy === "size_asc")   return Number(a.size_sqm ?? 0) - Number(b.size_sqm ?? 0);
-      return new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime();
+      return byRecency(a, b);
     });
   }, [enriched, query, market, listing, propType, state, yieldF, priceF, sizeF, minBeds, sortBy]);
 
   /* stats */
   const saleItems  = filtered.filter(p => p.listing_type === "sale");
-  const avgYield   = saleItems.length > 0
-    ? Math.round((saleItems.reduce((s, p) => s + (p.estYield ?? 0), 0) / saleItems.filter(p => p.estYield != null).length) * 10) / 10
+  const yieldedSaleItems = saleItems.filter(p => p.realYieldPct != null);
+  const avgYield   = yieldedSaleItems.length > 0
+    ? Math.round((yieldedSaleItems.reduce((s, p) => s + (p.realYieldPct ?? 0), 0) / yieldedSaleItems.length) * 10) / 10
     : null;
   const avgPrice   = saleItems.length > 0
     ? Math.round(saleItems.reduce((s, p) => s + (p.price ?? 0), 0) / saleItems.length)
@@ -324,7 +313,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
         </div>
       </Section>
 
-      <Section title="Est. yield (for sale)">
+      <Section title="Real yield (for sale)">
         <div className="grid grid-cols-3 gap-1.5">
           {(["all", "4", "6", "8", "10"] as YieldF[]).map(y => (
             <button
@@ -455,8 +444,8 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
           </div>
           {avgYield != null && (
             <div className={`flex flex-col pr-5 mr-5 border-r ${C.border}`}>
-              <span className="text-lg font-bold font-mono text-emerald-400 tabular-nums leading-none">~{avgYield}%</span>
-              <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Avg est. yield</span>
+              <span className="text-lg font-bold font-mono text-emerald-400 tabular-nums leading-none">{avgYield}%</span>
+              <span className={`text-[9px] ${C.textMuted} uppercase tracking-wider mt-0.5`}>Avg yield (covered listings)</span>
             </div>
           )}
           {avgPrice != null && saleItems.length > 0 && (
@@ -586,14 +575,23 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
                           <span className="text-sm font-normal text-zinc-500 ml-1">/mo</span>
                         )}
                       </p>
-                      {p.estYield != null && (
-                        <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border mb-0.5 ${
-                          p.estYield >= 8 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" :
-                          p.estYield >= 6 ? "text-primary bg-primary/10 border-primary/20" :
-                          "text-amber-400 bg-amber-500/10 border-amber-500/25"
-                        }`}>
-                          ~{p.estYield}%
-                        </span>
+                      {p.listing_type === "sale" && (
+                        p.realYieldPct != null ? (
+                          <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg border mb-0.5 ${
+                            p.realYieldPct >= 8 ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25" :
+                            p.realYieldPct >= 6 ? "text-primary bg-primary/10 border-primary/20" :
+                            "text-amber-400 bg-amber-500/10 border-amber-500/25"
+                          }`}>
+                            {p.realYieldPct}%
+                          </span>
+                        ) : (
+                          <span
+                            className={`shrink-0 text-[10px] font-semibold px-2 py-1 rounded-lg border mb-0.5 ${C.border} ${C.textMuted}`}
+                            title="Insufficient rent-comp data for a real yield in this market"
+                          >
+                            —
+                          </span>
+                        )
                       )}
                     </div>
 
