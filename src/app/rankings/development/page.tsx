@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function DevelopmentPage() { redirect("/listings"); }
+export default function DevelopmentPage() { redirect("/deal-board"); }

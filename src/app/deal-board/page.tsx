@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { DealBoard } from "@/components/deal-board/DealBoard";
 import type {
   DealRow, LiveOpportunity, MarketStats,
   EvidenceInfra, EvidencePlanning, EvidenceSignal,
 } from "@/components/deal-board/DealBoard";
+import type { ExplorerDeal } from "@/components/deal-board/AllMarketsExplorer";
 import { fetchZipCompScreens } from "@/lib/server/compScreens";
+import { normalizeTier, underpricedListingLimit, canExportDealBrochure } from "@/lib/entitlements";
 
 export const metadata: Metadata = {
   title: "Deal Board | prime-atlas",
@@ -15,13 +16,77 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function DealBoardPage() {
+export default async function DealBoardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view } = await searchParams;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login?redirect=/deal-board");
 
-  const [profileRes, municipalitiesRes, freshnessRes, opportunitiesRes, statsRes, historyRes, infraRes, planningRes, signalsRes, checklistRes] = await Promise.all([
+  /*
+   * ── Anonymous visitors: the public teaser, not a login wall ─────────────
+   * Preserves exactly what /underpriced showed logged-out visitors before
+   * the 2026-07-09 merge — aggregate mispricing counts per market + a
+   * waitlist CTA, zero listing data, zero per-market screening. Locked into
+   * All-Markets/free-tier view (DealBoard.tsx enforces this client-side
+   * too); every authed feature (This Market screening, financing, memo and
+   * brochure export) is unreachable from here and independently 401s at
+   * the API layer regardless (/api/deal-board/listings,
+   * /api/export/ic-memo, /api/export/deal-brochure). This is why
+   * /deal-board was removed from middleware's PROTECTED_ROUTES — the page
+   * itself is the gate, and it only ever hands anonymous requests this
+   * deliberately thin dataset.
+   */
+  if (!user) {
+    const { data: muniRows } = await supabase
+      .from("municipalities").select("id, name, country").eq("country", "United States");
+    const usIds = (muniRows ?? []).map((m) => m.id);
+    const zipScreens = await fetchZipCompScreens(supabase, usIds);
+    const muniById = new Map((muniRows ?? []).map((m) => [m.id, m]));
+    const rankedAllMarkets = usIds
+      .map((id) => ({ id, ...zipScreens.get(id)! }))
+      .filter((s) => s.screen.mispricingCount > 0)
+      .sort((a, b) => b.screen.mispricingCount - a.screen.mispricingCount)
+      .slice(0, 8);
+    const allMarketsAggregate = rankedAllMarkets.map((s) => ({
+      id: s.id, name: muniById.get(s.id)?.name ?? "",
+      mispricingCount: s.screen.mispricingCount, coveredCount: s.screen.coveredCount, totalCount: s.screen.totalCount,
+    }));
+    const allMarketsTotalFlagged = rankedAllMarkets.reduce((n, s) => n + s.screen.mispricingCount, 0);
+    const allMarketsCoveredCount = usIds.filter((id) => (zipScreens.get(id)?.screen.coveredCount ?? 0) > 0).length;
+
+    return (
+      <div className="min-h-screen bg-background">
+        <DealBoard
+          rows={[]}
+          tier="free"
+          freshnessMap={{}}
+          opportunitiesMap={{}}
+          statsMap={{}}
+          prevScoreMap={{}}
+          evidence={{ infra: {}, planning: {}, signals: {} }}
+          checklistMap={{}}
+          zipMispricingMap={{}}
+          initialViewMode="all"
+          allMarketsDeals={[]}
+          allMarketsAggregate={allMarketsAggregate}
+          allMarketsTotalFlagged={allMarketsTotalFlagged}
+          allMarketsCoveredCount={allMarketsCoveredCount}
+          allMarketsIsTeaser={false}
+          allMarketsLockedCount={0}
+          allMarketsCanBrochure={false}
+          allMarketsIsFreeTier
+          waitlistJoined={false}
+          userIsAuthed={false}
+        />
+      </div>
+    );
+  }
+
+  const [profileRes, municipalitiesRes, freshnessRes, opportunitiesRes, statsRes, historyRes, infraRes, signalsRes, checklistRes, rentStatsRes, waitlistRes] = await Promise.all([
     supabase.from("profiles").select("subscription_tier").eq("id", user.id).single(),
     supabase.from("municipalities").select(
       `id, name, region, country, currency_code,
@@ -43,9 +108,6 @@ export default async function DealBoardPage() {
     supabase.from("infrastructure_projects")
       .select("municipality_id, project_name, type, budget, status, expected_completion")
       .order("impact_score", { ascending: false }),
-    supabase.from("planning_applications")
-      .select("municipality_id, project_type, status, application_date, description")
-      .order("application_date", { ascending: false }),
     supabase.from("signals")
       .select("municipality_id, title, signal_type, opportunity_impact, detected_at")
       .order("detected_at", { ascending: false })
@@ -53,6 +115,10 @@ export default async function DealBoardPage() {
     supabase.from("deal_checklist_items")
       .select("municipality_id, checklist_key")
       .eq("user_id", user.id),
+    // All-Markets view (merged 2026-07-09 from /underpriced) needs real
+    // yield per deal — same >=10-comp gate as everywhere else.
+    supabase.from("market_rent_stats").select("municipality_id, rent_comp_count, median_rent_price"),
+    supabase.from("underpriced_waitlist").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
   ]);
 
   const tier = (profileRes.data?.subscription_tier ?? "free") as
@@ -83,6 +149,62 @@ export default async function DealBoardPage() {
   const zipScreens = await fetchZipCompScreens(supabase, usIds);
   const zipMispricingMap: Record<string, number> = {};
   zipScreens.forEach((s, id) => { zipMispricingMap[id] = s.screen.mispricingCount; });
+
+  /*
+   * ── All-Markets view data (merged 2026-07-09 from the standalone
+   * /underpriced page — same screenByZipComps engine, same pool, just
+   * reusing the zipScreens map already fetched above for the row chips
+   * instead of a second fetchZipCompScreens call). Identical construction
+   * to what /underpriced did: top 8 covered markets by mispricing count,
+   * flat deal list capped at 200, real yield gated on real rent comps.
+   */
+  const rentBasisMap = new Map(
+    (rentStatsRes.data ?? []).map((r) => [r.municipality_id as string, {
+      rentCompCount: r.rent_comp_count ?? 0,
+      medianRentPriceMinor: r.median_rent_price != null ? Number(r.median_rent_price) : null,
+    }]),
+  );
+  const muniById = new Map(rows.map((r) => [r.id, r]));
+  const rankedAllMarkets = usIds
+    .map((id) => ({ id, ...zipScreens.get(id)! }))
+    .filter((s) => s.screen.mispricingCount > 0)
+    .sort((a, b) => b.screen.mispricingCount - a.screen.mispricingCount)
+    .slice(0, 8);
+
+  const allMarketsAggregate = rankedAllMarkets.map((s) => ({
+    id: s.id,
+    name: muniById.get(s.id)?.name ?? "",
+    mispricingCount: s.screen.mispricingCount,
+    coveredCount: s.screen.coveredCount,
+    totalCount: s.screen.totalCount,
+  }));
+  const allMarketsTotalFlagged = rankedAllMarkets.reduce((n, s) => n + s.screen.mispricingCount, 0);
+  const allMarketsCoveredCount = usIds.filter((id) => (zipScreens.get(id)?.screen.coveredCount ?? 0) > 0).length;
+
+  const allMarketsDealsFull: ExplorerDeal[] = rankedAllMarkets.flatMap((s) => {
+    const muni = muniById.get(s.id);
+    const rent = rentBasisMap.get(s.id);
+    const rentEligible = (rent?.rentCompCount ?? 0) >= 10 && rent?.medianRentPriceMinor != null;
+    return s.listings
+      .map((l) => ({ l, c: s.screen.byId.get(l.id)! }))
+      .filter(({ c }) => c.status === "mispriced")
+      .map(({ l, c }) => ({
+        id: l.id, address: l.address, price: l.price!, ppsqm: l.price! / (l.size_sqm as number),
+        bedrooms: l.bedrooms, property_type: l.property_type, size_sqm: l.size_sqm,
+        image: l.images?.[0] ?? null,
+        marketId: s.id, marketName: muni?.name ?? "", currency: muni?.currency_code ?? "USD",
+        discountPct: c.discountPct!, compCount: c.comps.length, basisLabel: c.basisLabel,
+        grossYieldPct: rentEligible ? ((Number(rent!.medianRentPriceMinor) * 12) / l.price!) * 100 : null,
+      }));
+  }).sort((a, b) => b.discountPct - a.discountPct).slice(0, 200);
+
+  const allMarketsLimit = underpricedListingLimit(tier); // 0 = free (aggregate only), N = Explorer teaser, null = full feed
+  const allMarketsIsTeaser = allMarketsLimit !== null && allMarketsLimit !== 0;
+  const allMarketsDeals = allMarketsLimit === 0
+    ? []
+    : allMarketsIsTeaser ? allMarketsDealsFull.slice(0, allMarketsLimit!) : allMarketsDealsFull;
+  const allMarketsLockedCount = Math.max(0, allMarketsDealsFull.length - allMarketsDeals.length);
+  const allMarketsCanBrochure = canExportDealBrochure(tier);
 
   // Build opportunities map keyed by municipality_id
   const opportunitiesMap: Record<string, LiveOpportunity[]> = {};
@@ -117,7 +239,11 @@ export default async function DealBoardPage() {
 
   const evidence = {
     infra:    groupBy((infraRes.data ?? []) as EvidenceInfra[], 5),
-    planning: groupBy((planningRes.data ?? []) as EvidencePlanning[], 5),
+    // planning_applications is 0 rows, every market, confirmed 2026-07-09 —
+    // not queried at all rather than running a fetch that can never return
+    // anything; every consumer (memo template) already hides this section
+    // cleanly when empty.
+    planning: {} as Record<string, EvidencePlanning[]>,
     signals:  groupBy((signalsRes.data ?? []) as EvidenceSignal[], 5),
   };
 
@@ -140,6 +266,17 @@ export default async function DealBoardPage() {
         evidence={evidence}
         checklistMap={checklistMap}
         zipMispricingMap={zipMispricingMap}
+        initialViewMode={view === "all" ? "all" : "market"}
+        allMarketsDeals={allMarketsDeals}
+        allMarketsAggregate={allMarketsAggregate}
+        allMarketsTotalFlagged={allMarketsTotalFlagged}
+        allMarketsCoveredCount={allMarketsCoveredCount}
+        allMarketsIsTeaser={allMarketsIsTeaser}
+        allMarketsLockedCount={allMarketsLockedCount}
+        allMarketsCanBrochure={allMarketsCanBrochure}
+        allMarketsIsFreeTier={allMarketsLimit === 0}
+        waitlistJoined={!!waitlistRes.data}
+        userIsAuthed={!!user}
       />
     </div>
   );

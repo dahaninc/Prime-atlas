@@ -322,7 +322,9 @@ export default async function MunicipalityPage({ params }: PageProps) {
           <section className="mt-10 border-t border-border pt-10">
             <LiveListings
               // Static/ISR page (no viewer tier): always redacted — locality-only
-              // address, no photos. Members see full detail on /listings/[id].
+              // address, no photos. "View listing" links out to each row's real
+              // source_url (no internal detail page — /listings was retired
+              // 2026-07-09; see the surface-consolidation audit).
               listings={(listings as Listing[]).map((l) => ({
                 ...l,
                 images: [],
@@ -337,7 +339,6 @@ export default async function MunicipalityPage({ params }: PageProps) {
                 risk_score:        municipality.risk_score,
               }}
               heading={`Live Listings · ${municipality.name}`}
-              showMarketLink
             />
           </section>
         )}

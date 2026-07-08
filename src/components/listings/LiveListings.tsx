@@ -65,7 +65,6 @@ interface LiveListingsProps {
     risk_score: number;
   };
   heading?: string;
-  showMarketLink?: boolean;
 }
 
 /* ─────────────────────────── helpers ───────────────────────── */
@@ -214,14 +213,20 @@ function ListingCard({ listing, market }: {
           </p>
         )}
 
-        {/* CTAs */}
+        {/* CTAs — no internal detail page (killed with /listings, 2026-07-09);
+            "View listing" links out to the real source when the row has one,
+            never to a dead internal route. */}
         <div className="flex gap-2 mt-auto">
-          <Link
-            href={`/listings/${listing.id}`}
-            className="flex-1 text-center text-xs font-semibold bg-primary text-white py-2.5 rounded-lg hover:bg-primary/85 transition-colors"
-          >
-            View listing →
-          </Link>
+          {listing.source_url && (
+            <a
+              href={listing.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 text-center text-xs font-semibold bg-primary text-white py-2.5 rounded-lg hover:bg-primary/85 transition-colors"
+            >
+              View listing →
+            </a>
+          )}
           <a
             href={`mailto:deals@prime-atlas.com?subject=${interestSubject}&body=${interestBody}`}
             className="flex-1 text-center text-xs font-semibold border border-border text-foreground py-2.5 rounded-lg hover:border-pa-green/40 hover:text-pa-green transition-colors"
@@ -240,7 +245,6 @@ export function LiveListings({
   listings,
   marketContext,
   heading = "Live Listings",
-  showMarketLink = false,
 }: LiveListingsProps) {
   if (!listings || listings.length === 0) return null;
 
@@ -263,11 +267,6 @@ export function LiveListings({
             {" "}to feature your deal here.
           </p>
         </div>
-        {showMarketLink && (
-          <Link href="/listings" className="text-xs text-pa-green hover:underline whitespace-nowrap flex-shrink-0">
-            All listings →
-          </Link>
-        )}
       </div>
 
       {/* Grid */}

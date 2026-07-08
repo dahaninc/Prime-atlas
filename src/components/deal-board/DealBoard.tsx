@@ -12,6 +12,8 @@ import { fmt, symFor } from "@/lib/money";
 import { toast } from "@/components/ui/Toaster";
 import Link from "next/link";
 import { createDealAlert, setChecklistItem } from "@/app/deal-board/actions";
+import { AllMarketsExplorer, type ExplorerDeal } from "@/components/deal-board/AllMarketsExplorer";
+import { WaitlistCta } from "@/components/deal-board/WaitlistCta";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,6 +98,25 @@ interface DealBoardProps {
   checklistMap?: Record<string, string[]>;
   /** ZIP-comp mispricing count per market (src/lib/comps.ts basis) — row chips, same screen as the detail panel. */
   zipMispricingMap?: Record<string, number>;
+
+  /**
+   * All-Markets view (merged 2026-07-09 from the standalone /underpriced
+   * page — see the surface-consolidation audit). Same screenByZipComps
+   * engine, same pool, just relocated: search/filter/sort/multi-select and
+   * the Deal Brochure export are unchanged, in AllMarketsExplorer.
+   */
+  initialViewMode?: "market" | "all";
+  allMarketsDeals?: ExplorerDeal[];
+  allMarketsAggregate?: { id: string; name: string; mispricingCount: number; coveredCount: number; totalCount: number }[];
+  allMarketsTotalFlagged?: number;
+  allMarketsCoveredCount?: number;
+  allMarketsIsTeaser?: boolean;
+  allMarketsLockedCount?: number;
+  allMarketsCanBrochure?: boolean;
+  /** free tier: aggregate counts + waitlist only, no real listing data — matches /underpriced's prior free-tier behavior exactly. */
+  allMarketsIsFreeTier?: boolean;
+  waitlistJoined?: boolean;
+  userIsAuthed?: boolean;
 }
 
 // ─── Market Tape Data ─────────────────────────────────────────────────────────
@@ -229,7 +250,23 @@ export function DealBoard({
   evidence = { infra: {}, planning: {}, signals: {} },
   checklistMap = {},
   zipMispricingMap = {},
+  initialViewMode = "market",
+  allMarketsDeals = [],
+  allMarketsAggregate = [],
+  allMarketsTotalFlagged = 0,
+  allMarketsCoveredCount = 0,
+  allMarketsIsTeaser = false,
+  allMarketsLockedCount = 0,
+  allMarketsCanBrochure = false,
+  allMarketsIsFreeTier = false,
+  waitlistJoined = false,
+  userIsAuthed = true,
 }: DealBoardProps) {
+  const [viewModeState, setViewMode] = useState<"market" | "all">(initialViewMode);
+  // Defense in depth: This Market is a real link (not a state-setter) for
+  // anonymous visitors, so viewModeState can't reach "market" through the
+  // UI — but this guarantees it even if initialViewMode were ever wrong.
+  const viewMode = userIsAuthed ? viewModeState : "all";
   const isPro = tier !== "free";
   // Bulk/data export (the Investment Analysis Report) is Institutional-only —
   // see src/lib/entitlements.ts. Explorer/Professional keep the preliminary
@@ -329,7 +366,6 @@ export function DealBoard({
         { captured_on: "previous", opportunity_score: prev, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
         { captured_on: "current",  opportunity_score: selectedRow.opportunity_score, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
       ] : [],
-      countryMedianPpsqm: null,
     });
   }, [selectedRow, statsMap, prevScoreMap]);
 
@@ -475,7 +511,6 @@ export function DealBoard({
         { captured_on: "previous", opportunity_score: prev, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
         { captured_on: "current",  opportunity_score: selectedRow.opportunity_score, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
       ] : [],
-      countryMedianPpsqm: null,
       mispricingBasis: "zip_comps",
     });
 
@@ -598,6 +633,44 @@ export function DealBoard({
 
       <div className="px-4 sm:px-6 py-4 space-y-4 max-w-[1400px] mx-auto">
 
+        {/* ── View mode ── */}
+        <div className="flex gap-1">
+          <button
+            onClick={() => setViewMode("all")}
+            className={`px-4 py-2 border transition-all text-left ${
+              viewMode === "all"
+                ? "bg-[#163559] border-[#1E4A7A] text-white"
+                : "bg-[#111827] border-[#1E2D40] text-[#4A6080] hover:text-white hover:border-[#2A3D54]"
+            }`}
+          >
+            <div className="font-bold text-xs leading-none">All Markets</div>
+            <div className="text-[9px] mt-0.5 opacity-70">{allMarketsTotalFlagged} flagged deals</div>
+          </button>
+          {userIsAuthed ? (
+            <button
+              onClick={() => setViewMode("market")}
+              className={`px-4 py-2 border transition-all text-left ${
+                viewMode === "market"
+                  ? "bg-[#163559] border-[#1E4A7A] text-white"
+                  : "bg-[#111827] border-[#1E2D40] text-[#4A6080] hover:text-white hover:border-[#2A3D54]"
+              }`}
+            >
+              <div className="font-bold text-xs leading-none">This Market</div>
+              <div className="text-[9px] mt-0.5 opacity-70">Score, drill down, export</div>
+            </button>
+          ) : (
+            <Link
+              href="/auth/login?redirect=%2Fdeal-board"
+              className="px-4 py-2 border border-dashed border-[#1E2D40] text-[#2A4060] hover:text-amber-400 hover:border-amber-800 transition-all text-left"
+            >
+              <div className="font-bold text-xs leading-none">This Market</div>
+              <div className="text-[9px] mt-0.5 opacity-70">Sign in to screen individual markets →</div>
+            </Link>
+          )}
+        </div>
+
+        {viewMode === "market" && (
+        <>
         {/* ── Country tabs ── */}
         <div className="flex gap-1">
           {COUNTRY_TABS.map((tab) => {
@@ -1459,6 +1532,61 @@ export function DealBoard({
             <Link href="/pricing" className="inline-block bg-[#163559] border border-[#1E4A7A] text-white text-xs px-6 py-2.5 hover:bg-[#1A4070] transition-colors">
               Upgrade to Pro →
             </Link>
+          </div>
+        )}
+        </>
+        )}
+
+        {/* ── All Markets view — merged from /underpriced, 2026-07-09 ── */}
+        {viewMode === "all" && (
+          <div>
+            <div className="mb-4">
+              <p className="text-[10px] font-bold tracking-[0.2em] text-[#4A7090] uppercase mb-1">
+                Underpriced Deals — All Markets
+              </p>
+              <p className="text-xs text-[#4A6080] max-w-2xl">
+                Every listing here sits ≥15% below the median of ≥5 live comps in its own ZIP, property type, and
+                bedroom count — never a blended metro median. Real submarket comps currently cover{" "}
+                {allMarketsCoveredCount} US markets; UK and uncovered markets don&apos;t appear rather than being
+                measured against the wrong basis.
+              </p>
+            </div>
+
+            {allMarketsIsFreeTier ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+                  {allMarketsAggregate.map((m) => (
+                    <div key={m.id} className="bg-[#111827] border border-[#1E2D40] px-4 py-3">
+                      <div className="text-sm font-bold text-white">🇺🇸 {m.name}</div>
+                      <div className="text-lg font-bold font-mono text-amber-400 mt-2">{m.mispricingCount} flagged</div>
+                      <div className="text-[9px] text-[#4A6080] font-mono mt-1">{m.coveredCount} of {m.totalCount} listings have ≥5-comp coverage</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border border-[#1E4A7A] bg-[#0E2040] px-6 py-8 text-center mb-4">
+                  <p className="text-sm font-bold text-white mb-2">Deals, addresses &amp; photos — members only</p>
+                  <p className="text-xs text-[#4A6080] mb-4 max-w-md mx-auto">
+                    Every flagged listing with full address, photos, discount vs. its own ZIP-level comps, and hourly
+                    email alerts, from $29.99/mo.
+                  </p>
+                  <Link href="/pricing" className="inline-block bg-primary text-white font-semibold text-xs px-6 py-2.5 rounded-lg hover:bg-primary/85 transition-colors">
+                    Unlock the feed →
+                  </Link>
+                </div>
+                <div className="border border-primary/25 bg-primary/10 rounded-2xl p-6 text-center">
+                  <p className="text-xs font-bold text-white mb-2">Be first when a mispriced listing hits your markets</p>
+                  <WaitlistCta isAuthed={userIsAuthed} initialJoined={waitlistJoined} />
+                </div>
+              </>
+            ) : (
+              <AllMarketsExplorer
+                deals={allMarketsDeals}
+                markets={allMarketsAggregate.map((m) => ({ id: m.id, name: m.name }))}
+                canBrochure={allMarketsCanBrochure}
+                isTeaser={allMarketsIsTeaser}
+                lockedCount={allMarketsLockedCount}
+              />
+            )}
           </div>
         )}
 

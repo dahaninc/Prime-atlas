@@ -1,8 +1,15 @@
 "use client";
 
+/**
+ * Relocated 2026-07-09 from /underpriced (now a redirect into Deal Board's
+ * "All Markets" toggle) — server actions stay at src/app/underpriced/actions.ts,
+ * unchanged, since they operate on the underpriced_waitlist table directly
+ * and aren't tied to any route.
+ */
+
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { joinWaitlist, leaveWaitlist } from "./actions";
+import { joinWaitlist, leaveWaitlist } from "@/app/underpriced/actions";
 import { toast } from "@/components/ui/Toaster";
 
 interface Props {
@@ -17,7 +24,7 @@ export function WaitlistCta({ isAuthed, initialJoined }: Props) {
   if (!isAuthed) {
     return (
       <Link
-        href="/auth/signup?redirect=/underpriced"
+        href="/auth/signup?redirect=/deal-board"
         className="bg-primary text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-primary/85 transition-colors inline-block"
       >
         Create a free account to join the waitlist
@@ -31,7 +38,7 @@ export function WaitlistCta({ isAuthed, initialJoined }: Props) {
         <span className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
           <span className="status-dot-live" /> You&apos;re on the waitlist
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-[#4A6080]">
           Alerts activate the moment you become a member.
         </span>
         <button
@@ -41,7 +48,7 @@ export function WaitlistCta({ isAuthed, initialJoined }: Props) {
             else toast("Could not update the waitlist", "error");
           })}
           disabled={pending}
-          className="text-xs text-zinc-500 hover:text-foreground underline disabled:opacity-60"
+          className="text-xs text-zinc-500 hover:text-white underline disabled:opacity-60"
         >
           Leave
         </button>

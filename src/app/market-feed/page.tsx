@@ -150,14 +150,14 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
         {/* Bottom CTA */}
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-4 items-center justify-between">
           <div>
-            <p className="text-sm font-semibold mb-1">Looking for curated investment deals?</p>
-            <p className="text-xs text-muted-foreground">Our hand-scored listings include yield, margin and conviction scores.</p>
+            <p className="text-sm font-semibold mb-1">Looking for ranked, comp-backed deals?</p>
+            <p className="text-xs text-muted-foreground">Deal Board ranks every market by real score, and flags deals priced 15%+ below live comps where coverage exists.</p>
           </div>
           <Link
-            href="/listings"
+            href="/deal-board"
             className="text-sm font-semibold text-pa-green hover:underline"
           >
-            View curated listings →
+            Open Deal Board →
           </Link>
         </div>
 

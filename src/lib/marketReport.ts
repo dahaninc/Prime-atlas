@@ -23,8 +23,15 @@ export interface MarketReportSource {
     underpriced_count: number | null;
   } | null;
   history: { captured_on: string; opportunity_score: number; growth_score: number; risk_score: number }[];
-  /** Median ppsqm across all covered markets in the same country (minor units). */
-  countryMedianPpsqm: number | null;
+  /**
+   * Median ppsqm across all covered markets in the same country (minor
+   * units). Optional: only /reports/market computes this today (a real
+   * cross-market aggregate query) — every other caller (Deal Board,
+   * market-feed detail, the contact-request email) omits it, so the
+   * "Relative value vs national coverage" signal simply doesn't fire there
+   * rather than being fed a fabricated or stale figure.
+   */
+  countryMedianPpsqm?: number | null;
   /**
    * What `stats.underpriced_count` was measured against, so the mispricing
    * signal's label matches its basis: "zip_comps" = each listing vs its own

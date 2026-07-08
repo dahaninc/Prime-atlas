@@ -107,7 +107,6 @@ function LeftSidebar({ open, onClose }: { open: boolean; onClose: () => void }) 
           <section>
             <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">Platform</p>
             {[
-              { label: "Live Listings",  href: "/listings",    dot: "#2563eb" },
               { label: "Market Feed",    href: "/market-feed", dot: "#3b82f6" },
               { label: "Deal Board",     href: "/deal-board",  dot: null      },
             ].map(({ label, href, dot }) => (
@@ -347,10 +346,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
               <MarketsDropdown open={marketsOpen} onClose={() => setMarketsOpen(false)} />
             </div>
 
-            {navLink("/listings",    "Listings")}
             {navLink("/market-feed", "Live Feed")}
             {navLink("/deal-board",  "Deal Board")}
-            {navLink("/underpriced", "Underpriced")}
             {navLink("/screener", "Screener")}
           </div>
 
@@ -404,10 +401,8 @@ export function Navbar({ user: initialUser }: NavbarProps) {
             <div className="space-y-1">
               {[
                 { href: "/",            label: "Home"      },
-                { href: "/listings",    label: "Listings"  },
                 { href: "/market-feed", label: "Live Feed" },
                 { href: "/deal-board",  label: "Deal Board"},
-                { href: "/underpriced", label: "Underpriced"},
                 { href: "/screener", label: "Screener"},
               ].map(({ href, label }) => (
                 <Link

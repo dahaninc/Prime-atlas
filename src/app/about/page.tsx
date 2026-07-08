@@ -136,7 +136,7 @@ export default function AboutPage() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-wrap gap-4">
-          <Link href="/listings" className="text-sm text-pa-green hover:underline">Listings Terminal →</Link>
+          <Link href="/deal-board" className="text-sm text-pa-green hover:underline">Deal Board →</Link>
           <Link href="/market-feed" className="text-sm text-pa-green hover:underline">Market Feed →</Link>
           <Link href="/pricing" className="text-sm text-pa-green hover:underline">Pricing →</Link>
           <Link href="/auth/signup" className="text-sm text-pa-green hover:underline">Get started free →</Link>

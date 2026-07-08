@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function SignalsPage() { redirect("/listings"); }
+export default function SignalsPage() { redirect("/deal-board"); }

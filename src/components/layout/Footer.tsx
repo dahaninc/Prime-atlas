@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 const INDEXES = [
-  { href: "/listings", label: "Listings Terminal" },
   { href: "/market-feed", label: "Market Feed" },
   { href: "/deal-board", label: "Deal Board" },
   { href: "/reports/undersupplied-markets", label: "Undersupplied Markets Report" },

@@ -76,6 +76,12 @@ describe("buildMarketReport", () => {
     expect(r.market.currencySymbol).toBe("£");
   });
 
+  it("omits the relative-value signal when countryMedianPpsqm isn't supplied (most callers)", () => {
+    const { countryMedianPpsqm: _omit, ...rest } = baseSource;
+    const r = buildMarketReport(rest);
+    expect(r.demandSignals.map((s) => s.label)).not.toContain("Relative value vs national coverage");
+  });
+
   it("degrades without stats: no scenarios, no crash", () => {
     const r = buildMarketReport({ ...baseSource, stats: null });
     expect(r.rate.scenarios).toEqual([]);

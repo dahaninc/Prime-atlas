@@ -177,7 +177,6 @@ async function computeReportIntel(
     },
     stats: null, // pulse stats not fetched for a single-property email — demand signals still compute from scores where possible
     history: [], // no momentum framing — market_score_history has only 2 snapshot days on record
-    countryMedianPpsqm: null,
     mispricingBasis: "zip_comps",
   });
 

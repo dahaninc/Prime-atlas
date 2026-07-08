@@ -20,7 +20,7 @@ export async function joinWaitlist(): Promise<{ ok: boolean; error?: string }> {
       { onConflict: "user_id,municipality_id", ignoreDuplicates: true },
     );
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/underpriced");
+  revalidatePath("/deal-board");
   return { ok: true };
 }
 
@@ -34,6 +34,6 @@ export async function leaveWaitlist(): Promise<{ ok: boolean; error?: string }> 
     .delete()
     .eq("user_id", user.id);
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/underpriced");
+  revalidatePath("/deal-board");
   return { ok: true };
 }

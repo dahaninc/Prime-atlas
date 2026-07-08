@@ -10,10 +10,21 @@ const PROTECTED_ROUTES = [
   "/opportunities/finder",
   "/admin",
   "/portfolio",
-  "/deal-board",
   "/screener",
   "/reports/market",
 ];
+// /deal-board is DELIBERATELY not in this list (2026-07-09): its All-Markets
+// view is the public top-of-funnel teaser previously served by /underpriced
+// (aggregate counts + waitlist CTA, no listing data, no real market
+// screening) — the whole reason /underpriced merged into Deal Board was to
+// preserve that anonymous preview, not wall it off. The page component
+// itself (src/app/deal-board/page.tsx) branches on auth: anonymous visitors
+// get a deliberately light, teaser-only fetch and are locked into All
+// Markets / free-tier view; every authed feature (per-market screening,
+// financing, memo/brochure export) still requires a real session, enforced
+// independently by each API route (/api/deal-board/listings,
+// /api/export/ic-memo, /api/export/deal-brochure all 401 without a user) —
+// removing this route from middleware does not weaken those.
 
 /** Routes that require a paid subscription */
 const PAID_ROUTES = ["/opportunities/finder", "/signals"];
@@ -25,6 +36,12 @@ const FREE_TIERS = new Set(["free"]);
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  // Full path + query, for building a post-login redirect target that
+  // preserves deep-link params (e.g. /deal-board?view=all — the
+  // /underpriced -> Deal Board All-Markets redirect relies on this so an
+  // anonymous visit to /underpriced still lands in the right view mode
+  // after login, not just the bare route).
+  const pathWithQuery = path + request.nextUrl.search;
 
   // ── Strip Stripe session_id from dashboard URL ───────────────────────────
   if (path === "/dashboard" && request.nextUrl.searchParams.has("session_id")) {
@@ -50,7 +67,7 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/auth/login";
     loginUrl.search = "";
-    loginUrl.searchParams.set("redirect", path);
+    loginUrl.searchParams.set("redirect", pathWithQuery);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -99,7 +116,7 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/auth/login";
     loginUrl.search = "";
-    loginUrl.searchParams.set("redirect", path);
+    loginUrl.searchParams.set("redirect", pathWithQuery);
     return redirectWithCookies(loginUrl);
   }
 

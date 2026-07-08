@@ -471,7 +471,7 @@ export default async function HomePage() {
                   bg: "bg-primary",
                   label: "Property Developers",
                   desc: "DCF, planning velocity, and undersupply signals before you spend on surveys.",
-                  href: "/listings",
+                  href: "/deal-board",
                 },
                 {
                   Icon: IconBank,
@@ -691,8 +691,8 @@ export default async function HomePage() {
                   </p>
                   <h2 className="text-2xl font-black tracking-tight">Highest-conviction markets right now</h2>
                 </div>
-                <Link href="/listings" className="text-sm text-primary hover:underline whitespace-nowrap">
-                  Full listings terminal →
+                <Link href="/deal-board" className="text-sm text-primary hover:underline whitespace-nowrap">
+                  Open Deal Board →
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

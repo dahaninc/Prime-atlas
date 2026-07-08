@@ -42,6 +42,8 @@ export interface TierEntitlements {
   screenerExportEnabled: boolean;
   /** Bulk CSV/Excel data export — the Institutional-only differentiator. */
   bulkExportEnabled: boolean;
+  /** Multi-property deal brochure export (structured pack with comp evidence + financing scenarios). */
+  dealBrochureEnabled: boolean;
   /** Contact/agent-detail reveals per calendar month. null = unlimited. */
   contactRevealsPerMonth: number | null;
   /** Seats included. Display value only — see module header. null = unlimited/pooled. */
@@ -55,6 +57,7 @@ export const ENTITLEMENTS: Record<Tier, TierEntitlements> = {
     omParsingEnabled: false,           // CHANGE: free can currently parse once card-activated; new spec reserves parsing for Professional+
     screenerExportEnabled: false,
     bulkExportEnabled: false,
+    dealBrochureEnabled: false,
     contactRevealsPerMonth: 0,         // unchanged: contact-request already 403s below "member"
     seats: 1,
   },
@@ -64,6 +67,7 @@ export const ENTITLEMENTS: Record<Tier, TierEntitlements> = {
     omParsingEnabled: false,
     screenerExportEnabled: false,
     bulkExportEnabled: false,
+    dealBrochureEnabled: false,
     contactRevealsPerMonth: 10,        // matches existing pricing-page copy ("10 contact reveals per month")
     seats: 1,
   },
@@ -73,6 +77,7 @@ export const ENTITLEMENTS: Record<Tier, TierEntitlements> = {
     omParsingEnabled: true,
     screenerExportEnabled: true,       // Phase B builds the export UI; flag defined now so B just consumes it
     bulkExportEnabled: false,
+    dealBrochureEnabled: true,         // multi-property deal pack — agent contacts inside still meter against contactRevealsPerMonth
     contactRevealsPerMonth: 100,       // CHANGE: pricing page currently promises "Unlimited" for Professional
     seats: 3,                          // NOT enforced, see module header
   },
@@ -82,6 +87,7 @@ export const ENTITLEMENTS: Record<Tier, TierEntitlements> = {
     omParsingEnabled: true,
     screenerExportEnabled: true,
     bulkExportEnabled: true,           // the one Institutional-exclusive differentiator
+    dealBrochureEnabled: true,
     contactRevealsPerMonth: null,
     seats: null,                       // "pooled/unlimited" — NOT enforced, see module header
   },
@@ -160,6 +166,10 @@ export function canExportScreenerDoc(tier: string | null | undefined): boolean {
 
 export function canBulkExport(tier: string | null | undefined): boolean {
   return getEntitlements(tier).bulkExportEnabled;
+}
+
+export function canExportDealBrochure(tier: string | null | undefined): boolean {
+  return getEntitlements(tier).dealBrochureEnabled;
 }
 
 export function underpricedListingLimit(tier: string | null | undefined): number | null {

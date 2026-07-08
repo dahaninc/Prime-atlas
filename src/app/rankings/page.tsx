@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function RankingsPage() { redirect("/listings"); }
+export default function RankingsPage() { redirect("/deal-board"); }

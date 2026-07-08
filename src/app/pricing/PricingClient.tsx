@@ -185,7 +185,7 @@ export function PricingClient({ isLoggedIn, currentTier, hasCustomer, cancelled,
           <p className="text-pa-green font-semibold text-sm">Subscription activated — welcome to Prime Atlas.</p>
           <p className="text-xs text-muted-foreground mt-1">
             Your access is live.{" "}
-            <Link href="/listings" className="text-pa-green hover:underline">Open the terminal →</Link>
+            <Link href="/deal-board" className="text-pa-green hover:underline">Open Deal Board →</Link>
           </p>
         </div>
       )}

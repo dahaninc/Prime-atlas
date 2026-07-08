@@ -394,7 +394,6 @@ export default async function MarketFeedPropertyPage(
       underpriced_count: marketScreen?.screen.mispricingCount ?? 0,
     },
     history: [],
-    countryMedianPpsqm: null,
     mispricingBasis: "zip_comps",
   }).demandSignals : [];
 
