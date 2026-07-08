@@ -6,6 +6,7 @@ import type {
   DealRow, LiveOpportunity, MarketStats,
   EvidenceInfra, EvidencePlanning, EvidenceSignal,
 } from "@/components/deal-board/DealBoard";
+import { fetchZipCompScreens } from "@/lib/server/compScreens";
 
 export const metadata: Metadata = {
   title: "Deal Board | prime-atlas",
@@ -31,7 +32,7 @@ export default async function DealBoardPage() {
      .order("opportunity_score", { ascending: false }).limit(120),
     supabase.from("data_freshness").select("market_iso2, last_updated"),
     supabase.from("opportunities")
-      .select("id, municipality_id, title, category, opportunity_score, risk_level, source_name, source_url")
+      .select("id, municipality_id, title, investment_thesis, category, opportunity_score, risk_level, source_name, source_url")
       .eq("status", "active")
       .order("opportunity_score", { ascending: false }),
     supabase.from("market_listing_stats").select("*"),
@@ -73,6 +74,15 @@ export default async function DealBoardPage() {
     data_confidence: m.data_confidence ?? 0.5,
     retrieved_at:    m.retrieved_at    ?? null,
   })) as DealRow[];
+
+  // ZIP-comp mispricing count per US market (src/lib/comps.ts basis) for the
+  // per-row chips — same screen the detail panel and memo use, so the row
+  // list can never advertise blended-median "underpriced" counts the panel
+  // below would contradict. UK is structurally uncovered (no chip).
+  const usIds = rows.filter((r) => r.country === "United States").map((r) => r.id);
+  const zipScreens = await fetchZipCompScreens(supabase, usIds);
+  const zipMispricingMap: Record<string, number> = {};
+  zipScreens.forEach((s, id) => { zipMispricingMap[id] = s.screen.mispricingCount; });
 
   // Build opportunities map keyed by municipality_id
   const opportunitiesMap: Record<string, LiveOpportunity[]> = {};
@@ -129,6 +139,7 @@ export default async function DealBoardPage() {
         prevScoreMap={prevScoreMap}
         evidence={evidence}
         checklistMap={checklistMap}
+        zipMispricingMap={zipMispricingMap}
       />
     </div>
   );

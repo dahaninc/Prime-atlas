@@ -7,6 +7,8 @@
 
 import { useState, useMemo, useEffect, useTransition } from "react";
 import { type PF, computePF, sensitivityGrid, DILIGENCE_BY_COUNTRY, localizedPpsm } from "@/lib/proforma";
+import { buildMarketReport, type DemandSignal } from "@/lib/marketReport";
+import { fmt, symFor } from "@/lib/money";
 import { toast } from "@/components/ui/Toaster";
 import Link from "next/link";
 import { createDealAlert, setChecklistItem } from "@/app/deal-board/actions";
@@ -36,6 +38,7 @@ export interface LiveOpportunity {
   id: string;
   municipality_id: string;
   title: string;
+  investment_thesis: string;
   category: string;
   opportunity_score: number;
   risk_level: string;
@@ -91,6 +94,8 @@ interface DealBoardProps {
     signals: Record<string, EvidenceSignal[]>;
   };
   checklistMap?: Record<string, string[]>;
+  /** ZIP-comp mispricing count per market (src/lib/comps.ts basis) — row chips, same screen as the detail panel. */
+  zipMispricingMap?: Record<string, number>;
 }
 
 // ─── Market Tape Data ─────────────────────────────────────────────────────────
@@ -148,21 +153,39 @@ const COUNTRY_DEFAULTS: Record<string, { hardCost: number; avgPrice: number; sym
   "United States":  { hardCost: 185, avgPrice: 415_000, sym: "$" },
 };
 
-function symFor(code: string) {
-  return code === "GBP" ? "£" : "$";
-}
-
 // Conviction checklist — country-localized (US: zoning/FAR, tax abatements,
 // energy compliance; UK: planning, S106/CIL, EPC). See src/lib/proforma.ts.
 // Pro-forma engine (computePF, sensitivityGrid) also lives there so the
 // terminal and the exported memo can never disagree.
+//
+// fmt/symFor live in src/lib/money.ts — a single source of truth so a
+// review artifact can never hand-roll its own (and diverge from) the real
+// formatter (see money.ts docstring for why this matters).
 
-function fmt(n: number, sym: string) {
-  const abs = Math.abs(n);
-  const s   = abs >= 1_000_000 ? `${sym}${(abs / 1_000_000).toFixed(1)}M`
-            : abs >= 1_000     ? `${sym}${(abs / 1_000).toFixed(1)}K`
-            :                    `${sym}${Math.round(abs)}`;
-  return n < 0 ? `−${s}` : s;
+/**
+ * Data-only per-deal line — deltas and calculations, never a verdict.
+ * A missing metric is spelled out explicitly ("insufficient ... data"),
+ * never silently dropped and never rendered as zero. A discount beyond the
+ * implausible threshold reads as a likely data artifact, not a bargain —
+ * same "too good to be true" logic as the display sanity clamp.
+ */
+function dealVerdictLine(d: {
+  discountPct: number | null; grossYieldPct: number | null; yieldStatus: "ok" | "insufficient_data";
+  unrankedReason?: "insufficient_data" | "implausible" | null; rentCompCount?: number;
+  comps?: { address: string | null; price: number; ppsqm: number }[]; compBasisLabel?: string | null;
+}): string {
+  const discountPart = d.discountPct != null
+    ? `${Math.abs(d.discountPct).toFixed(1)}% below ${d.comps?.length ?? "?"} ZIP-level comps${d.compBasisLabel ? ` (${d.compBasisLabel})` : ""}`
+    : d.unrankedReason === "implausible"
+      ? "discount: flagged as likely data error (beyond ±60% of ZIP comps)"
+      : "discount: insufficient comparable data (needs ≥5 same-ZIP/type/bedroom comps)";
+  // Basis is market-wide median rent across N real comps, not adjusted for
+  // this specific listing's size/postcode — labelled explicitly rather
+  // than implying a property-specific comp that doesn't exist yet.
+  const yieldPart = d.yieldStatus === "ok" && d.grossYieldPct != null
+    ? `${d.grossYieldPct.toFixed(1)}% gross yield (market rent basis, ${d.rentCompCount ?? "?"} comps)`
+    : "yield: insufficient rent data";
+  return `${discountPart} · ${yieldPart}`;
 }
 
 // ─── Score badge ──────────────────────────────────────────────────────────────
@@ -205,8 +228,13 @@ export function DealBoard({
   statsMap = {}, prevScoreMap = {},
   evidence = { infra: {}, planning: {}, signals: {} },
   checklistMap = {},
+  zipMispricingMap = {},
 }: DealBoardProps) {
   const isPro = tier !== "free";
+  // Bulk/data export (the Investment Analysis Report) is Institutional-only —
+  // see src/lib/entitlements.ts. Explorer/Professional keep the preliminary
+  // underwrite but lose the export button itself.
+  const isInstitutional = tier === "institutional";
   const [alertState, setAlertState] = useState<"idle" | "done" | "error">("idle");
   const [alertPending, startAlert] = useTransition();
 
@@ -278,6 +306,112 @@ export function DealBoard({
   const sens  = useMemo(() => pf ? sensitivityGrid(pf) : null, [pf]);
   const diligence = DILIGENCE_BY_COUNTRY[country] ?? DILIGENCE_BY_COUNTRY["United Kingdom"];
 
+  // Macro read — deterministic demand-signal narrative from the same engine
+  // that powers /reports/market. No new AI calls: this is template-interpreted
+  // arithmetic over data already on the page, so it's free and instant.
+  const report = useMemo(() => {
+    if (!selectedRow) return null;
+    const st = statsMap[selectedRow.id];
+    const prev = prevScoreMap[selectedRow.id];
+    return buildMarketReport({
+      muni: {
+        id: selectedRow.id, name: selectedRow.name, region: selectedRow.region, country: selectedRow.country,
+        currency_code: selectedRow.currency_code, population: selectedRow.population,
+        opportunity_score: selectedRow.opportunity_score, growth_score: selectedRow.growth_score,
+        risk_score: selectedRow.risk_score, development_score: selectedRow.development_score,
+        infrastructure_score: selectedRow.infrastructure_score, liquidity_score: selectedRow.liquidity_score,
+      },
+      stats: st ? {
+        sale_count: st.sale_count, rent_count: st.rent_count, median_price: st.median_price,
+        median_ppsqm: st.median_ppsqm, underpriced_count: st.underpriced_count,
+      } : null,
+      history: prev !== undefined ? [
+        { captured_on: "previous", opportunity_score: prev, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
+        { captured_on: "current",  opportunity_score: selectedRow.opportunity_score, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
+      ] : [],
+      countryMedianPpsqm: null,
+    });
+  }, [selectedRow, statsMap, prevScoreMap]);
+
+  // Micro read — the market's own AI-written investment thesis (already
+  // generated by /api/cron/generate-opportunities; just wasn't surfaced
+  // here). Carries its source attribution too — some theses cite an
+  // external source (source_url), others are self-sourced
+  // ("Prime Atlas Intelligence", source_url null) — a hard factual claim
+  // with no external citation must read as internal analysis, not fact.
+  const microThesis = selectedRow && opportunitiesMap[selectedRow.id]?.[0]
+    ? {
+        text: opportunitiesMap[selectedRow.id][0].investment_thesis,
+        sourceName: opportunitiesMap[selectedRow.id][0].source_name,
+        sourceUrl: opportunitiesMap[selectedRow.id][0].source_url,
+      }
+    : null;
+
+  // Real live deals for the selected market — fetched on selection, not
+  // prefetched for every row. Distinct from "Live Opportunities" below,
+  // which are curated theses, not property listings.
+  //
+  // `ranked` only ever contains deals with a computable, plausible
+  // discountPct — a deal missing that metric, or with an implausibly large
+  // one (likely a data artifact, not a bargain), goes in `unranked` instead
+  // of being sorted to the bottom of the same list, which would visually
+  // read as "worse" when it's actually just "unmeasured" or "flagged" (see
+  // /api/deal-board/listings).
+  interface DealPreview {
+    id: string; address: string | null; price: number | null; currency_code: string;
+    bedrooms: number | null; property_type: string | null; size_sqm: number | null;
+    images: string[] | null; listing_type: string;
+    discountPct: number | null; grossYieldPct: number | null;
+    yieldStatus: "ok" | "insufficient_data"; rentCompCount: number;
+    unrankedReason: "insufficient_data" | "implausible" | null;
+    // ZIP-level comp evidence (src/lib/comps.ts) — the actual comparables
+    // the discount was measured against, so the claim is auditable.
+    comps: { address: string | null; price: number; ppsqm: number }[];
+    compBasisLabel: string | null;
+    compStatus: "mispriced" | "below_floor" | "implausible" | "insufficient_comps";
+  }
+  const [rankedDeals, setRankedDeals] = useState<DealPreview[] | null>(null);
+  const [unrankedDeals, setUnrankedDeals] = useState<DealPreview[] | null>(null);
+  const [liveDealsLoading, setLiveDealsLoading] = useState(false);
+  // Same snapshot the /api/deal-board/listings response used to compute
+  // ranked/unranked's discountPct — reused for Section 1 (pulse) and
+  // Section 2 (macro narrative) of the memo instead of the page-load-time
+  // statsMap, so every section of one exported report reads from one
+  // query instant. A market_listing_stats row queried separately (e.g. at
+  // page load) can disagree with this one if a scrape wrote to
+  // `properties` in between — the view is unmaterialized and recomputes
+  // live on every query.
+  const [reportStats, setReportStats] = useState<{
+    sale_count: number | null; rent_count: number | null;
+    median_price: number | null; median_ppsqm: number | null;
+    // ZIP-comp mispricing count (src/lib/comps.ts basis), NOT the blended
+    // metro-median underpriced_count from market_listing_stats — Section 1
+    // and Section 3 of the export must count the same thing.
+    zip_mispricing_count: number | null;
+    comp_covered: number | null; comp_total: number | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!selectedRow) { setRankedDeals(null); setUnrankedDeals(null); setReportStats(null); return; }
+    setLiveDealsLoading(true);
+    setRankedDeals(null);
+    setUnrankedDeals(null);
+    setReportStats(null);
+    fetch(`/api/deal-board/listings?municipality_id=${selectedRow.id}`)
+      .then((r) => (r.ok ? r.json() : { ranked: [], unranked: [] }))
+      .then((d) => {
+        setRankedDeals((d.ranked ?? []) as DealPreview[]);
+        setUnrankedDeals((d.unranked ?? []) as DealPreview[]);
+        setReportStats({
+          sale_count: d.saleCount ?? null, rent_count: d.rentCount ?? null,
+          median_price: d.medianPrice ?? null, median_ppsqm: d.marketMedianPpsqm ?? null,
+          zip_mispricing_count: d.zipMispricingCount ?? null,
+          comp_covered: d.compCoverage?.covered ?? null, comp_total: d.compCoverage?.total ?? null,
+        });
+      })
+      .catch(() => { setRankedDeals([]); setUnrankedDeals([]); setReportStats(null); })
+      .finally(() => setLiveDealsLoading(false));
+  }, [selectedRow?.id]);
+
   const tape  = MARKET_TAPE[country];
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const sym   = selectedRow ? symFor(selectedRow.currency_code) : "$";
@@ -307,13 +441,49 @@ export function DealBoard({
   const [memoPending, setMemoPending] = useState(false);
 
   async function generateMemo() {
-    if (!selectedRow || !pf || !pfOut || !sens || memoPending) return;
+    if (!selectedRow || memoPending) return;
+    if (liveDealsLoading) {
+      toast("Still loading this market's live data — try again in a moment", "error");
+      return;
+    }
     const s  = symFor(selectedRow.currency_code);
-    const st = statsMap[selectedRow.id];
+    // reportStats, not statsMap: the same market_listing_stats snapshot
+    // /api/deal-board/listings already used to compute rankedDeals'
+    // discountPct — every section of this export must read one snapshot,
+    // not re-query the live view per section (see reportStats docstring
+    // above).
+    const st = reportStats;
     const prev = prevScoreMap[selectedRow.id];
+    // Macro narrative recomputed from the same snapshot, not the on-screen
+    // `report` memo (which is intentionally fast/page-load-fresh for
+    // on-screen display and may reflect a different query instant).
+    const memoReport = buildMarketReport({
+      muni: {
+        id: selectedRow.id, name: selectedRow.name, region: selectedRow.region, country: selectedRow.country,
+        currency_code: selectedRow.currency_code, population: selectedRow.population,
+        opportunity_score: selectedRow.opportunity_score, growth_score: selectedRow.growth_score,
+        risk_score: selectedRow.risk_score, development_score: selectedRow.development_score,
+        infrastructure_score: selectedRow.infrastructure_score, liquidity_score: selectedRow.liquidity_score,
+      },
+      stats: st ? {
+        sale_count: st.sale_count ?? 0, rent_count: st.rent_count ?? 0, median_price: st.median_price,
+        // ZIP-comp mispricing count — same basis as the ranked deals below,
+        // never the blended metro-median underpriced_count.
+        median_ppsqm: st.median_ppsqm, underpriced_count: st.zip_mispricing_count ?? 0,
+      } : null,
+      history: prev !== undefined ? [
+        { captured_on: "previous", opportunity_score: prev, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
+        { captured_on: "current",  opportunity_score: selectedRow.opportunity_score, growth_score: selectedRow.growth_score, risk_score: selectedRow.risk_score },
+      ] : [],
+      countryMedianPpsqm: null,
+      mispricingBasis: "zip_comps",
+    });
 
     const payload = {
-      market: { name: selectedRow.name, region: selectedRow.region, country: selectedRow.country, slug: selectedRow.slug },
+      market: {
+        name: selectedRow.name, region: selectedRow.region, country: selectedRow.country,
+        slug: selectedRow.slug, population: selectedRow.population,
+      },
       scores: {
         opportunity: selectedRow.opportunity_score, growth: selectedRow.growth_score,
         development: selectedRow.development_score, infrastructure: selectedRow.infrastructure_score,
@@ -321,26 +491,45 @@ export function DealBoard({
       },
       momentum: prev !== undefined ? { previous: prev, current: selectedRow.opportunity_score } : null,
       pulse: st ? {
-        sale_count: st.sale_count, rent_count: st.rent_count,
+        sale_count: st.sale_count ?? 0, rent_count: st.rent_count ?? 0,
         median_price: st.median_price ? fmt(st.median_price / 100, s) : "n/a",
         median_ppsm_local: st.median_ppsqm ? localizedPpsm(Number(st.median_ppsqm), selectedRow.country, s) : "n/a",
-        underpriced_count: st.underpriced_count,
+        underpriced_count: st.zip_mispricing_count ?? 0,
+        comp_coverage: st.comp_covered != null && st.comp_total != null
+          ? { covered: st.comp_covered, total: st.comp_total }
+          : null,
       } : null,
-      pf: {
-        units: pf.units, gsfPerUnit: pf.gsfPerUnit, hardCostPerGsf: pf.hardCostPerGsf,
-        landCost: pf.landCost, rentPerUnitMo: pf.rentPerUnitMo, exitCapPct: pf.exitCapPct,
-        contingencyPct: pf.contingencyPct, interestPct: pf.interestPct,
+      narrative: {
+        thesis: microThesis?.text ?? null,
+        sourceName: microThesis?.sourceName ?? null,
+        sourceUrl: microThesis?.sourceUrl ?? null,
+        demandSignals: (memoReport?.demandSignals ?? []).map((sig) => ({
+          label: sig.label, value: sig.value, reading: sig.reading, note: sig.note,
+        })),
       },
-      pfOut: {
-        totalDevCost: fmt(pfOut.totalDevCost, s),
-        annualNOI:    fmt(pfOut.annualNOI, s),
-        exitValue:    fmt(pfOut.exitValue, s),
-        yieldOnCost:  `${pfOut.yieldOnCost.toFixed(2)}%`,
-        marginOnCost: `${pfOut.marginOnCost.toFixed(1)}%`,
-        marginOnGDV:  `${pfOut.marginOnGDV.toFixed(1)}%`,
-      },
-      sensitivity: sens.map((row) => row.map(({ ratePct, capPct, marginOnGDV }) => ({ ratePct, capPct, marginOnGDV }))),
-      diligence: diligence.map((d) => ({ label: d.label, desc: d.desc, checked: checkedLayers.has(d.key) })),
+      deals: [...(rankedDeals ?? []), ...(unrankedDeals ?? [])].slice(0, 9).map((d) => ({
+        address: d.address ?? "Address on file",
+        price: d.price != null ? fmt(d.price / 100, symFor(d.currency_code)) : "n/a",
+        detail: `${d.bedrooms ? `${d.bedrooms} bed · ` : ""}${d.property_type ?? "Residential"}${d.size_sqm ? ` · ${Math.round(d.size_sqm)} sqm` : ""}`,
+        discountPct: d.discountPct,
+        grossYieldPct: d.yieldStatus === "ok" ? d.grossYieldPct : null,
+        ranked: d.discountPct !== null,
+        unrankedReason: d.unrankedReason,
+        verdict: dealVerdictLine(d),
+        compBasisLabel: d.compBasisLabel,
+        // The evidence behind the discount — real formatters only (money.ts
+        // / localizedPpsm), never hand-rolled division (see CLAUDE.md).
+        comps: (d.comps ?? []).map((cp) => ({
+          address: cp.address ?? "Address on file",
+          price: fmt(cp.price / 100, symFor(d.currency_code)),
+          ppsm: localizedPpsm(cp.ppsqm, selectedRow.country, symFor(d.currency_code)),
+        })),
+      })),
+      // Deliberately no development pro-forma here — see icMemoTemplate.ts
+      // module docstring. This is a market-screening memo; a ground-up
+      // development scenario is a different investment strategy that
+      // doesn't connect to the resale listings in Section 3.
+      diligence: diligence.map((d) => ({ label: d.label, desc: d.desc })),
       evidence: {
         infra: (evidence.infra[selectedRow.id] ?? []).map((pr) =>
           `${pr.project_name} — ${pr.type} · ${pr.status} · budget ${fmt(pr.budget / 100, s)}${pr.expected_completion ? ` · ETA ${pr.expected_completion}` : ""}`),
@@ -355,7 +544,7 @@ export function DealBoard({
         retrieved: selectedRow.retrieved_at ?? "n/a",
         freshness: freshnessMap[selectedRow.country] ?? "n/a",
         listingBasis: st
-          ? `Market baseline computed from ${st.sale_count + st.rent_count} live ${selectedRow.name} listings scraped ${today}`
+          ? `Market baseline computed from ${(st.sale_count ?? 0) + (st.rent_count ?? 0)} live ${selectedRow.name} listings scraped ${today}`
           : "No live listing baseline for this market",
       },
       analyst: userEmail ?? "—",
@@ -369,7 +558,7 @@ export function DealBoard({
         body: JSON.stringify(payload),
       });
       if (res.status === 403) {
-        toast("Investment Analysis Report export is a Pro feature — upgrade to unlock", "error");
+        toast("Investment Analysis Report export is an Institutional feature — upgrade to unlock", "error");
         return;
       }
       if (!res.ok) {
@@ -636,9 +825,9 @@ export function DealBoard({
                             {oppCount} live
                           </span>
                         )}
-                        {(statsMap[row.id]?.underpriced_count ?? 0) > 0 && (
-                          <span className="text-[9px] text-amber-300 border border-amber-800 bg-amber-950/40 rounded px-1 py-0.5 font-mono" title="Listings ≥15% below market median £/sqm">
-                            {statsMap[row.id].underpriced_count} underpriced
+                        {(zipMispricingMap[row.id] ?? 0) > 0 && (
+                          <span className="text-[9px] text-amber-300 border border-amber-800 bg-amber-950/40 rounded px-1 py-0.5 font-mono" title="Listings ≥15% below their own ZIP-level comparables (min 5 comps)">
+                            {zipMispricingMap[row.id]} underpriced
                           </span>
                         )}
                       </div>
@@ -742,6 +931,51 @@ export function DealBoard({
               </div>
             </div>
 
+            {/* Macro & Micro Analysis */}
+            {(microThesis || (report && report.demandSignals.length > 0)) && (
+              <div className="px-5 pt-4 pb-4 border-b border-[#1E2D40]">
+                <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-3">Macro &amp; Micro Analysis</div>
+
+                {microThesis && (
+                  <div className="mb-4">
+                    <p className="text-xs text-[#8AABCC] leading-relaxed">{microThesis.text}</p>
+                    <p className="text-[9px] text-[#3A5068] mt-1.5">
+                      Source: {microThesis.sourceName ?? "unknown"}
+                      {microThesis.sourceUrl
+                        ? <> — <a href={microThesis.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[#4A7090] hover:text-emerald-400 transition-colors">{microThesis.sourceUrl}</a></>
+                        : " (internal analysis, not an external citation)"}
+                    </p>
+                  </div>
+                )}
+
+                {report && report.demandSignals.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {report.demandSignals.map((sig: DemandSignal) => (
+                      <div
+                        key={sig.label}
+                        className={`px-3 py-2.5 border ${
+                          sig.reading === "strong" ? "border-emerald-900 bg-emerald-950/20"
+                          : sig.reading === "soft" ? "border-red-900 bg-red-950/20"
+                          : "border-[#1E2D40] bg-[#0D1624]"
+                        }`}
+                      >
+                        <div className="flex items-baseline justify-between gap-2 mb-1">
+                          <span className="text-[10px] font-semibold text-white">{sig.label}</span>
+                          <span className={`text-[10px] font-mono ${
+                            sig.reading === "strong" ? "text-emerald-400" : sig.reading === "soft" ? "text-red-400" : "text-amber-300"
+                          }`}>{sig.value}</span>
+                        </div>
+                        <p className="text-[10px] text-[#4A6080] leading-relaxed">{sig.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[9px] text-[#2E4560] mt-2">
+                  Demand-signal narrative is a deterministic reading of live market data — not AI-generated, not investment advice.
+                </p>
+              </div>
+            )}
+
             {/* Live Opportunities */}
             {(() => {
               const opps = opportunitiesMap[selectedRow.id] ?? [];
@@ -834,8 +1068,10 @@ export function DealBoard({
                       </div>
                     </div>
                     <div className="bg-[#111827] border border-amber-900/50 px-4 py-3">
-                      <div className="text-[10px] text-amber-500/80 mb-1">Underpriced ≥15%</div>
-                      <div className="text-lg font-bold text-amber-300">{st.underpriced_count}</div>
+                      <div className="text-[10px] text-amber-500/80 mb-1">≥15% below ZIP comps</div>
+                      {/* ZIP-comp basis (same screen as the ranked deals below), not the
+                          blended-median view count — "—" while the screen is loading. */}
+                      <div className="text-lg font-bold text-amber-300">{reportStats?.zip_mispricing_count ?? "—"}</div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -866,7 +1102,7 @@ export function DealBoard({
                       {alertState === "done" ? "✓ Alert active — email on underpriced deals"
                         : alertState === "error" ? "Could not create alert — retry"
                         : alertPending ? "Creating…"
-                        : `🔔 Alert me: new ${selectedRow.name} deals ≥15% below market`}
+                        : `🔔 Alert me: new ${selectedRow.name} deals ≥15% below ZIP comps`}
                     </button>
                     <Link
                       href={`/capital?market=${selectedRow.slug}`}
@@ -878,6 +1114,106 @@ export function DealBoard({
                 </div>
               );
             })()}
+
+            {/* Live deals — the market's real mispricing pool (≥15% below comp
+                basis, matching Section 1's headline count), not an arbitrary
+                or recency-ordered sample. */}
+            {(liveDealsLoading || (rankedDeals && rankedDeals.length > 0) || (unrankedDeals && unrankedDeals.length > 0)) && (
+              <div className="px-5 pt-4 pb-4 border-b border-[#1E2D40]">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase">
+                    Live deals {rankedDeals && (
+                      <span className="text-emerald-400">
+                        · top {rankedDeals.length}{(reportStats?.zip_mispricing_count ?? 0) > 0
+                          ? ` of ${reportStats!.zip_mispricing_count} mispriced vs ZIP comps` : ""}
+                      </span>
+                    )}
+                  </span>
+                  <Link href={`/market-feed?q=${encodeURIComponent(selectedRow.name)}`}
+                        className="text-[10px] text-[#4A7090] hover:text-emerald-400 transition-colors">
+                    View all in market feed ↗
+                  </Link>
+                </div>
+                <p className="text-[9px] text-[#2E4560] mb-3">
+                  Ranked by discount vs. each listing&apos;s own ZIP-level comparables (same ZIP, property type, and bedroom
+                  count; minimum 5 comps) — never a blended metro median, and never padded with weaker listings to hit a
+                  round number. ≥15% and ≤60% below basis only, the same band the mispricing count above uses. A listing
+                  without enough true comparables shows &quot;insufficient comparable data&quot; rather than a discount
+                  measured against the wrong basis. Gross yield uses this market&apos;s real rent comps only; deals missing
+                  either metric are listed separately, not ranked against fuller data.
+                </p>
+
+                {liveDealsLoading ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="h-16 bg-[#111827] border border-[#1E2D40] animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    {(rankedDeals ?? []).length > 0 && (
+                      <div className="space-y-2">
+                        {(rankedDeals ?? []).map((d, i) => (
+                          <Link
+                            key={d.id}
+                            href={`/market-feed/${d.id}`}
+                            className="flex items-center gap-3 border border-[#1E2D40] bg-[#111827] hover:border-[#2A5C96] transition-colors px-3 py-2.5"
+                          >
+                            <span className="text-[10px] font-mono text-[#3A5068] w-4 shrink-0">#{i + 1}</span>
+                            <div className="w-12 h-12 shrink-0 bg-[#0D1624] overflow-hidden">
+                              {d.images?.[0] && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={d.images[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-xs font-bold text-white">{d.price != null ? fmt(d.price / 100, symFor(d.currency_code)) : "—"}</span>
+                                <span className="text-[9px] text-[#4A6080] font-mono shrink-0">
+                                  {d.discountPct != null ? `${d.discountPct >= 0 ? "−" : "+"}${Math.abs(d.discountPct).toFixed(1)}%` : ""}
+                                  {d.yieldStatus === "ok" && d.grossYieldPct != null ? ` · ${d.grossYieldPct.toFixed(1)}% yield` : ""}
+                                </span>
+                              </div>
+                              <div className="text-[9px] text-[#4A6080] truncate mt-0.5">{d.address ?? "Address on file"}</div>
+                              <div className="text-[9px] text-[#3A5068] mt-0.5">{dealVerdictLine(d)}</div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {(unrankedDeals ?? []).length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-[9px] text-[#4A6080] uppercase tracking-wider mb-2">
+                          Additional deals — not ranked (see reason per deal below)
+                        </div>
+                        <div className="space-y-2 opacity-70">
+                          {(unrankedDeals ?? []).map((d) => (
+                            <Link
+                              key={d.id}
+                              href={`/market-feed/${d.id}`}
+                              className="flex items-center gap-3 border border-[#1E2D40] bg-[#0D1624] hover:border-[#2A3D54] transition-colors px-3 py-2.5"
+                            >
+                              <div className="w-12 h-12 shrink-0 bg-[#111827] overflow-hidden">
+                                {d.images?.[0] && (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={d.images[0]} alt="" className="w-full h-full object-cover" loading="lazy" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-bold text-white">{d.price != null ? fmt(d.price / 100, symFor(d.currency_code)) : "—"}</div>
+                                <div className="text-[9px] text-[#4A6080] truncate mt-0.5">{d.address ?? "Address on file"}</div>
+                                <div className="text-[9px] text-[#3A5068] mt-0.5">{dealVerdictLine(d)}</div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Conviction checklist */}
             <div className="px-5 pt-4 pb-3 border-b border-[#1E2D40]">
@@ -918,11 +1254,86 @@ export function DealBoard({
               </div>
             </div>
 
-            {/* Pro-forma */}
+            {/* Investment Analysis Report — primary CTA, Institutional-only export.
+                Market-screening data only (macro read + live deals + diligence
+                roadmap + provenance) — not gated on the preliminary underwrite
+                below, which is a separate, optional on-screen tool and is
+                deliberately not part of the exported document. */}
+            <div className="px-5 pt-4 pb-5 border-b border-[#1E2D40]">
+              {isInstitutional ? (
+                <button
+                  onClick={generateMemo}
+                  disabled={memoPending}
+                  className="w-full border border-[#1E4A7A] bg-[#0E1E32] hover:bg-[#12294A] hover:border-[#2A5C96] transition-all disabled:opacity-60 text-left"
+                >
+                  <div className="px-5 py-4 flex items-center justify-between gap-6">
+                    <div>
+                      <div className="text-[9px] tracking-[0.3em] text-[#4A7090] uppercase mb-1">
+                        Investment Analysis
+                      </div>
+                      <div className="text-sm font-bold text-white tracking-tight">
+                        {memoPending ? "Preparing report…" : "Prepare Investment Analysis Report"}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[9px] text-[#4A6080] uppercase tracking-[0.15em]">Word · .doc</div>
+                      <div className={`text-[10px] font-mono mt-0.5 ${checkedLayers.size > 0 ? "text-emerald-400" : "text-[#3A5068]"}`}>
+                        {checkedLayers.size > 0
+                          ? `${checkedLayers.size} conviction dimension${checkedLayers.size > 1 ? "s" : ""}`
+                          : "base report"}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <Link
+                  href="/pricing"
+                  className="w-full border border-[#1E2D40] bg-[#0D1624] hover:border-[#2A5C96] transition-all text-left block"
+                >
+                  <div className="px-5 py-4 flex items-center justify-between gap-6">
+                    <div>
+                      <div className="text-[9px] tracking-[0.3em] text-[#4A7090] uppercase mb-1">
+                        Investment Analysis
+                      </div>
+                      <div className="text-sm font-bold text-white tracking-tight">
+                        Investment Analysis Report export — Institutional feature
+                      </div>
+                      <div className="text-[10px] text-[#4A6080] mt-1">
+                        Upgrade to export this market as a Word-editable report →
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[9px] text-[#4A6080] uppercase tracking-[0.15em]">Word · .doc</div>
+                    </div>
+                  </div>
+                </Link>
+              )}
+              <div className="text-[9px] text-[#2E4560] mt-2 text-center">
+                {checkedLayers.size > 0
+                  ? "Compiled from live market data, screened deals, and selected conviction dimensions — with scores and sources."
+                  : "Select conviction checklist dimensions above to annex them to the report."}
+              </div>
+
+              {/* Link to full city deal page */}
+              <Link
+                href={`/opportunities/${selectedRow.slug}`}
+                className="mt-3 w-full py-2.5 border border-[#1E2D40] text-[#4A7090] hover:text-white hover:border-[#1E3A60] text-[11px] font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                View all opportunities, signals &amp; planning data for {selectedRow.name} ↗
+              </Link>
+            </div>
+
+            {/* Preliminary underwrite — a separate, optional on-screen ground-up
+                development calculator. Deliberately NOT part of the Investment
+                Analysis Report export above: it's a different investment
+                strategy (build-new) from the resale deals screened in this
+                market, using generic default assumptions, not the specific
+                deals above — including it in the export read as if it were
+                their financial model, which it isn't (2026-07-08 rebuild). */}
             {pf && pfOut && (
               <div className="px-5 pt-4 pb-5">
                 <div className="text-[10px] tracking-[0.15em] text-[#4A6080] uppercase mb-1">
-                  Preliminary Underwrite
+                  Preliminary Underwrite <span className="text-[#3A5068] normal-case">· on-screen only, not included in the export</span>
                 </div>
                 <div className="text-[10px] text-[#2E4560] mb-3 normal-case tracking-normal">
                   Editable DCF · recalculates live · opex held at 32% of gross income
@@ -1032,45 +1443,6 @@ export function DealBoard({
                     </table>
                   </div>
                 )}
-
-                {/* Investment Analysis Report — primary CTA */}
-                <button
-                  onClick={generateMemo}
-                  disabled={memoPending}
-                  className="w-full border border-[#1E4A7A] bg-[#0E1E32] hover:bg-[#12294A] hover:border-[#2A5C96] transition-all disabled:opacity-60 text-left"
-                >
-                  <div className="px-5 py-4 flex items-center justify-between gap-6">
-                    <div>
-                      <div className="text-[9px] tracking-[0.3em] text-[#4A7090] uppercase mb-1">
-                        Investment Analysis
-                      </div>
-                      <div className="text-sm font-bold text-white tracking-tight">
-                        {memoPending ? "Preparing report…" : "Prepare Investment Analysis Report"}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-[9px] text-[#4A6080] uppercase tracking-[0.15em]">Word · .doc</div>
-                      <div className={`text-[10px] font-mono mt-0.5 ${checkedLayers.size > 0 ? "text-emerald-400" : "text-[#3A5068]"}`}>
-                        {checkedLayers.size > 0
-                          ? `${checkedLayers.size} conviction dimension${checkedLayers.size > 1 ? "s" : ""}`
-                          : "base report"}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-                <div className="text-[9px] text-[#2E4560] mt-2 text-center">
-                  {checkedLayers.size > 0
-                    ? "Compiled from live market data, preliminary underwrite, and selected conviction dimensions — with scores and sources."
-                    : "Select conviction checklist dimensions above to annex them to the report."}
-                </div>
-
-                {/* Link to full city deal page */}
-                <Link
-                  href={`/opportunities/${selectedRow.slug}`}
-                  className="mt-3 w-full py-2.5 border border-[#1E2D40] text-[#4A7090] hover:text-white hover:border-[#1E3A60] text-[11px] font-semibold transition-all flex items-center justify-center gap-2"
-                >
-                  View all opportunities, signals & planning data for {selectedRow.name} ↗
-                </Link>
               </div>
             )}
           </div>
@@ -1081,7 +1453,8 @@ export function DealBoard({
           <div className="border border-[#1E2D40] bg-[#0D1624] px-5 py-5 text-center">
             <div className="text-sm font-semibold text-white mb-1">Preliminary underwrite &amp; Investment Analysis Report are Pro features</div>
             <div className="text-xs text-[#4A6080] mb-4">
-              Pro unlocks all markets, the conviction checklist, editable preliminary underwrite (yield-on-cost · NOI · margin), and one-click Investment Analysis Report export.
+              Pro unlocks all markets, the conviction checklist, and editable preliminary underwrite (yield-on-cost · NOI · margin).
+              Institutional adds one-click Investment Analysis Report export.
             </div>
             <Link href="/pricing" className="inline-block bg-[#163559] border border-[#1E4A7A] text-white text-xs px-6 py-2.5 hover:bg-[#1A4070] transition-colors">
               Upgrade to Pro →

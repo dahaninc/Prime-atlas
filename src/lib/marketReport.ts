@@ -25,6 +25,15 @@ export interface MarketReportSource {
   history: { captured_on: string; opportunity_score: number; growth_score: number; risk_score: number }[];
   /** Median ppsqm across all covered markets in the same country (minor units). */
   countryMedianPpsqm: number | null;
+  /**
+   * What `stats.underpriced_count` was measured against, so the mispricing
+   * signal's label matches its basis: "zip_comps" = each listing vs its own
+   * ZIP-level comparable set (src/lib/comps.ts — the memo export's basis);
+   * "market_median" (default) = the blended metro median from
+   * market_listing_stats. A ZIP-comp count must never be captioned as a
+   * median stat, or vice versa.
+   */
+  mispricingBasis?: "zip_comps" | "market_median";
 }
 
 export interface RateScenarioRow {
@@ -154,16 +163,17 @@ export function buildMarketReport(src: MarketReportSource): MarketReport {
     });
   }
   if (underpricedShare != null) {
+    const zipBasis = src.mispricingBasis === "zip_comps";
     const reading = underpricedShare >= 12 ? "strong" : underpricedShare >= 5 ? "neutral" : "soft";
     signals.push({
       label: "Mispricing opportunity",
-      value: `${underpricedShare.toFixed(1)}% of sale listings ≥15% below median /sqm`,
+      value: `${underpricedShare.toFixed(1)}% of sale listings ≥15% below ${zipBasis ? "ZIP-level comps" : "median /sqm"}`,
       reading,
       note: reading === "strong"
-        ? "Elevated share of below-median pricing — dispersion this wide usually rewards fast, criteria-driven screening."
+        ? `Elevated share of ${zipBasis ? "below-comps" : "below-median"} pricing — dispersion this wide usually rewards fast, criteria-driven screening.`
         : reading === "neutral"
         ? "Normal pricing dispersion for a functioning market."
-        : "Tight pricing — sellers are anchored near the median, little visible dispersion to work.",
+        : `Tight pricing — sellers are anchored near ${zipBasis ? "their comparable sets" : "the median"}, little visible dispersion to work.`,
     });
   }
   if (src.countryMedianPpsqm != null && src.stats?.median_ppsqm != null) {

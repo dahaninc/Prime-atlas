@@ -8,12 +8,22 @@
  *
  * Matching criteria per rule (all optional, AND-ed):
  *   municipality_id / country_iso2 · listing_type · max_price ·
- *   min_bedrooms · min_discount_pct (vs market median £/sqm) · min_yield_pct
+ *   min_bedrooms · min_discount_pct (vs ZIP-level comp basis, see below) ·
+ *   min_yield_pct
+ *
+ * Discount basis (2026-07-08 methodology rebuild): same ZIP-comp screen as
+ * the Deal Board / Investment Analysis Report / /underpriced
+ * (src/lib/comps.ts via fetchZipCompScreens) — a listing only carries a
+ * discount vs the median of ≥5 comps in its own ZIP × property type ×
+ * bedrooms, never vs the blended metro median. Consequence: a listing
+ * without comp coverage (all UK, thin US ZIPs) has discountPct null and
+ * can never satisfy a min_discount_pct rule — an alert email must never
+ * claim a discount the product's own report would refuse to rank.
  *
  * Also processes the undervalued-property waitlist (underpriced_waitlist):
- * new sale listings ≥15% below their market median are mailed to waitlisted
- * users — PAID TIERS ONLY (free users may join the list; delivery activates
- * with membership). Dedupe via underpriced_waitlist_hits.
+ * new sale listings ≥15% below their ZIP-comp basis are mailed to
+ * waitlisted users — PAID TIERS ONLY (free users may join the list;
+ * delivery activates with membership). Dedupe via underpriced_waitlist_hits.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -21,6 +31,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import type { Database } from "@/lib/supabase/database.types";
 import { estimateGrossYield } from "@/lib/yield";
+import { fetchZipCompScreens } from "@/lib/server/compScreens";
 
 export const maxDuration = 120;
 export const dynamic = "force-dynamic";
@@ -54,7 +65,7 @@ export async function GET(req: NextRequest) {
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const [{ data: rules }, { data: waitlist }, { data: recent }, { data: stats }, { data: municipalities }] =
+  const [{ data: rules }, { data: waitlist }, { data: recent }, { data: municipalities }] =
     await Promise.all([
       supabase.from("deal_alert_rules").select("*").eq("active", true),
       supabase.from("underpriced_waitlist").select("id, user_id, municipality_id"),
@@ -66,29 +77,33 @@ export async function GET(req: NextRequest) {
         .eq("status", "active")
         .gte("scraped_at", new Date(Date.now() - LOOKBACK_HOURS * 3600_000).toISOString())
         .not("price", "is", null),
-      supabase.from("market_listing_stats").select("municipality_id, median_ppsqm"),
-      supabase.from("municipalities").select("id, name"),
+      supabase.from("municipalities").select("id, name, country"),
     ]);
 
   if ((!rules?.length && !waitlist?.length) || !recent?.length) {
     return NextResponse.json({ ok: true, matched: 0, reason: "no active rules/waitlist or no recent listings" });
   }
 
-  const medianPpsqm = new Map<string, number>();
-  for (const st of stats ?? []) {
-    if (st.municipality_id && st.median_ppsqm) medianPpsqm.set(st.municipality_id, Number(st.median_ppsqm));
-  }
   const marketName = new Map((municipalities ?? []).map((m) => [m.id, m.name]));
+  const usMarketIds = new Set((municipalities ?? []).filter((m) => m.country === "United States").map((m) => m.id));
 
-  // Pre-compute discount + yield per property
+  // ZIP-comp screens over the FULL sale inventory of every US market with a
+  // recent listing — a recent listing's discount is measured against its
+  // whole comp set, not just the last 26h of scrapes. UK is structurally
+  // uncovered (see compScreens.ts) and skipped.
+  const recentUsSaleMarkets = Array.from(new Set(
+    (recent as Property[])
+      .filter((p) => p.listing_type === "sale" && p.municipality_id && usMarketIds.has(p.municipality_id))
+      .map((p) => p.municipality_id as string),
+  ));
+  const screens = await fetchZipCompScreens(supabase, recentUsSaleMarkets);
+
+  // Pre-compute discount + yield per property. discountPct is non-null ONLY
+  // when the ZIP-comp screen ranks it mispriced (15–60% below ≥5 real comps).
   const enriched = (recent as Property[]).map((p) => {
-    const median = p.municipality_id ? medianPpsqm.get(p.municipality_id) : undefined;
-    const size = Number(p.size_sqm);
-    const ppsqm = p.price && size >= 15 && size <= 2000 ? p.price / size : null;
-    let discountPct = median && ppsqm ? ((median - ppsqm) / median) * 100 : null;
-    // Deeper than −60% vs median is presumed source-data noise, never alerted.
-    if (discountPct != null && discountPct > 60) discountPct = null;
-    return { ...p, discountPct, estYield: estimateGrossYield(p) };
+    const entry = p.municipality_id ? screens.get(p.municipality_id)?.screen.byId.get(p.id) : undefined;
+    const discountPct = entry?.status === "mispriced" ? entry.discountPct : null;
+    return { ...p, discountPct, compCount: entry?.comps.length ?? 0, estYield: estimateGrossYield(p) };
   });
 
   let emailsSent = 0;
@@ -135,7 +150,7 @@ export async function GET(req: NextRequest) {
         const priceStr = p.price ? `${sym(p.currency_code)}${Math.round(p.price / 100).toLocaleString()}` : "POA";
         const extras = [
           p.bedrooms ? `${p.bedrooms} bed` : null,
-          p.discountPct != null ? `<strong style="color:#059669">${p.discountPct.toFixed(0)}% below market</strong>` : null,
+          p.discountPct != null ? `<strong style="color:#059669">${p.discountPct.toFixed(0)}% below ${p.compCount} ZIP-level comps</strong>` : null,
           p.estYield != null ? `~${p.estYield}% gross yield` : null,
         ].filter(Boolean).join(" · ");
         const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app"}/market-feed/${p.id}`;
@@ -218,7 +233,7 @@ export async function GET(req: NextRequest) {
           const link = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://prime-atlas-weld.vercel.app"}/market-feed/${p.id}`;
           return `<tr><td style="padding:10px 0;border-bottom:1px solid #eee">
             <a href="${link}" style="color:#1B4FE4;font-weight:600;text-decoration:none">${p.address ?? "View listing"}</a><br/>
-            <span style="font-size:13px;color:#111"><strong>${priceStr}</strong> · <strong style="color:#059669">${(p.discountPct ?? 0).toFixed(0)}% below ${market} median</strong></span>
+            <span style="font-size:13px;color:#111"><strong>${priceStr}</strong> · <strong style="color:#059669">${(p.discountPct ?? 0).toFixed(0)}% below ${p.compCount} ZIP-level comps${market ? ` (${market})` : ""}</strong></span>
           </td></tr>`;
         })
         .join("");
@@ -230,7 +245,7 @@ export async function GET(req: NextRequest) {
           subject: `📉 ${fresh.length} undervalued propert${fresh.length > 1 ? "ies" : "y"} just launched`,
           html: `<div style="font-family:ui-sans-serif,system-ui;max-width:560px;margin:0 auto">
             <p style="font-size:12px;letter-spacing:2px;color:#888;text-transform:uppercase">Prime Atlas · Undervalued Waitlist</p>
-            <p style="font-size:15px;color:#111">New listings flagged ≥15% below their market's median per-sqm:</p>
+            <p style="font-size:15px;color:#111">New listings flagged ≥15% below the median of their own ZIP-level comparables (same ZIP, property type, bedrooms — minimum 5 comps):</p>
             <table style="width:100%;border-collapse:collapse">${rows}</table>
             <p style="font-size:11px;color:#999;margin-top:20px">
               You receive this because you joined the undervalued-property waitlist on Prime Atlas.
