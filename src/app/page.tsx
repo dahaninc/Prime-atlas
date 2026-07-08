@@ -69,6 +69,43 @@ const OUTCOMES = [
   },
 ];
 
+// Trust band — every entry states something the codebase actually does.
+// HARD RULE (see the 2026-07-08 honest-data sessions): this section must
+// never carry third-party bank/partner logos, fabricated testimonials, or
+// implied endorsements — Prime Atlas has no such relationships, and a
+// disclaimer under a fake "Trusted By" strip is a second false claim, not
+// a shield. Trust content here is limited to (a) data sources we genuinely
+// derive from, (b) guarantees the engines enforce.
+const DATA_PROVENANCE = [
+  { mark: "US Census ACS", sub: "Market fundamentals — sourced directly", tag: "SRC · US-ACS" },
+  { mark: "HM Land Registry", sub: "UK transaction records — public data", tag: "SRC · HMLR-UK" },
+  { mark: "Live Listings Network", sub: "11,000+ properties, refreshed on cadence", tag: "LIVE · 11K+ ROWS" },
+  { mark: "Prime Atlas Engines", sub: "Deterministic, unit-tested calculation layer", tag: "ENGINE · VITEST 95" },
+];
+
+const METHOD_GUARANTEES = [
+  {
+    title: "No discount without evidence",
+    body: "Every “below market” figure is measured against at least 5 live comparables in the same ZIP, property type, and bedroom count — and the comps are shown, so the claim can be audited, not taken on faith.",
+    tag: "ENGINE · ZIP-COMPS ≥5",
+  },
+  {
+    title: "No yield without real rents",
+    body: "Gross yield renders only where 10+ real rent comps exist for that market. Never a national average, never an interpolation from a neighboring city.",
+    tag: "GATE · RENT-COMPS ≥10",
+  },
+  {
+    title: "Honest gaps, not estimates",
+    body: "Where the data can't support a number, the product says “insufficient comparable data” — in the feed, on the Deal Board, and in the exported report. A blank you can trust beats a figure you can't.",
+    tag: "POLICY · NO-FALLBACK",
+  },
+  {
+    title: "Enforced at the server",
+    body: "Tier gates, address redaction, and export permissions are enforced server-side. What leaves the platform is controlled by code, not by hiding pixels in the browser.",
+    tag: "ACCESS · SERVER-SIDE",
+  },
+];
+
 const AUDIENCES = [
   {
     tag: "Individual & retail investors",
@@ -848,6 +885,62 @@ export default async function HomePage() {
                   <p className="text-4xl mb-3">{mc.flag}</p>
                   <p className="text-sm font-bold mb-1">{mc.label}</p>
                   <p className="text-[11px] text-zinc-500 leading-relaxed">{mc.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Trust band: data provenance + enforced methodology ──
+            Deliberately NOT a partner/client logo strip — see the
+            DATA_PROVENANCE comment above. Everything here is verifiable
+            in-product or in the codebase. */}
+        <section className="py-20 bg-card border-y border-border">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest text-center mb-2">
+              Built on verifiable data
+            </p>
+            <h2 className="text-2xl font-black tracking-tight text-center mb-10 text-balance">
+              Provenance you can cite in committee
+            </h2>
+
+            {/* Provenance strip — typographic wordmarks, muted until hover */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border-y border-border divide-y sm:divide-y-0 sm:divide-x divide-border mb-3">
+              {DATA_PROVENANCE.map((d) => (
+                <div
+                  key={d.mark}
+                  className="group px-6 py-7 text-center opacity-50 hover:opacity-100 transition-opacity duration-300"
+                >
+                  <p className="font-black tracking-tight text-lg text-foreground">{d.mark}</p>
+                  <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{d.sub}</p>
+                  <p className="text-[9px] font-mono text-zinc-500 mt-3 tracking-[0.15em] group-hover:text-primary transition-colors">
+                    [{d.tag}]
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-zinc-500 text-center leading-relaxed max-w-2xl mx-auto mb-16">
+              Sources shown are the public-record and live-market data this platform computes from,
+              cited line-by-line in every exported report. No partner, client, or endorsement
+              relationship is implied by any name on this page.
+            </p>
+
+            {/* Methodology guarantees — the testimonial the product can actually give */}
+            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-widest text-center mb-2">
+              Enforced in code, not promised in copy
+            </p>
+            <h2 className="text-2xl font-black tracking-tight text-center mb-8 text-balance">
+              Four guarantees every number on this platform obeys
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {METHOD_GUARANTEES.map((g) => (
+                <div
+                  key={g.title}
+                  className="relative rounded-2xl border border-border bg-background/60 backdrop-blur-sm p-6 hover:border-primary/30 transition-colors"
+                >
+                  <p className="text-[9px] font-mono text-zinc-500 tracking-[0.15em] mb-4">[{g.tag}]</p>
+                  <p className="font-bold text-sm mb-2">{g.title}</p>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed text-pretty">{g.body}</p>
                 </div>
               ))}
             </div>
