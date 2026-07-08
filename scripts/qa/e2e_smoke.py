@@ -6,8 +6,10 @@ Verifies the platform's core functional blocks against a live deployment:
 
   1.  Public surface renders (home, pricing, listings, market feed) on the
       obsidian design system with zero non-US/UK market leakage.
-  2.  Auth walls hold: /deal-board, /dashboard, /portfolio redirect anonymous
-      visitors instead of leaking member data.
+  2.  Auth walls hold: /dashboard, /portfolio, /screener, /reports/market
+      redirect anonymous visitors instead of leaking member data. /deal-board
+      is deliberately public (top-of-funnel teaser) — checked separately for
+      the same no-leak invariant rather than a redirect.
   3.  Frictionless signup lifecycle: a test operator account is created via
       the Supabase auth API (the exact call AuthForm makes in the browser)
       and, when a session is returned, member-scoped reads work under RLS.
@@ -94,7 +96,7 @@ def main() -> int:
 
     # ── 1. Public surface ────────────────────────────────────────────────────
     print("[1] Public surface")
-    for path in ("/", "/pricing", "/listings", "/market-feed", "/underpriced"):
+    for path in ("/", "/pricing", "/market-feed"):
         code, html, _ = http(base + path)
         check(f"GET {path} renders", code == 200, f"HTTP {code}")
         if path == "/":
@@ -104,6 +106,24 @@ def main() -> int:
             leaked = [c for c in ("Sagunto", "Torrevieja", "Valencia", "Toronto", "Calgary")
                       if c in html]
             check("no non-US/UK market leakage on home", not leaked, ",".join(leaked) or "clean")
+
+    # /listings was fully killed (commit 111fe2b, 2026-07-09) — route, nav
+    # entries, and every internal link removed. 404 is the permanent,
+    # intended state, not a dead link.
+    code, _, _ = http(base + "/listings")
+    check("GET /listings is gone (killed route)", code == 404, f"HTTP {code}")
+
+    # /underpriced was merged into Deal Board's All Markets view (commit
+    # 111fe2b) — kept as a redirect, not a dead route, so old deep-links and
+    # emails still land. Next.js issues the 307 with NO Location header for
+    # this route (the target is carried in the RSC flight payload for the
+    # client-side router to act on), so a plain HTTP client can't literally
+    # follow it — asserting the redirect status here; the real landing
+    # content (what every JS-enabled visitor actually sees) is checked at
+    # its target, /deal-board?view=all, in [1b] below.
+    code, _, _ = http(base + "/underpriced", follow=False)
+    check("GET /underpriced redirects (not a dead route, not a direct render)",
+          code in (307, 308), f"HTTP {code}")
 
     # ── 1b. Free-tier redaction invariants ──────────────────────────────────
     print("\n[1b] Free-tier redaction (anonymous)")
@@ -116,19 +136,33 @@ def main() -> int:
     check("market-feed: no property photo URLs for anon",
           code == 200 and not photo_re.search(html),
           f"HTTP {code}, matches={len(photo_re.findall(html))}")
-    code, html, _ = http(base + "/underpriced")
-    check("underpriced: members-only teaser for anon (no deal links)",
+    # /underpriced's 307 carries no Location header for non-JS clients (see
+    # [1]) — test the actual redirect target, which is what every real
+    # (JS-enabled) visitor lands on.
+    code, html, _ = http(base + "/deal-board?view=all")
+    check("underpriced redirect target: members-only teaser for anon (no deal links)",
           code == 200 and "market-feed/" not in html and "members only" in html.lower(),
           f"HTTP {code}")
-    check("underpriced: waitlist CTA present", "waitlist" in html.lower(), "join CTA rendered")
+    check("underpriced redirect target: waitlist CTA present", "waitlist" in html.lower(), "join CTA rendered")
 
     # ── 2. Auth walls ────────────────────────────────────────────────────────
     print("\n[2] Auth walls")
-    for path in ("/deal-board", "/dashboard", "/portfolio", "/screener", "/reports/market"):
+    for path in ("/dashboard", "/portfolio", "/screener", "/reports/market"):
         code, _, hdrs = http(base + path, follow=False)
         loc = hdrs.get("Location", hdrs.get("location", ""))
         check(f"{path} gated for anonymous", code in (301, 302, 303, 307, 308) and "login" in loc,
               f"HTTP {code} -> {loc or '(no redirect)'}")
+
+    # /deal-board is deliberately NOT gated (commit 111fe2b, 2026-07-09) —
+    # its All Markets view is the public top-of-funnel teaser; the page
+    # branches on auth server-side and hands anonymous visitors a thin, safe
+    # dataset (no listing-level data — checked in [1b] above). Every authed
+    # feature (screening, financing, exports) still 401s server-side
+    # regardless of this page-level access.
+    code, html, _ = http(base + "/deal-board")
+    check("/deal-board public teaser for anonymous (intentionally ungated)",
+          code == 200 and "market-feed/" not in html,
+          f"HTTP {code}")
 
     # IC memo export must refuse anonymous callers server-side
     code, _, _ = http(base + "/api/export/ic-memo", "POST", {"market": {"name": "x"}})
