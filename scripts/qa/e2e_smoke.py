@@ -136,6 +136,26 @@ def main() -> int:
     check("market-feed: no property photo URLs for anon",
           code == 200 and not photo_re.search(html),
           f"HTTP {code}, matches={len(photo_re.findall(html))}")
+
+    # Regression guard for the fabricated Market Feed yield badge (found in
+    # a 2026-07-08 product review): estimateYield() was a hardcoded
+    # state-rent lookup table that always produced a "~N.N%" badge on every
+    # sale card, unlabeled as an estimate. Fixed by gating on the real
+    # computeRealGrossYieldPct() engine (>=10 real rent comps) — most
+    # listings now correctly show no real number. Two checks: the old
+    # heuristic's tilde-prefixed signature must never reappear, and the
+    # "insufficient data" badge must actually fire at least once (proves
+    # the gate is live, not a no-op that always shows a number).
+    tilde_yield = re.search(r"~\d+(\.\d+)?%", html)
+    check("no heuristic '~yield%' badge on Market Feed cards",
+          code == 200 and not tilde_yield,
+          "found a tilde-prefixed yield badge — the old estimateYield() heuristic may have returned"
+          if tilde_yield else f"HTTP {code}")
+    insufficient_yield_badges = html.count("Insufficient rent-comp data for a real yield in this market")
+    check("Market Feed yield is gated (not always-populated)",
+          code == 200 and insufficient_yield_badges > 0,
+          f"insufficient-data badges found={insufficient_yield_badges}")
+
     # /underpriced's 307 carries no Location header for non-JS clients (see
     # [1]) — test the actual redirect target, which is what every real
     # (JS-enabled) visitor lands on.
