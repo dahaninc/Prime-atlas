@@ -60,7 +60,7 @@ export default function AboutPage() {
             </p>
           </section>
 
-          <section>
+          <section id="methodology">
             <h2 className="text-lg font-semibold text-foreground mb-3">How our scoring works</h2>
             <p>
               Every market and asset tracked by Prime Atlas receives a composite Opportunity Score (0–100)
@@ -82,7 +82,6 @@ export default function AboutPage() {
             </ul>
             <p className="mt-4">
               Scores are algorithmic estimates derived from public data and are not financial advice.
-              See our <Link href="/methodology" className="text-pa-green hover:underline">Methodology</Link> page for full technical documentation.
             </p>
           </section>
 

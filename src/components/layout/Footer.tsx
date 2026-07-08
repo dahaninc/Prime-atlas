@@ -13,7 +13,7 @@ const PRODUCT = [
 
 const COMPANY = [
   { href: "/about", label: "About" },
-  { href: "/methodology", label: "Methodology" },
+  { href: "/about#methodology", label: "Methodology" },
   { href: "/auth/signup", label: "Get started" },
 ];
 

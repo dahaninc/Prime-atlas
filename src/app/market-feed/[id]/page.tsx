@@ -1011,7 +1011,7 @@ export default async function MarketFeedPropertyPage(
                           Become a Member
                         </Link>
                         <Link
-                          href="/sign-up"
+                          href="/auth/signup"
                           className="mt-2 text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
                         >
                           Create free account →
