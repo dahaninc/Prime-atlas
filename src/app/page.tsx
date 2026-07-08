@@ -32,10 +32,10 @@ const SOCIAL_PROOF = [
 
 const OUTCOMES = [
   {
-    stat: "6.8%",
-    statSub: "avg. gross yield",
-    body: "Prime Atlas-screened deals averaged 6.8% gross yield — 1.4× the national residential average across USA and UK markets.",
-    tag: "Returns",
+    stat: "10+",
+    statSub: "real rent comps behind every yield",
+    body: "Gross yields on the Deal Board are computed from live market rent comps — shown only where at least 10 real comps exist, never backfilled from a national average or an estimate.",
+    tag: "Real data",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/25",
