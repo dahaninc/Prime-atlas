@@ -80,7 +80,7 @@ const DATA_PROVENANCE = [
   { mark: "US Census ACS", sub: "Market fundamentals — sourced directly", tag: "SRC · US-ACS" },
   { mark: "HM Land Registry", sub: "UK transaction records — public data", tag: "SRC · HMLR-UK" },
   { mark: "Live Listings Network", sub: "11,000+ properties, refreshed on cadence", tag: "LIVE · 11K+ ROWS" },
-  { mark: "Prime Atlas Engines", sub: "Deterministic, unit-tested calculation layer", tag: "ENGINE · VITEST 95" },
+  { mark: "Prime Atlas Engines", sub: "Deterministic, unit-tested calculation layer", tag: "ENGINE · VITEST 109" },
 ];
 
 const METHOD_GUARANTEES = [
@@ -697,11 +697,6 @@ export default async function HomePage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {topMunicipalities.map((m, i) => {
-                  const macro = m.opportunity_score >= 70 ? "BULLISH" : m.opportunity_score >= 55 ? "CAUTIOUS" : "NEUTRAL";
-                  const macroColor = macro === "BULLISH" ? "text-[#00C805] bg-[#00C805]/10" : macro === "CAUTIOUS" ? "text-amber-400 bg-amber-500/10" : "text-zinc-500 bg-secondary";
-                  const capRate = (4 + (m.growth_score - 50) * 0.04).toFixed(1);
-                  const irrLow  = (parseFloat(capRate) + (m.development_score - 50) * 0.05).toFixed(1);
-                  const irrHigh = (parseFloat(irrLow) + 3).toFixed(1);
                   const flag = countryFlag[m.country] ?? "🌍";
                   return (
                     <Link
@@ -726,9 +721,6 @@ export default async function HomePage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-4">
-                        <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${macroColor}`}>
-                          {macro === "BULLISH" ? "↑ BULLISH" : macro === "CAUTIOUS" ? "→ CAUTIOUS" : "— NEUTRAL"} MACRO
-                        </span>
                         <span className="text-[9px] text-zinc-500 font-mono">#{i + 1} in pipeline</span>
                       </div>
                       <div className="grid grid-cols-4 gap-2 mb-3">
@@ -744,15 +736,7 @@ export default async function HomePage() {
                           </div>
                         ))}
                       </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <div>
-                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-0.5">Est. Cap Rate</p>
-                          <p className="text-sm font-bold font-mono text-foreground">{capRate}%</p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-0.5">IRR Range (5yr)</p>
-                          <p className="text-sm font-bold font-mono text-[#00C805]">{irrLow}–{irrHigh}%</p>
-                        </div>
+                      <div className="flex items-center justify-end pt-3 border-t border-border">
                         <div className="text-right">
                           <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold mb-0.5">Micro view</p>
                           <p className="text-xs text-primary font-semibold group-hover:underline">Full analysis →</p>
