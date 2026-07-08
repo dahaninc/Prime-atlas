@@ -13,6 +13,17 @@ export async function createShareLink(
   kind: "analysis" | "report",
   refId: string,
 ): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  // Report sharing disabled for launch (2026-07-09): /reports/market still
+  // computes its mispricing count from the blended metro median
+  // (market_listing_stats.underpriced_count), not the ZIP-comp basis every
+  // other surface (Deal Board, Market Feed, All Markets) now uses. A public
+  // /s/[token] link could show a different "N underpriced" for the same
+  // market than Deal Board does. Re-enable once /reports/market is migrated
+  // onto the ZIP-comp engine (queued next). Screener-analysis sharing is
+  // unaffected — different engine, no blended-median dependency — and stays
+  // enabled.
+  if (kind === "report") return { ok: false, error: "report_sharing_disabled" };
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "not_authenticated" };

@@ -149,7 +149,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-6">
-        {res.kind === "analysis" ? <AnalysisView a={res.analysis} /> : <ReportView p={res.report.payload as unknown as MarketReport} />}
+        {res.kind === "analysis" ? <AnalysisView a={res.analysis} /> : <ReportUnavailable />}
 
         <SignupCta kind={res.kind} />
 
@@ -275,6 +275,27 @@ function AnalysisView({ a }: {
         </table>
       </div>
     </>
+  );
+}
+
+/* ── Report unavailable — public report sharing disabled for launch ─────
+   /reports/market still computes its mispricing count from the blended
+   metro median, not the ZIP-comp basis every other surface uses — showing
+   the live payload here could contradict Deal Board for the same market.
+   Existing links degrade to this clean state rather than crashing or
+   showing a number that might not match. See src/app/actions/share.ts. */
+
+function ReportUnavailable() {
+  return (
+    <div className="border border-border rounded-2xl bg-card p-8 text-center">
+      <p className="kicker text-primary mb-2">Prime Atlas market report</p>
+      <h1 className="text-xl font-bold mb-2">This shared report is temporarily unavailable</h1>
+      <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+        Public report sharing is paused while we finish aligning this report&apos;s methodology with the
+        rest of the platform. Your original report is unaffected — sign in to view it, or generate a
+        fresh one, on Deal Board.
+      </p>
+    </div>
   );
 }
 

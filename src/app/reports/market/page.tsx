@@ -3,9 +3,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { ReportClient } from "./ReportClient";
-import { getReportQuota } from "./actions";
-import type { MarketReport } from "@/lib/marketReport";
 
 export const dynamic = "force-dynamic";
 
@@ -15,26 +12,21 @@ export const metadata: Metadata = {
     "Proprietary market reports for USA and UK real-estate markets — conviction scores, live inventory analytics, demand signals, and interest-rate implications at 3, 5 and 10-year horizons.",
 };
 
+/*
+ * In-app report generation taken offline for launch (2026-07-09): this
+ * report's "underpriced" count is computed from the blended metro median
+ * (market_listing_stats.underpriced_count), not the ZIP-comp basis every
+ * other surface (Deal Board, Market Feed) now uses — for Charlotte that was
+ * 45 vs. Deal Board's real 9, a live in-app contradiction for any logged-in
+ * user. Mirrors the report-sharing disable in src/app/actions/share.ts and
+ * src/app/s/[token]/page.tsx. Neither generating a new report nor viewing a
+ * past one (its stored payload has the same blended-median count baked in)
+ * is reachable while this is up. Re-enable once this is migrated onto the
+ * ZIP-comp engine (src/lib/comps.ts).
+ */
 export default async function MarketReportsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  const [{ data: munis }, { data: reports }, quota] = await Promise.all([
-    supabase
-      .from("municipalities")
-      .select("id, name, region, country")
-      .in("country", ["United Kingdom", "United States"])
-      .order("name"),
-    user
-      ? supabase
-          .from("deal_board_reports")
-          .select("id, created_at, payload")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(20)
-      : Promise.resolve({ data: [] }),
-    getReportQuota(),
-  ]);
 
   return (
     <>
@@ -48,31 +40,20 @@ export default async function MarketReportsPage() {
           <span>Market Reports</span>
         </nav>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="kicker text-primary">Deal Board · market reports</span>
-          </div>
-          <h1 className="text-3xl font-bold mb-2">Proprietary market reports</h1>
-          <p className="text-muted-foreground text-sm max-w-2xl leading-relaxed">
-            Pick a covered market and get the numbers an investment committee asks for —
-            conviction scores, live inventory and mispricing analytics, demand signals, and
-            interest-rate implications at 3, 5 and 10-year horizons. Computed from live
-            Prime Atlas data. Analytics, not investment advice.
+        <div className="border border-border rounded-2xl bg-card p-8 text-center max-w-2xl mx-auto">
+          <p className="kicker text-primary mb-2">Prime Atlas · market reports</p>
+          <h1 className="text-xl font-bold mb-2">Report generation is temporarily unavailable</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+            We&apos;re finishing work on this report&apos;s underlying methodology. In the meantime,
+            screen this market&apos;s real, ZIP-comp-verified mispricing on Deal Board.
           </p>
+          <Link
+            href="/deal-board"
+            className="inline-block bg-primary text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-primary/85 transition-colors"
+          >
+            Open Deal Board →
+          </Link>
         </div>
-
-        <ReportClient
-          markets={(munis ?? []) as { id: string; name: string; region: string; country: string }[]}
-          pastReports={((reports ?? []) as { id: string; created_at: string; payload: unknown }[]).map((r) => ({
-            id: r.id,
-            created_at: r.created_at,
-            payload: r.payload as MarketReport,
-          }))}
-          quotaUsed={quota.used}
-          quotaLimit={quota.limit}
-          unlimited={quota.unlimited}
-        />
       </main>
       <Footer />
     </>
