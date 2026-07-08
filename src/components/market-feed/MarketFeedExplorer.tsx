@@ -207,7 +207,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
   const states = useMemo(() => {
     const s = new Set(enriched.filter(p => p.country === "US").map(p => p.stateCode).filter(x => x !== "—"));
     return Array.from(s).sort();
-  }, [enriched, query]);
+  }, [enriched]);
 
   const filtered = useMemo(() => {
     let list = enriched;
@@ -253,7 +253,7 @@ export function MarketFeedExplorer({ properties, initialQuery }: Props) {
       if (sortBy === "size_asc")   return Number(a.size_sqm ?? 0) - Number(b.size_sqm ?? 0);
       return new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime();
     });
-  }, [enriched, market, listing, propType, state, yieldF, priceF, sizeF, minBeds, sortBy]);
+  }, [enriched, query, market, listing, propType, state, yieldF, priceF, sizeF, minBeds, sortBy]);
 
   /* stats */
   const saleItems  = filtered.filter(p => p.listing_type === "sale");

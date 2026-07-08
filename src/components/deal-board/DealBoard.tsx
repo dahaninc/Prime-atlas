@@ -337,6 +337,7 @@ export function DealBoard({
       contingencyPct: 8,
       interestPct:    6.5,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on row id change only, not on every selectedRow re-derivation
   }, [selectedRow?.id]);
 
   const pfOut = useMemo(() => pf ? computePF(pf) : null, [pf]);
@@ -446,6 +447,7 @@ export function DealBoard({
       })
       .catch(() => { setRankedDeals([]); setUnrankedDeals([]); setReportStats(null); })
       .finally(() => setLiveDealsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch on row id change only, not on every selectedRow re-derivation
   }, [selectedRow?.id]);
 
   const tape  = MARKET_TAPE[country];
