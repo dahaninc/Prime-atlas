@@ -8,10 +8,11 @@ interface Props {
   alreadySent: boolean;
 }
 
-type State = "idle" | "loading" | "sent" | "already" | "error";
+type State = "idle" | "loading" | "sent" | "already" | "error" | "quota";
 
 export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Props) {
   const [state, setState] = useState<State>(alreadySent ? "already" : "idle");
+  const [quotaLimit, setQuotaLimit] = useState<number | null>(null);
 
   async function handleRequest() {
     if (state === "loading" || state === "sent") return;
@@ -25,7 +26,14 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
       });
       const data = await res.json();
 
-      if (!res.ok)            setState("error");
+      if (!res.ok) {
+        if (data?.error === "quota_exceeded") {
+          setQuotaLimit(typeof data.limit === "number" ? data.limit : null);
+          setState("quota");
+        } else {
+          setState("error");
+        }
+      }
       else if (data.already_sent) setState("already");
       else                    setState("sent");
     } catch {
@@ -68,6 +76,26 @@ export function ContactRequestButton({ propertyId, userEmail, alreadySent }: Pro
         >
           Re-send report →
         </button>
+      </div>
+    );
+  }
+
+  /* ── Quota exceeded ── */
+  if (state === "quota") {
+    return (
+      <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
+        <p className="text-xs font-bold text-primary mb-1">Monthly reveal limit reached</p>
+        <p className="text-[10px] text-muted-foreground mb-2 leading-relaxed">
+          {quotaLimit != null
+            ? `Your plan includes ${quotaLimit} contact reveals per month.`
+            : "You've used your contact reveals for this month."} Upgrade for a higher (or unlimited) allowance.
+        </p>
+        <a
+          href="/pricing"
+          className="text-[10px] font-bold text-primary hover:text-primary/80 underline underline-offset-2"
+        >
+          View plans →
+        </a>
       </div>
     );
   }

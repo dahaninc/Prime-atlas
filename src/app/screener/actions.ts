@@ -2,39 +2,42 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-
-const FREE_LIMIT = 3;
-
-function monthStartIso(): string {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString();
-}
+import {
+  normalizeTier, getEntitlements, checkScreenerQuota, canParseOm, canExportScreenerDoc,
+} from "@/lib/entitlements";
 
 /**
- * Analyses used this calendar month, paid-tier status, and whether the free
+ * Analyses used this calendar month, tier-driven cap, and whether the free
  * quota is activated (free tier requires a card on file — set only by
- * Stripe webhook / setup-confirm, never client-writable).
+ * Stripe webhook / setup-confirm, never client-writable). All caps come
+ * from src/lib/entitlements.ts — the single source of truth.
  */
 export async function getQuota(): Promise<{
-  used: number; unlimited: boolean; limit: number; cardOnFile: boolean;
+  used: number; unlimited: boolean; limit: number | null; cardOnFile: boolean;
+  tier: ReturnType<typeof normalizeTier>; canParseOm: boolean; canExportDoc: boolean;
 }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { used: 0, unlimited: false, limit: FREE_LIMIT, cardOnFile: false };
+  if (!user) {
+    return {
+      used: 0, unlimited: false, limit: getEntitlements("free").screenerRunsPerMonth,
+      cardOnFile: false, tier: "free", canParseOm: false, canExportDoc: false,
+    };
+  }
 
-  const [{ data: profile }, { count }] = await Promise.all([
-    supabase.from("profiles").select("subscription_tier, payment_method_on_file").eq("id", user.id).single(),
-    supabase.from("screener_analyses")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("created_at", monthStartIso()),
-  ]);
-  const unlimited = (profile?.subscription_tier ?? "free") !== "free";
+  const { data: profile } = await supabase
+    .from("profiles").select("subscription_tier, payment_method_on_file").eq("id", user.id).single();
+  const tier = normalizeTier(profile?.subscription_tier);
+  const quota = await checkScreenerQuota(supabase, user.id, tier);
+
   return {
-    used: count ?? 0,
-    unlimited,
-    limit: FREE_LIMIT,
-    cardOnFile: unlimited || (profile?.payment_method_on_file ?? false),
+    used: quota.used,
+    unlimited: quota.limit === null,
+    limit: quota.limit,
+    cardOnFile: tier !== "free" || (profile?.payment_method_on_file ?? false),
+    tier,
+    canParseOm: canParseOm(tier),
+    canExportDoc: canExportScreenerDoc(tier),
   };
 }
 
@@ -77,11 +80,15 @@ export async function saveAnalysis(input: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "not_authenticated" };
 
-  const quota = await getQuota();
-  if (!quota.cardOnFile) {
+  const { data: profile } = await supabase
+    .from("profiles").select("subscription_tier, payment_method_on_file").eq("id", user.id).single();
+  const tier = normalizeTier(profile?.subscription_tier);
+  const cardOnFile = tier !== "free" || (profile?.payment_method_on_file ?? false);
+  if (!cardOnFile) {
     return { ok: false, error: "card_required" };
   }
-  if (!quota.unlimited && quota.used >= quota.limit) {
+  const quota = await checkScreenerQuota(supabase, user.id, tier);
+  if (!quota.allowed) {
     return { ok: false, error: "quota_exceeded" };
   }
 
@@ -96,6 +103,5 @@ export async function saveAnalysis(input: {
   }).select("id").single();
   if (error) return { ok: false, error: error.message };
   revalidatePath("/screener");
-  const used = quota.used + 1;
-  return { ok: true, id: data.id, remaining: quota.unlimited ? -1 : Math.max(0, quota.limit - used) };
+  return { ok: true, id: data.id, remaining: quota.limit === null ? -1 : Math.max(0, quota.limit - (quota.used + 1)) };
 }

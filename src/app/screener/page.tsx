@@ -68,6 +68,8 @@ export default async function ScreenerPage() {
           quotaLimit={quota.limit}
           unlimited={quota.unlimited}
           cardOnFile={quota.cardOnFile}
+          canParseOm={quota.canParseOm}
+          canExportDoc={quota.canExportDoc}
         />
       </main>
       <Footer />

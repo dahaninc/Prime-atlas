@@ -13,6 +13,7 @@ import { createClient }                   from "@/lib/supabase/server";
 import { createClient as adminClient }    from "@supabase/supabase-js";
 import { Resend }                         from "resend";
 import { buildPropertyReportEmail }       from "@/lib/email/propertyReport";
+import { normalizeTier, checkContactRevealQuota } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -231,13 +232,10 @@ export async function POST(req: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    const tier       = (profile as { subscription_tier?: string } | null)?.subscription_tier ?? "free";
-    const isMember   = ["explorer", "professional", "institutional"].includes(tier);
-    if (!isMember) {
-      return NextResponse.json({ error: "Membership required" }, { status: 403 });
-    }
+    const tier = normalizeTier((profile as { subscription_tier?: string } | null)?.subscription_tier);
 
-    // Check for duplicate (only one per property per user)
+    // Check for duplicate first — re-revealing an already-sent property is
+    // always free and never consumes quota.
     const admin = getAdmin();
     const { data: existing } = await admin
       .from("contact_requests")
@@ -248,6 +246,17 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       return NextResponse.json({ already_sent: true });
+    }
+
+    // Entitlements-driven monthly reveal cap (src/lib/entitlements.ts).
+    // Free tier has a 0 cap, so this also replaces the old binary
+    // "Membership required" check with the same effective behavior.
+    const quota = await checkContactRevealQuota(supabase, user.id, tier);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: "quota_exceeded", used: quota.used, limit: quota.limit },
+        { status: 403 },
+      );
     }
 
     // Fetch property (including new agent/image columns)

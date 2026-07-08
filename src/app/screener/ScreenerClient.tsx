@@ -25,10 +25,18 @@ interface Props {
   savedCriteria: SavedCriteria | null;
   pastAnalyses: PastAnalysis[];
   quotaUsed: number;
-  quotaLimit: number;
+  quotaLimit: number | null;
   unlimited: boolean;
   cardOnFile: boolean;
+  canParseOm: boolean;
+  canExportDoc: boolean;
 }
+
+/** Where a pro-forma input's current value came from — drives the color coding
+ *  next to each field so an analyst can tell parsed/manual/default apart at a
+ *  glance, and spot-check low-confidence parses without re-opening the OM. */
+type FieldSource = "manual" | "parsed";
+interface FieldMeta { source: FieldSource; confidence?: "high" | "low"; note?: string }
 
 const money = (n: number) =>
   Math.abs(n) >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M`
@@ -59,8 +67,9 @@ const CRITERIA_FIELDS = [
   { key: "hold_years",         label: "Hold period (yrs)",     step: 1 },
 ] as const;
 
-export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLimit, unlimited, cardOnFile }: Props) {
+export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLimit, unlimited, cardOnFile, canParseOm, canExportDoc }: Props) {
   const [inputs, setInputs] = useState<ScreenerInputs>(US_DEFAULT_INPUTS);
+  const [fieldMeta, setFieldMeta] = useState<Partial<Record<keyof ScreenerInputs, FieldMeta>>>({});
   const [dealName, setDealName] = useState("");
   const [criteria, setCriteria] = useState<Criteria & { name: string }>(
     savedCriteria ?? {
@@ -76,6 +85,7 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
   const [activating, setActivating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function onShare() {
@@ -124,13 +134,20 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
   const sens = useMemo(() => screenerSensitivity(inputs), [inputs]);
   const scorecard = useMemo(() => buildScorecard(criteria, out), [criteria, out]);
   const allPass = scorecard.length > 0 && scorecard.every((l) => l.pass);
-  const quotaLeft = unlimited ? Infinity : Math.max(0, quotaLimit - used);
+  const quotaLeft = unlimited || quotaLimit === null ? Infinity : Math.max(0, quotaLimit - used);
 
   function setNum(key: keyof ScreenerInputs, v: string) {
     setInputs((p) => ({ ...p, [key]: Number(v) }));
+    // Editing a field makes it the analyst's own number — it's no longer
+    // presented as an AI extraction, parsed or otherwise.
+    setFieldMeta((m) => ({ ...m, [key]: { source: "manual" } }));
   }
 
   async function onDropPdf(file: File) {
+    if (!canParseOm) {
+      toast("OM parsing is a Professional feature — upgrade to parse", "info");
+      return;
+    }
     setParsing(true);
     try {
       const fd = new FormData();
@@ -142,23 +159,77 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
       }
       if (res.status === 403) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        toast(body.error === "card_required"
-          ? "Add a card to activate your free analyses (you won't be charged)"
-          : `Free plan: ${quotaLimit} analyses/month used — upgrade for unlimited`, "info");
+        if (body.error === "upgrade_required") {
+          toast("OM parsing is a Professional feature — upgrade to parse", "info");
+        } else if (body.error === "card_required") {
+          toast("Add a card to activate your free analyses (you won't be charged)", "info");
+        } else {
+          toast(`Plan limit: ${quotaLimit} screener runs/month used — upgrade for more`, "info");
+        }
         return;
       }
       if (!res.ok) {
         toast("Could not parse that PDF — enter the deal manually", "error");
         return;
       }
-      const parsed = (await res.json()) as Partial<ScreenerInputs> & { name?: string };
-      setInputs((p) => ({ ...p, ...Object.fromEntries(
-        Object.entries(parsed).filter(([k, v]) => k !== "name" && typeof v === "number" && isFinite(v)),
-      ) }));
+      const parsed = (await res.json()) as {
+        name?: string;
+        fields?: Record<string, { value: number; confidence: "high" | "low"; source: string }>;
+      };
+      const newInputs: Partial<ScreenerInputs> = {};
+      const newMeta: Partial<Record<keyof ScreenerInputs, FieldMeta>> = {};
+      let lowCount = 0;
+      for (const [k, f] of Object.entries(parsed.fields ?? {})) {
+        if (!f || typeof f.value !== "number" || !isFinite(f.value)) continue;
+        const key = k as keyof ScreenerInputs;
+        newInputs[key] = f.value;
+        newMeta[key] = { source: "parsed", confidence: f.confidence, note: f.source };
+        if (f.confidence === "low") lowCount++;
+      }
+      setInputs((p) => ({ ...p, ...newInputs }));
+      setFieldMeta((m) => ({ ...m, ...newMeta }));
       if (parsed.name) setDealName(parsed.name);
-      toast("Parsed — review every prefilled number before relying on it");
+      toast(
+        lowCount > 0
+          ? `Parsed — ${lowCount} field${lowCount > 1 ? "s" : ""} flagged low-confidence, verify against the source before relying on it`
+          : "Parsed — review every prefilled number before relying on it",
+      );
     } finally {
       setParsing(false);
+    }
+  }
+
+  async function onExportDoc() {
+    if (!canExportDoc || exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch("/api/export/screener", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: dealName || "Untitled analysis",
+          inputs, outputs: out, scorecard, sensitivity: sens,
+          fields: Object.fromEntries(
+            Object.entries(fieldMeta).filter(([, m]) => m?.source === "parsed"),
+          ),
+        }),
+      });
+      if (res.status === 403) {
+        toast("Screener export is a Professional feature — upgrade to unlock", "info");
+        return;
+      }
+      if (!res.ok) {
+        toast("Export failed — try again", "error");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `screener-${(dealName || "analysis").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}.doc`;
+      a.click(); URL.revokeObjectURL(url);
+      toast("Exported — Word-editable .doc, ready to forward");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -235,20 +306,43 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
       {/* ── Left: deal inputs ─────────────────────────────────────────── */}
       <div className="lg:col-span-2 space-y-4">
 
-        {/* PDF dropzone */}
-        <div
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) onDropPdf(f); }}
-          onClick={() => fileRef.current?.click()}
-          className="border border-dashed border-primary/40 bg-primary/5 rounded-xl p-5 text-center cursor-pointer hover:bg-primary/10 transition-colors"
-        >
-          <input ref={fileRef} type="file" accept="application/pdf" className="hidden"
-                 onChange={(e) => { const f = e.target.files?.[0]; if (f) onDropPdf(f); }} />
-          <p className="text-sm font-semibold">{parsing ? "Parsing…" : "Drop an OM / rent roll / T12 PDF"}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Prefills the pro-forma — every parsed number stays editable. Or skip and enter manually below.
-          </p>
-        </div>
+        {/* PDF dropzone — Professional+ only (src/lib/entitlements.ts: omParsingEnabled) */}
+        {canParseOm ? (
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) onDropPdf(f); }}
+            onClick={() => fileRef.current?.click()}
+            className="border border-dashed border-primary/40 bg-primary/5 rounded-xl p-5 text-center cursor-pointer hover:bg-primary/10 transition-colors"
+          >
+            <input ref={fileRef} type="file" accept="application/pdf" className="hidden"
+                   onChange={(e) => { const f = e.target.files?.[0]; if (f) onDropPdf(f); }} />
+            {parsing ? (
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold">Parsing document…</p>
+              </div>
+            ) : (
+              <p className="text-sm font-semibold">Drop an OM / rent roll / T12 PDF</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Prefills the pro-forma — every parsed number stays editable. Or skip and enter manually below.
+            </p>
+          </div>
+        ) : (
+          <div className="border border-dashed border-border rounded-xl p-5 text-center bg-card">
+            <p className="text-sm font-semibold text-foreground">OM / rent roll / T12 parsing</p>
+            <p className="text-xs text-muted-foreground mt-1 mb-3">
+              Drop a PDF and Prime Atlas prefills the pro-forma for you — a Professional feature.
+              Enter deals manually below in the meantime.
+            </p>
+            <Link
+              href="/pricing"
+              className="inline-block bg-primary text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-primary/85 transition-colors"
+            >
+              Upgrade to Professional →
+            </Link>
+          </div>
+        )}
 
         {/* Deal inputs */}
         <div className="border border-border rounded-xl bg-card p-5">
@@ -259,17 +353,44 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
             placeholder="Deal name (e.g. 12-unit — Maple St)"
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:border-primary/60"
           />
+          {Object.values(fieldMeta).some((m) => m?.source === "parsed") && (
+            <div className="flex flex-wrap items-center gap-3 text-[9px] text-muted-foreground mb-3">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-primary" /> parsed from document</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-pa-amber" /> parsed — low confidence, verify</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-600" /> your edit</span>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
-            {INPUT_FIELDS.map(({ key, label, step }) => (
-              <div key={key}>
-                <label className="block text-[10px] text-muted-foreground mb-1">{label}</label>
-                <input
-                  type="number" step={step} value={inputs[key]}
-                  onChange={(e) => setNum(key, e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-mono tabular-nums focus:outline-none focus:border-primary/60"
-                />
-              </div>
-            ))}
+            {INPUT_FIELDS.map(({ key, label, step }) => {
+              const meta = fieldMeta[key];
+              const isLow = meta?.source === "parsed" && meta.confidence === "low";
+              const isParsed = meta?.source === "parsed" && meta.confidence !== "low";
+              const borderClass = isLow ? "border-pa-amber focus:border-pa-amber"
+                : isParsed ? "border-primary/60 focus:border-primary"
+                : "border-border focus:border-primary/60";
+              const bgClass = isLow ? "bg-pa-amber/5" : isParsed ? "bg-primary/5" : "bg-background";
+              return (
+                <div key={key}>
+                  <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-1">
+                    {label}
+                    {(isLow || isParsed) && (
+                      <span
+                        title={meta?.note ? `${isLow ? "Low confidence — verify: " : "Parsed — "}${meta.note}` : undefined}
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${isLow ? "bg-pa-amber" : "bg-primary"}`}
+                      />
+                    )}
+                    {meta?.source === "manual" && (
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-zinc-600" title="Edited by you" />
+                    )}
+                  </label>
+                  <input
+                    type="number" step={step} value={inputs[key]}
+                    onChange={(e) => setNum(key, e.target.value)}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm font-mono tabular-nums focus:outline-none transition-colors ${borderClass} ${bgClass}`}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -286,6 +407,7 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
                   key={a.id}
                   onClick={() => {
                     setInputs({ ...US_DEFAULT_INPUTS, ...a.inputs });
+                    setFieldMeta({}); // historical analyses don't carry parse provenance
                     setDealName(a.name ?? "");
                     setSavedId(a.id);
                     toast("Loaded — every input stays editable");
@@ -345,7 +467,13 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
       </div>
 
       {/* ── Right: live pro-forma + scorecard ─────────────────────────── */}
-      <div className="lg:col-span-3 space-y-4">
+      <div className="lg:col-span-3 space-y-4 relative">
+        {parsing && (
+          <div className="absolute inset-0 z-10 -m-2 p-2 bg-background/70 backdrop-blur-[1px] rounded-xl flex flex-col items-center justify-center gap-2 text-center">
+            <span className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-semibold text-foreground">Updating pro-forma &amp; scorecard from parsed data…</p>
+          </div>
+        )}
 
         {/* Headline metrics */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -450,10 +578,10 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
           </button>
           <span className="text-xs text-muted-foreground">
             {unlimited
-              ? "Unlimited analyses on your plan"
+              ? "Unlimited screener runs on your plan"
               : needsActivation
               ? "Add a card above to activate your free analyses"
-              : `${quotaLeft} of ${quotaLimit} free analyses left this month`}
+              : `${quotaLeft} of ${quotaLimit} screener runs left this month`}
           </span>
           {!unlimited && quotaLeft <= 0 && (
             <Link href="/pricing" className="text-xs text-primary hover:underline">Upgrade for unlimited →</Link>
@@ -466,6 +594,23 @@ export function ScreenerClient({ savedCriteria, pastAnalyses, quotaUsed, quotaLi
             >
               {sharing ? "Creating link…" : "Share read-only link"}
             </button>
+          )}
+          {canExportDoc ? (
+            <button
+              onClick={onExportDoc}
+              disabled={exporting}
+              className="bg-secondary border border-border text-sm font-semibold px-5 py-3 rounded-lg hover:border-primary/40 transition-colors disabled:opacity-60"
+            >
+              {exporting ? "Exporting…" : "Export report (.doc)"}
+            </button>
+          ) : (
+            <Link
+              href="/pricing"
+              className="text-xs text-muted-foreground hover:text-primary border border-border rounded-lg px-5 py-3 transition-colors"
+              title="Export a forwardable pro-forma + scorecard document"
+            >
+              Export report — Professional feature →
+            </Link>
           )}
         </div>
 

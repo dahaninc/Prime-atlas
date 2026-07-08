@@ -4,18 +4,19 @@
  * Sends the PDF to Claude for structured extraction. Requires
  * ANTHROPIC_API_KEY; until it is configured this returns 503 and the client
  * falls back to manual entry (which is a first-class path, not a degradation).
- * Auth required; free tier must have quota remaining (parsing is the
- * expensive unit of work, per the usage-gated pricing model).
+ * Auth required. OM parsing is a Professional+ entitlement (see
+ * src/lib/entitlements.ts) — free/Explorer get "upgrade_required", not a
+ * raw 403, so the client can render it as an upsell rather than an error.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { canParseOm, checkScreenerQuota } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024; // 8 MB
-const FREE_LIMIT = 3;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -30,24 +31,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Quota: parsing shares the monthly analysis quota (compute is the cost).
-  // Free quota activates only once a card is vaulted with Stripe.
   const { data: profile } = await supabase
-    .from("profiles").select("subscription_tier, payment_method_on_file").eq("id", user.id).single();
-  if ((profile?.subscription_tier ?? "free") === "free") {
-    if (!profile?.payment_method_on_file) {
-      return NextResponse.json({ error: "card_required" }, { status: 403 });
-    }
-    const monthStart = new Date();
-    monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
-    const { count } = await supabase
-      .from("screener_analyses")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("created_at", monthStart.toISOString());
-    if ((count ?? 0) >= FREE_LIMIT) {
-      return NextResponse.json({ error: "quota_exceeded" }, { status: 403 });
-    }
+    .from("profiles").select("subscription_tier").eq("id", user.id).single();
+  const tier = profile?.subscription_tier ?? "free";
+
+  if (!canParseOm(tier)) {
+    return NextResponse.json(
+      {
+        error: "upgrade_required",
+        feature: "om_parsing",
+        requiredTier: "professional",
+        message: "OM parsing is a Professional feature — upgrade to parse.",
+      },
+      { status: 403 },
+    );
+  }
+
+  const quota = await checkScreenerQuota(supabase, user.id, tier);
+  if (!quota.allowed) {
+    return NextResponse.json(
+      { error: "quota_exceeded", used: quota.used, limit: quota.limit },
+      { status: 403 },
+    );
   }
 
   const form = await req.formData().catch(() => null);
@@ -77,11 +82,18 @@ export async function POST(req: NextRequest) {
           { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } },
           { type: "text", text:
             "Extract deal facts from this real-estate document (offering memo, rent roll, T12, or listing sheet). " +
-            "Respond with ONLY a JSON object, no prose, using these keys (omit any you cannot find explicitly stated — never estimate): " +
-            '{"name": string, "purchasePrice": number, "units": number, "avgRentMo": number, ' +
-            '"otherIncomeYr": number, "expenseRatioPct": number, "vacancyPct": number}. ' +
-            "purchasePrice = asking price in dollars; avgRentMo = average in-place monthly rent per unit; " +
-            "expenseRatioPct = operating expenses as % of effective gross income if a T12 is present." },
+            "Respond with ONLY a JSON object, no prose: " +
+            '{"name": string, "fields": {"<key>": {"value": number, "confidence": "high"|"low", "source": string}}}. ' +
+            "Only include a field if you found an explicit number for it — never estimate or fabricate a value. " +
+            "Field keys (include only ones you found): purchasePrice (asking price, $), units (unit count), " +
+            "avgRentMo (average in-place monthly rent per unit, $), otherIncomeYr (other annual income, $), " +
+            "expenseRatioPct (operating expenses as % of effective gross income, from a T12 if present), " +
+            "vacancyPct (vacancy %). " +
+            'confidence = "high" only if the number is explicitly and unambiguously stated in the document as ' +
+            'that exact metric; use "low" if you had to derive, calculate, or infer it, or the source was ' +
+            "ambiguous. source = a short citation for where the number came from, as specific about page/location " +
+            "as you can be from the document, e.g. 'p.2, \"Asking Price\" line' or 'derived from T12 p.4 expense " +
+            "total' — this lets an analyst spot-check without re-reading the whole document." },
         ],
       }],
     }),
@@ -100,15 +112,25 @@ export async function POST(req: NextRequest) {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return NextResponse.json({ error: "parse_failed" }, { status: 502 });
 
+  const FIELD_KEYS = ["purchasePrice", "units", "avgRentMo", "otherIncomeYr", "expenseRatioPct", "vacancyPct"] as const;
+
   try {
     const parsed = JSON.parse(jsonMatch[0]);
-    const clean: Record<string, number | string> = {};
-    if (typeof parsed.name === "string") clean.name = parsed.name.slice(0, 120);
-    for (const k of ["purchasePrice", "units", "avgRentMo", "otherIncomeYr", "expenseRatioPct", "vacancyPct"]) {
-      const v = Number(parsed[k]);
-      if (isFinite(v) && v >= 0) clean[k] = v;
+    const rawFields = parsed?.fields && typeof parsed.fields === "object" ? parsed.fields : {};
+    const fields: Record<string, { value: number; confidence: "high" | "low"; source: string }> = {};
+    for (const k of FIELD_KEYS) {
+      const f = rawFields[k];
+      if (!f || typeof f !== "object") continue;
+      const v = Number(f.value);
+      if (!isFinite(v) || v < 0) continue;
+      fields[k] = {
+        value: v,
+        confidence: f.confidence === "low" ? "low" : "high",
+        source: typeof f.source === "string" ? f.source.slice(0, 160) : "",
+      };
     }
-    return NextResponse.json(clean);
+    const name = typeof parsed.name === "string" ? parsed.name.slice(0, 120) : undefined;
+    return NextResponse.json({ name, fields });
   } catch {
     return NextResponse.json({ error: "parse_failed" }, { status: 502 });
   }
